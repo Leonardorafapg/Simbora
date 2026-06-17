@@ -12,8 +12,8 @@ export default {
         white: "#FFFFFF",
       },
       fontFamily: {
-        display: ["Playfair Display", "serif"],
-        body: ["Playfair Display", "serif"],
+        display: ["Inter", "sans-serif"],
+        body: ["Inter", "sans-serif"],
       },
     },
   },

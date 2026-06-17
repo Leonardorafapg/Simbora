@@ -47,34 +47,49 @@
 </style>
 
 <script>
-  import { gsap } from "gsap";
-  import { ScrollTrigger } from "gsap/ScrollTrigger";
+  const isMobile = window.innerWidth <= 768;
 
-  gsap.registerPlugin(ScrollTrigger);
+  if (isMobile) {
+    document.getElementById('bg-canvas').style.background = '#000000';
+  } else {
+    import('gsap').then(({ gsap }) => {
+      import('gsap/ScrollTrigger').then(({ ScrollTrigger }) => {
+        gsap.registerPlugin(ScrollTrigger);
 
-  const sections = [
-    { id: "servicos", bg: "#0D0D0D", orb1: 0.8, orb2: 0.3, orb3: 0 },
-    { id: "clientes", bg: "#FFFFFF", orb1: 0, orb2: 0, orb3: 0 },
-    { id: "cases", bg: "#000000", orb1: 0, orb2: 0.5, orb3: 0.4 },
-    { id: "depoimentos", bg: "#FFFFFF", orb1: 0, orb2: 0, orb3: 0 },
-    { id: "sobre", bg: "#0A3D4D", orb1: 0.5, orb2: 0.8, orb3: 0 },
-    { id: "cta", bg: "#000000", orb1: 0, orb2: 0, orb3: 0.6 },
-  ];
+        const canvas = document.getElementById('bg-canvas');
+        const orb1 = document.getElementById('orb1');
+        const orb2 = document.getElementById('orb2');
+        const orb3 = document.getElementById('orb3');
 
-  const updateBg = (section) => {
-    gsap.to("#bg-canvas", { backgroundColor: section.bg, duration: 0.8, ease: "power2.inOut" });
-    gsap.to("#orb1", { opacity: section.orb1, duration: 0.8 });
-    gsap.to("#orb2", { opacity: section.orb2, duration: 0.8 });
-    gsap.to("#orb3", { opacity: section.orb3, duration: 0.8 });
-  };
+        const sections = [
+          { id: 'servicos',    bg: '#0D0D0D', orb1: 0.8, orb2: 0.3, orb3: 0   },
+          { id: 'numeros',     bg: '#00C8C8', orb1: 0,   orb2: 0,   orb3: 0   },
+          { id: 'cases',       bg: '#000000', orb1: 0,   orb2: 0.5, orb3: 0.4 },
+          { id: 'clientes',    bg: '#FFFFFF', orb1: 0,   orb2: 0,   orb3: 0   },
+          { id: 'depoimentos', bg: '#FFFFFF', orb1: 0,   orb2: 0,   orb3: 0   },
+          { id: 'sobre',       bg: '#0A3D4D', orb1: 0.5, orb2: 0.8, orb3: 0   },
+          { id: 'cta',         bg: '#000000', orb1: 0,   orb2: 0,   orb3: 0.6 },
+        ];
 
-  sections.forEach((section) => {
-    ScrollTrigger.create({
-      trigger: `#${section.id}`,
-      start: "top center",
-      end: "bottom center",
-      onEnter: () => updateBg(section),
-      onEnterBack: () => updateBg(section),
+        function updateBg(section) {
+          gsap.to(canvas, { backgroundColor: section.bg, duration: 0.8, ease: 'power2.inOut' });
+          gsap.to(orb1, { opacity: section.orb1, duration: 0.8 });
+          gsap.to(orb2, { opacity: section.orb2, duration: 0.8 });
+          gsap.to(orb3, { opacity: section.orb3, duration: 0.8 });
+        }
+
+        sections.forEach(section => {
+          const el = document.getElementById(section.id);
+          if (!el) return;
+          ScrollTrigger.create({
+            trigger: el,
+            start: 'top center',
+            end: 'bottom center',
+            onEnter: () => updateBg(section),
+            onEnterBack: () => updateBg(section),
+          });
+        });
+      });
     });
-  });
+  }
 </script>
