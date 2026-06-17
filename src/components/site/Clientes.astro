@@ -1,0 +1,149 @@
+---
+const clientes = Array.from({ length: 8 }, (_, i) => `Cliente ${i + 1}`);
+---
+
+<section id="clientes" class="clientes-section relative z-[1]">
+  <p class="clientes-label">empresas que já cresceram com a simbora</p>
+
+  <div id="clientes-track" class="clientes-track">
+    <div class="clientes-inner">
+      {clientes.map((nome) => (
+        <svg
+          class="logo-item"
+          width="120"
+          height="40"
+          viewBox="0 0 120 40"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <rect class="logo-rect" width="120" height="40" rx="8" fill="rgba(0,0,0,0.08)" />
+          <text
+            class="logo-text"
+            x="60"
+            y="24"
+            text-anchor="middle"
+            font-weight="500"
+            font-size="11"
+            fill="rgba(0,0,0,0.5)"
+          >
+            {nome}
+          </text>
+        </svg>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .clientes-section {
+    padding: 80px 0;
+  }
+
+  .clientes-label {
+    font-weight: 400;
+    font-size: 0.8rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(0, 0, 0, 0.4);
+    text-align: center;
+    margin-bottom: 48px;
+  }
+
+  .clientes-track {
+    width: 100%;
+    overflow-x: auto;
+    cursor: grab;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .clientes-track::-webkit-scrollbar {
+    display: none;
+  }
+
+  .clientes-inner {
+    display: flex;
+    align-items: center;
+    gap: 80px;
+    padding: 0 80px;
+    width: max-content;
+  }
+
+  .logo-item {
+    flex-shrink: 0;
+  }
+
+  .logo-rect {
+    transition: fill 0.3s;
+  }
+
+  .logo-item:hover .logo-rect {
+    fill: rgba(0, 0, 0, 0.15);
+  }
+
+  @media (max-width: 640px) {
+    .clientes-section {
+      padding: 48px 0;
+    }
+
+    .clientes-label {
+      margin-bottom: 32px;
+    }
+
+    .clientes-inner {
+      gap: 40px;
+      padding: 0 20px;
+    }
+  }
+</style>
+
+<script>
+  const slider = document.getElementById("clientes-track");
+
+  if (slider) {
+    let isDown = false;
+    let startX = 0;
+    let scrollLeft = 0;
+
+    slider.addEventListener("mousedown", (e) => {
+      isDown = true;
+      slider.style.cursor = "grabbing";
+      startX = e.pageX - slider.offsetLeft;
+      scrollLeft = slider.scrollLeft;
+    });
+
+    slider.addEventListener("mouseleave", () => {
+      isDown = false;
+      slider.style.cursor = "grab";
+    });
+
+    slider.addEventListener("mouseup", () => {
+      isDown = false;
+      slider.style.cursor = "grab";
+    });
+
+    slider.addEventListener("mousemove", (e) => {
+      if (!isDown) return;
+      e.preventDefault();
+      const x = e.pageX - slider.offsetLeft;
+      const walk = (x - startX) * 1.5;
+      slider.scrollLeft = scrollLeft - walk;
+    });
+
+    slider.addEventListener("touchstart", (e) => {
+      isDown = true;
+      startX = e.touches[0].pageX - slider.offsetLeft;
+      scrollLeft = slider.scrollLeft;
+    });
+
+    slider.addEventListener("touchend", () => {
+      isDown = false;
+    });
+
+    slider.addEventListener("touchmove", (e) => {
+      if (!isDown) return;
+      const x = e.touches[0].pageX - slider.offsetLeft;
+      const walk = (x - startX) * 1.5;
+      slider.scrollLeft = scrollLeft - walk;
+    });
+  }
+</script>

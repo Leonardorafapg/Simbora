@@ -1,0 +1,147 @@
+---
+const faqs = [
+  {
+    question: "Quanto tempo para ver resultados?",
+    answer:
+      "Os primeiros resultados em engajamento e alcance aparecem entre 30 e 60 dias. Autoridade consolidada e crescimento consistente ocorrem a partir do 90º dia.",
+  },
+  {
+    question: "Preciso aparecer nos vídeos?",
+    answer:
+      "Sim, para construir autoridade médica real o rosto do profissional é essencial. Mas trabalhamos todo o roteiro e direção para que você se sinta confortável na frente da câmera.",
+  },
+  {
+    question: "Tem contrato de fidelidade?",
+    answer:
+      "Não. Trabalhamos com recorrência mensal sem fidelidade mínima. Acreditamos que resultado é o que mantém o cliente.",
+  },
+  {
+    question: "Como funciona a produção de conteúdo?",
+    answer:
+      "Nossa equipe cria o planejamento, roteiros, artes e legendas. Você revisa e aprova antes de qualquer publicação. Sua identidade e ética médica são sempre preservadas.",
+  },
+  {
+    question: "Atendem médicos de qualquer especialidade?",
+    answer:
+      "Sim. Atendemos clínicos gerais, especialistas, médicos estéticos, dentistas e outros profissionais de saúde em todo o Maranhão.",
+  },
+];
+---
+
+<section class="faq-section">
+  <div class="faq-container">
+    <h2 class="faq-title">Perguntas frequentes.</h2>
+
+    <div class="faq-list">
+      {faqs.map((item) => (
+        <div class="faq-item">
+          <button class="faq-question">
+            <span>{item.question}</span>
+            <span class="faq-icon">+</span>
+          </button>
+          <div class="faq-answer">
+            <p class="faq-answer-text">{item.answer}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .faq-section {
+    background: #ffffff;
+    padding: 100px 40px;
+  }
+
+  .faq-container {
+    max-width: 760px;
+    margin: 0 auto;
+  }
+
+  .faq-title {
+    font-family: "Playfair Display", serif;
+    font-weight: 400;
+    font-size: clamp(1.8rem, 3vw, 2.5rem);
+    color: #0d0d0d;
+    margin-bottom: 48px;
+  }
+
+  .faq-item {
+    border-bottom: 1px solid #e5e7eb;
+    padding: 24px 0;
+  }
+
+  .faq-question {
+    width: 100%;
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: "Inter", sans-serif;
+    font-weight: 500;
+    font-size: 1rem;
+    color: #0d0d0d;
+    text-align: left;
+    padding: 0;
+  }
+
+  .faq-icon {
+    color: #00c8c8;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+    margin-left: 16px;
+    transition: transform 0.3s ease;
+  }
+
+  .faq-item.open .faq-icon {
+    transform: rotate(135deg);
+  }
+
+  .faq-answer {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+  }
+
+  .faq-answer-text {
+    font-family: "Inter", sans-serif;
+    font-weight: 400;
+    font-size: 0.95rem;
+    color: #6b7280;
+    line-height: 1.7;
+    padding-top: 16px;
+  }
+
+  @media (max-width: 640px) {
+    .faq-section {
+      padding: 56px 20px;
+    }
+  }
+</style>
+
+<script>
+  const items = document.querySelectorAll(".faq-item");
+
+  items.forEach((item) => {
+    const question = item.querySelector(".faq-question");
+    const answer = item.querySelector(".faq-answer");
+
+    question?.addEventListener("click", () => {
+      const isOpen = item.classList.contains("open");
+
+      items.forEach((other) => {
+        other.classList.remove("open");
+        const otherAnswer = other.querySelector(".faq-answer");
+        if (otherAnswer) otherAnswer.style.maxHeight = "0px";
+      });
+
+      if (!isOpen && answer) {
+        item.classList.add("open");
+        answer.style.maxHeight = `${answer.scrollHeight}px`;
+      }
+    });
+  });
+</script>

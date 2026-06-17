@@ -1,0 +1,80 @@
+<div id="bg-canvas">
+  <div class="orb orb-1" id="orb1"></div>
+  <div class="orb orb-2" id="orb2"></div>
+  <div class="orb orb-3" id="orb3"></div>
+</div>
+
+<style>
+  #bg-canvas {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    background: #000000;
+  }
+
+  .orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(120px);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .orb-1 {
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(0, 200, 200, 0.15), transparent 70%);
+    top: -200px;
+    left: -200px;
+  }
+
+  .orb-2 {
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, rgba(10, 61, 77, 0.8), transparent 70%);
+    bottom: -100px;
+    right: -100px;
+  }
+
+  .orb-3 {
+    width: 700px;
+    height: 700px;
+    background: radial-gradient(circle, rgba(0, 200, 200, 0.2), transparent 70%);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+</style>
+
+<script>
+  import { gsap } from "gsap";
+  import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+  gsap.registerPlugin(ScrollTrigger);
+
+  const sections = [
+    { id: "servicos", bg: "#0D0D0D", orb1: 0.8, orb2: 0.3, orb3: 0 },
+    { id: "clientes", bg: "#FFFFFF", orb1: 0, orb2: 0, orb3: 0 },
+    { id: "cases", bg: "#000000", orb1: 0, orb2: 0.5, orb3: 0.4 },
+    { id: "depoimentos", bg: "#FFFFFF", orb1: 0, orb2: 0, orb3: 0 },
+    { id: "sobre", bg: "#0A3D4D", orb1: 0.5, orb2: 0.8, orb3: 0 },
+    { id: "cta", bg: "#000000", orb1: 0, orb2: 0, orb3: 0.6 },
+  ];
+
+  const updateBg = (section) => {
+    gsap.to("#bg-canvas", { backgroundColor: section.bg, duration: 0.8, ease: "power2.inOut" });
+    gsap.to("#orb1", { opacity: section.orb1, duration: 0.8 });
+    gsap.to("#orb2", { opacity: section.orb2, duration: 0.8 });
+    gsap.to("#orb3", { opacity: section.orb3, duration: 0.8 });
+  };
+
+  sections.forEach((section) => {
+    ScrollTrigger.create({
+      trigger: `#${section.id}`,
+      start: "top center",
+      end: "bottom center",
+      onEnter: () => updateBg(section),
+      onEnterBack: () => updateBg(section),
+    });
+  });
+</script>

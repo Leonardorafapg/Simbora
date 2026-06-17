@@ -1,0 +1,78 @@
+---
+const depoimentos = [
+  {
+    name: "Carla Mendes",
+    role: "Dona de restaurante, São Luís",
+    quote:
+      "Desde que a Simbora assumiu nossas redes, o movimento no salão cresceu visivelmente. Hoje fechamos a semana com a agenda cheia.",
+  },
+  {
+    name: "Ricardo Almeida",
+    role: "Dono de clínica, São Luís",
+    quote:
+      "O tráfego pago trouxe pacientes novos todos os meses. A equipe entende muito bem o público maranhense.",
+  },
+  {
+    name: "Juliana Costa",
+    role: "Empreendedora, Imperatriz",
+    quote:
+      "Os vídeos produzidos pela Simbora elevaram o nível da nossa marca. Recebemos elogios constantes dos clientes.",
+  },
+];
+---
+
+<section id="depoimentos" class="relative z-[1] py-12 sm:py-24">
+  <div class="mx-auto max-w-7xl px-6 lg:px-10">
+    <h2 class="text-center font-display text-3xl font-light text-black sm:text-4xl">
+      O que nossos clientes dizem
+    </h2>
+
+    <div class="mt-16 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+      {depoimentos.map((item) => (
+        <div class="depoimento-card rounded-xl border border-[#E5E5E5] bg-white p-8 shadow-[0_4px_24px_rgba(0,0,0,0.08)] transition-shadow duration-300 hover:shadow-[0_8px_32px_rgba(0,0,0,0.14)]">
+          <div class="flex items-center gap-4">
+            <div class="h-12 w-12 rounded-full bg-gray-300"></div>
+            <div>
+              <p class="font-display text-base font-semibold text-black">{item.name}</p>
+              <p class="font-body text-xs text-black/60">{item.role}</p>
+            </div>
+          </div>
+          <p class="mt-3 text-cyan">★★★★★</p>
+          <p class="mt-4 font-body text-sm leading-relaxed text-black/80">
+            "{item.quote}"
+          </p>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<script>
+  import { gsap } from "gsap";
+  import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+  gsap.registerPlugin(ScrollTrigger);
+
+  const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const cards = document.querySelectorAll(".depoimento-card");
+
+  if (prefersReducedMotion) {
+    gsap.set(cards, { opacity: 1, y: 0 });
+  } else {
+    gsap.fromTo(
+      cards,
+      { opacity: 0, y: 40 },
+      {
+        opacity: 1,
+        y: 0,
+        duration: 0.8,
+        ease: "power3.out",
+        stagger: 0.15,
+        scrollTrigger: {
+          trigger: cards[0],
+          start: "top 80%",
+        },
+      }
+    );
+  }
+</script>

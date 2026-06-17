@@ -1,0 +1,188 @@
+---
+const stats = [
+  { value: "+120", label: "campanhas realizadas" },
+  { value: "+50", label: "clientes atendidos" },
+  { value: "98%", label: "satisfação" },
+];
+
+const testimonials = [
+  {
+    quote:
+      "Em 3 meses meu Instagram saiu de 800 para 4.200 seguidores. Hoje recebo mensagens de pacientes novos toda semana.",
+    name: "Dr. Carlos Mendes",
+    role: "Clínico Geral, São Luís — MA",
+  },
+  {
+    quote:
+      "Os vídeos que a Simbora produziu me posicionaram como referência em harmonização facial na cidade.",
+    name: "Dra. Ana Paula Reis",
+    role: "Médica Estética, São Luís — MA",
+  },
+  {
+    quote:
+      "O tráfego pago trouxe pacientes qualificados para procedimentos de alto valor. ROI excelente.",
+    name: "Dr. Roberto Lima",
+    role: "Dermatologista, São Luís — MA",
+  },
+];
+---
+
+<section class="resultados-section">
+  <div class="resultados-container">
+    <div class="resultados-header">
+      <span class="resultados-eyebrow">Resultados</span>
+      <h2 class="resultados-title">Números que provam.</h2>
+    </div>
+
+    <div class="stats-row">
+      {stats.map((stat) => (
+        <div class="stat-item">
+          <span class="stat-value">{stat.value}</span>
+          <span class="stat-label">{stat.label}</span>
+        </div>
+      ))}
+    </div>
+
+    <div class="testimonials-grid">
+      {testimonials.map((item) => (
+        <div class="testimonial-card">
+          <p class="testimonial-stars">★★★★★</p>
+          <p class="testimonial-quote">"{item.quote}"</p>
+          <p class="testimonial-name">{item.name}</p>
+          <p class="testimonial-role">{item.role}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .resultados-section {
+    background: #0d0d0d;
+    padding: 100px 40px;
+  }
+
+  .resultados-container {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .resultados-header {
+    text-align: center;
+    margin-bottom: 64px;
+  }
+
+  .resultados-eyebrow {
+    display: inline-block;
+    font-family: "Inter", sans-serif;
+    font-weight: 500;
+    font-size: 0.8rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #00c8c8;
+    margin-bottom: 16px;
+  }
+
+  .resultados-title {
+    font-family: "Playfair Display", serif;
+    font-weight: 400;
+    font-size: clamp(2rem, 4vw, 3.2rem);
+    color: #ffffff;
+    line-height: 1.2;
+  }
+
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 32px;
+    text-align: center;
+    margin-bottom: 64px;
+  }
+
+  @media (max-width: 768px) {
+    .stats-row {
+      grid-template-columns: 1fr;
+      gap: 40px;
+    }
+  }
+
+  .stat-value {
+    display: block;
+    font-family: "Playfair Display", serif;
+    font-weight: 700;
+    font-size: 4rem;
+    color: #00c8c8;
+    line-height: 1;
+  }
+
+  .stat-label {
+    display: block;
+    font-family: "Inter", sans-serif;
+    font-weight: 400;
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.5);
+    margin-top: 8px;
+  }
+
+  .testimonials-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+  }
+
+  @media (max-width: 768px) {
+    .testimonials-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .testimonial-card {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 28px;
+  }
+
+  .testimonial-stars {
+    color: #00c8c8;
+    margin-bottom: 16px;
+  }
+
+  .testimonial-quote {
+    font-family: "Inter", sans-serif;
+    font-weight: 400;
+    font-size: 0.95rem;
+    color: rgba(255, 255, 255, 0.7);
+    line-height: 1.7;
+    margin-bottom: 20px;
+  }
+
+  .testimonial-name {
+    font-family: "Playfair Display", serif;
+    font-weight: 700;
+    font-size: 1rem;
+    color: #ffffff;
+  }
+
+  .testimonial-role {
+    font-family: "Inter", sans-serif;
+    font-weight: 400;
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.4);
+    margin-top: 4px;
+  }
+
+  @media (max-width: 640px) {
+    .resultados-section {
+      padding: 56px 20px;
+    }
+
+    .resultados-header {
+      margin-bottom: 40px;
+    }
+
+    .stat-value {
+      font-size: 2.5rem;
+    }
+  }
+</style>

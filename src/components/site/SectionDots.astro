@@ -1,0 +1,69 @@
+---
+const sections = ["servicos", "clientes", "cases", "depoimentos", "sobre", "cta"];
+---
+
+<div id="section-dots">
+  {sections.map((id) => (
+    <div class="dot" data-target={id}></div>
+  ))}
+</div>
+
+<style>
+  #section-dots {
+    position: fixed;
+    right: 40px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    transition: background 0.3s, transform 0.3s;
+    cursor: pointer;
+  }
+
+  .dot.active {
+    background: #00c8c8;
+    transform: scale(1.5);
+  }
+</style>
+
+<script>
+  import { gsap } from "gsap";
+  import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+  gsap.registerPlugin(ScrollTrigger);
+
+  const sections = ["servicos", "clientes", "cases", "depoimentos", "sobre", "cta"];
+  const dots = document.querySelectorAll("#section-dots .dot");
+
+  const setActive = (id) => {
+    dots.forEach((dot) => {
+      dot.classList.toggle("active", dot.getAttribute("data-target") === id);
+    });
+  };
+
+  dots.forEach((dot) => {
+    dot.addEventListener("click", () => {
+      const target = dot.getAttribute("data-target");
+      document.getElementById(target)?.scrollIntoView({ behavior: "smooth" });
+    });
+  });
+
+  sections.forEach((id) => {
+    ScrollTrigger.create({
+      trigger: `#${id}`,
+      start: "top center",
+      end: "bottom center",
+      onEnter: () => setActive(id),
+      onEnterBack: () => setActive(id),
+    });
+  });
+</script>

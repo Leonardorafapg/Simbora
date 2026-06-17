@@ -1,0 +1,151 @@
+---
+const clientes = Array.from({ length: 8 }, (_, i) => `Médico ${i + 1}`);
+---
+
+<section class="provas-section">
+  <p class="provas-label">médicos que já cresceram com a simbora</p>
+
+  <div id="provas-track" class="provas-track">
+    <div class="provas-inner">
+      {clientes.map((nome) => (
+        <svg
+          class="logo-item"
+          width="120"
+          height="40"
+          viewBox="0 0 120 40"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <rect class="logo-rect" width="120" height="40" rx="8" fill="#E5E7EB" />
+          <text
+            class="logo-text"
+            x="60"
+            y="24"
+            text-anchor="middle"
+            font-weight="500"
+            font-size="11"
+            fill="#9CA3AF"
+          >
+            {nome}
+          </text>
+        </svg>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .provas-section {
+    background: #f9fafb;
+    padding: 60px 40px;
+  }
+
+  .provas-label {
+    font-family: "Inter", sans-serif;
+    font-weight: 400;
+    font-size: 0.75rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #9ca3af;
+    text-align: center;
+    margin-bottom: 40px;
+  }
+
+  .provas-track {
+    width: 100%;
+    overflow-x: auto;
+    cursor: grab;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .provas-track::-webkit-scrollbar {
+    display: none;
+  }
+
+  .provas-inner {
+    display: flex;
+    align-items: center;
+    gap: 60px;
+    padding: 0 60px;
+    width: max-content;
+  }
+
+  .logo-item {
+    flex-shrink: 0;
+  }
+
+  .logo-rect {
+    transition: fill 0.3s;
+  }
+
+  .logo-item:hover .logo-rect {
+    fill: #d1d5db;
+  }
+
+  @media (max-width: 640px) {
+    .provas-section {
+      padding: 48px 20px;
+    }
+
+    .provas-label {
+      margin-bottom: 32px;
+    }
+
+    .provas-inner {
+      gap: 32px;
+      padding: 0 20px;
+    }
+  }
+</style>
+
+<script>
+  const slider = document.getElementById("provas-track");
+
+  if (slider) {
+    let isDown = false;
+    let startX = 0;
+    let scrollLeft = 0;
+
+    slider.addEventListener("mousedown", (e) => {
+      isDown = true;
+      slider.style.cursor = "grabbing";
+      startX = e.pageX - slider.offsetLeft;
+      scrollLeft = slider.scrollLeft;
+    });
+
+    slider.addEventListener("mouseleave", () => {
+      isDown = false;
+      slider.style.cursor = "grab";
+    });
+
+    slider.addEventListener("mouseup", () => {
+      isDown = false;
+      slider.style.cursor = "grab";
+    });
+
+    slider.addEventListener("mousemove", (e) => {
+      if (!isDown) return;
+      e.preventDefault();
+      const x = e.pageX - slider.offsetLeft;
+      const walk = (x - startX) * 1.5;
+      slider.scrollLeft = scrollLeft - walk;
+    });
+
+    slider.addEventListener("touchstart", (e) => {
+      isDown = true;
+      startX = e.touches[0].pageX - slider.offsetLeft;
+      scrollLeft = slider.scrollLeft;
+    });
+
+    slider.addEventListener("touchend", () => {
+      isDown = false;
+    });
+
+    slider.addEventListener("touchmove", (e) => {
+      if (!isDown) return;
+      const x = e.touches[0].pageX - slider.offsetLeft;
+      const walk = (x - startX) * 1.5;
+      slider.scrollLeft = scrollLeft - walk;
+    });
+  }
+</script>

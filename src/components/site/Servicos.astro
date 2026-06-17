@@ -1,0 +1,232 @@
+---
+const services = [
+  {
+    id: "midias",
+    eyebrow: "Gestão de Mídias",
+    title: "Sua marca presente todos os dias.",
+    description:
+      "Conteúdo estratégico, identidade consistente e presença digital que gera resultado real para o seu negócio.",
+  },
+  {
+    id: "trafego",
+    eyebrow: "Tráfego Pago",
+    title: "Anúncios que geram retorno mensurável.",
+    description:
+      "Campanhas no Meta e Google com foco obsessivo em ROI. Atraímos o público qualificado para que cada centavo investido retorne como receita.",
+  },
+  {
+    id: "videos",
+    eyebrow: "Vídeos Cinematográficos",
+    title: "Histórias que vendem.",
+    description:
+      "Produção audiovisual com qualidade cinematográfica para contar a história da sua marca com impacto e sofisticação.",
+  },
+];
+---
+
+<section id="servicos" class="relative z-[1] servicos-section">
+  <div class="servicos-container">
+    <div class="tabs-row">
+      {services.map((tab, index) => (
+        <button class={`tab-btn ${index === 0 ? "active" : ""}`} data-tab={tab.id}>
+          {tab.eyebrow}
+        </button>
+      ))}
+    </div>
+
+    <div class="card" id="servico-card">
+      <div class="card-image">[ imagem ]</div>
+      <div class="card-content">
+        <span class="card-eyebrow" id="card-eyebrow">{services[0].eyebrow}</span>
+        <h3 class="card-title" id="card-title">{services[0].title}</h3>
+        <p class="card-description" id="card-description">{services[0].description}</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script type="application/json" id="tabs-data" is:inline set:html={JSON.stringify(services)} />
+
+<style>
+  .servicos-section {
+    padding: 120px 40px;
+  }
+
+  .servicos-container {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .tabs-row {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .tab-btn {
+    font-family: "Playfair Display", serif;
+    font-size: 0.95rem;
+    padding: 10px 28px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: transparent;
+    color: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.08) inset,
+      0 -1px 0 rgba(0, 0, 0, 0.4) inset,
+      0 4px 16px rgba(0, 0, 0, 0.4);
+    transition: all 0.2s ease;
+  }
+
+  .tab-btn.active {
+    background: #00c8c8;
+    border-color: #00c8c8;
+    color: #000000;
+    font-weight: 700;
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.2) inset,
+      0 -1px 0 rgba(0, 0, 0, 0.3) inset,
+      0 4px 20px rgba(0, 200, 200, 0.25);
+  }
+
+  .tab-btn:hover:not(.active) {
+    background: rgba(0, 200, 200, 0.08);
+    border-color: rgba(0, 200, 200, 0.3);
+    color: white;
+  }
+
+  .tab-btn:hover {
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.08) inset,
+      0 -1px 0 rgba(0, 0, 0, 0.4) inset,
+      0 8px 24px rgba(0, 0, 0, 0.5);
+    transform: translateY(-1px);
+  }
+
+  .tab-btn:active {
+    transform: translateY(1px);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  }
+
+  .card {
+    margin-top: 48px;
+    width: 100%;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 20px;
+    overflow: hidden;
+    transition: opacity 0.4s ease;
+    display: flex;
+  }
+
+  .card-image {
+    flex: 0 0 60%;
+    min-height: 420px;
+    background: rgba(255, 255, 255, 0.06);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.2);
+    font-size: 0.8rem;
+    letter-spacing: 0.15em;
+  }
+
+  .card-content {
+    flex: 0 0 40%;
+    padding: 60px 48px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .card-eyebrow {
+    display: inline-block;
+    width: fit-content;
+    background: rgba(0, 200, 200, 0.1);
+    border: 1px solid rgba(0, 200, 200, 0.2);
+    color: #00c8c8;
+    font-size: 0.75rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    padding: 6px 16px;
+    border-radius: 100px;
+    margin-bottom: 24px;
+  }
+
+  .card-title {
+    font-family: "Playfair Display", serif;
+    font-weight: 400;
+    font-size: 2.8rem;
+    color: white;
+    line-height: 1.1;
+    margin-bottom: 20px;
+  }
+
+  .card-description {
+    font-family: "Playfair Display", serif;
+    font-weight: 400;
+    font-size: 1rem;
+    color: rgba(255, 255, 255, 0.55);
+    line-height: 1.8;
+  }
+
+  @media (max-width: 768px) {
+    .servicos-section {
+      padding: 80px 20px;
+    }
+
+    .card {
+      flex-direction: column;
+    }
+
+    .card-image,
+    .card-content {
+      flex: 1 1 100%;
+    }
+
+    .card-content {
+      padding: 32px 24px;
+    }
+
+    .card-title {
+      font-size: 2rem;
+    }
+  }
+</style>
+
+<script>
+  const dataEl = document.getElementById("tabs-data");
+  const tabsData = JSON.parse(dataEl ? dataEl.textContent || "[]" : "[]");
+
+  const buttons = document.querySelectorAll("#servicos .tab-btn");
+  const card = document.getElementById("servico-card");
+  const eyebrowEl = document.getElementById("card-eyebrow");
+  const titleEl = document.getElementById("card-title");
+  const descEl = document.getElementById("card-description");
+
+  buttons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      if (btn.classList.contains("active")) return;
+
+      buttons.forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+
+      if (!card) return;
+      card.style.transition = "opacity 0.2s ease";
+      card.style.opacity = "0";
+
+      setTimeout(() => {
+        const tab = tabsData.find((t) => t.id === btn.dataset.tab);
+        if (!tab) return;
+
+        if (eyebrowEl) eyebrowEl.textContent = tab.eyebrow;
+        if (titleEl) titleEl.textContent = tab.title;
+        if (descEl) descEl.textContent = tab.description;
+
+        card.style.transition = "opacity 0.3s ease";
+        card.style.opacity = "1";
+      }, 200);
+    });
+  });
+</script>
