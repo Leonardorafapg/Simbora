@@ -1,0 +1,81 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=Playfair+Display:wght@400;700&display=swap");
+@import "tailwindcss";
+
+@theme {
+  --color-black: #000000;
+  --color-dark: #0D0D0D;
+  --color-cyan: #00C8C8;
+  --color-cyan-dark: #008B8B;
+  --color-petrol: #0A3D4D;
+  --color-white: #FFFFFF;
+  
+  --font-display: "Inter", sans-serif;
+  --font-body: "Inter", sans-serif;
+  --font-serif: "Playfair Display", serif;
+}
+
+* {
+  font-family: "Inter", sans-serif;
+}
+
+/* Playfair Display override classes */
+.font-display-serif {
+  font-family: "Playfair Display", serif !important;
+}
+
+html {
+  scroll-behavior: smooth;
+  overflow-x: hidden;
+}
+
+body {
+  overflow-x: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Orbs background styles */
+.orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(120px);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.orb-1 {
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(0, 200, 200, 0.15), transparent 70%);
+  top: -200px;
+  left: -200px;
+}
+
+.orb-2 {
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(10, 61, 77, 0.8), transparent 70%);
+  bottom: -100px;
+  right: -100px;
+}
+
+.orb-3 {
+  width: 700px;
+  height: 700px;
+  background: radial-gradient(circle, rgba(0, 200, 200, 0.2), transparent 70%);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
