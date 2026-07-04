@@ -1,6 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useGSAP } from "@gsap/react";
+
+gsap.registerPlugin(ScrollTrigger);
 
 const faqs = [
   {
@@ -31,20 +36,38 @@ const faqs = [
 ];
 
 export default function FAQ() {
+  const containerRef = useRef<HTMLElement>(null);
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   const toggleFaq = (index: number) => {
     setOpenIndex(openIndex === index ? null : index);
   };
 
+  useGSAP(
+    () => {
+      gsap.fromTo(
+        ".faq-fade-in",
+        { opacity: 0, y: 28 },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.8,
+          ease: "power2.out",
+          scrollTrigger: { trigger: containerRef.current, start: "top 80%" },
+        }
+      );
+    },
+    { scope: containerRef }
+  );
+
   return (
-    <section className="bg-white py-[100px] px-10 max-sm:py-14 max-sm:px-5">
+    <section ref={containerRef} className="bg-white py-[100px] px-10 max-sm:py-14 max-sm:px-5">
       <div className="max-w-[760px] mx-auto">
-        <h2 className="font-display-serif font-normal text-[2.5rem] max-sm:text-3xl text-dark mb-12">
+        <h2 className="faq-fade-in opacity-0 font-display-serif font-normal text-[2.5rem] max-sm:text-3xl text-dark mb-12">
           Perguntas frequentes.
         </h2>
 
-        <div className="border-t border-gray-200">
+        <div className="faq-fade-in opacity-0 border-t border-gray-200">
           {faqs.map((item, idx) => {
             const isOpen = openIndex === idx;
             return (

@@ -8,6 +8,7 @@ export type LeadPayload = {
   segment?: string;
   revenueRange?: string;
   specialty?: string;
+  instagram?: string;
   source: "site" | "medicos";
 };
 
@@ -20,6 +21,7 @@ export async function submitLead(data: LeadPayload): Promise<void> {
     segment: data.segment,
     revenue_range: data.revenueRange,
     specialty: data.specialty,
+    instagram: data.instagram,
     source: data.source,
   };
 

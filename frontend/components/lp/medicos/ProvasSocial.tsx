@@ -1,12 +1,35 @@
 "use client";
 
 import { useRef, useState } from "react";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useGSAP } from "@gsap/react";
+
+gsap.registerPlugin(ScrollTrigger);
 
 export default function ProvasSocial() {
+  const sectionRef = useRef<HTMLElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const [isDown, setIsDown] = useState(false);
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
+
+  useGSAP(
+    () => {
+      gsap.fromTo(
+        ".provas-fade-in",
+        { opacity: 0, y: 24 },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.7,
+          ease: "power2.out",
+          scrollTrigger: { trigger: sectionRef.current, start: "top 85%" },
+        }
+      );
+    },
+    { scope: sectionRef }
+  );
 
   const clientes = Array.from({ length: 8 }, (_, i) => `Médico ${i + 1}`);
 
@@ -57,8 +80,8 @@ export default function ProvasSocial() {
   };
 
   return (
-    <section className="bg-[#f9fafb] py-[60px] px-10 max-sm:py-12 max-sm:px-5">
-      <p className="font-sans font-normal text-[0.75rem] tracking-[0.2em] uppercase text-[#9ca3af] text-center mb-10 max-sm:mb-8">
+    <section ref={sectionRef} className="bg-[#f9fafb] py-[60px] px-10 max-sm:py-12 max-sm:px-5">
+      <p className="provas-fade-in opacity-0 font-sans font-normal text-[0.75rem] tracking-[0.2em] uppercase text-[#9ca3af] text-center mb-10 max-sm:mb-8">
         médicos que já cresceram com a simbora
       </p>
 
@@ -71,7 +94,7 @@ export default function ProvasSocial() {
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
         onTouchMove={handleTouchMove}
-        className="w-full overflow-x-auto select-none no-scrollbar"
+        className="provas-fade-in opacity-0 w-full overflow-x-auto select-none no-scrollbar"
         style={{ cursor: "grab", scrollbarWidth: "none" }}
       >
         <div className="flex items-center gap-[60px] px-[60px] w-max max-sm:gap-8 max-sm:px-5">

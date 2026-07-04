@@ -1,3 +1,12 @@
+"use client";
+
+import { useRef } from "react";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useGSAP } from "@gsap/react";
+
+gsap.registerPlugin(ScrollTrigger);
+
 const cards = [
   {
     title: "Gestão de Redes Sociais",
@@ -26,8 +35,29 @@ const cards = [
 ];
 
 export default function Entregaveis() {
+  const containerRef = useRef<HTMLElement>(null);
+
+  useGSAP(
+    () => {
+      const cards = gsap.utils.toArray<HTMLElement>(".entregavel-card");
+      gsap.fromTo(
+        cards,
+        { opacity: 0, y: 32 },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.7,
+          ease: "power2.out",
+          stagger: 0.12,
+          scrollTrigger: { trigger: containerRef.current, start: "top 80%" },
+        }
+      );
+    },
+    { scope: containerRef }
+  );
+
   return (
-    <section className="bg-white py-[100px] px-10 max-sm:py-14 max-sm:px-5">
+    <section ref={containerRef} className="bg-white py-[100px] px-10 max-sm:py-14 max-sm:px-5">
       <div className="max-w-[1100px] mx-auto">
         <div className="text-center mb-16 max-sm:mb-10">
           <span className="inline-block font-sans font-medium text-[0.8rem] tracking-[0.15em] uppercase text-cyan mb-4">
@@ -42,7 +72,7 @@ export default function Entregaveis() {
           {cards.map((card, idx) => (
             <div
               key={idx}
-              className="bg-[#f9fafb] border border-gray-200 rounded-xl p-9 max-sm:p-8 transition-all duration-300 hover:border-cyan hover:shadow-[0_12px_32px_rgba(0,0,0,0.06)]"
+              className="entregavel-card opacity-0 bg-[#f9fafb] border border-gray-200 rounded-md p-9 max-sm:p-8 transition-all duration-300 hover:border-cyan hover:shadow-[0_12px_32px_rgba(0,0,0,0.06)]"
             >
               <div className="flex items-center justify-center w-12 h-12 rounded-full bg-cyan/10 text-cyan mb-5">
                 {card.icon === "smartphone" && (

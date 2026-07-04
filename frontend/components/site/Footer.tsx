@@ -1,6 +1,6 @@
 export default function Footer() {
   return (
-    <footer className="relative z-[1] border-t border-white/[0.08] py-16">
+    <footer className="relative z-[1] bg-[#161616] border-t border-white/5 py-16">
       <div className="mx-auto max-w-7xl px-6 lg:px-10">
         <div className="grid grid-cols-1 gap-12 md:grid-cols-3">
           <div>

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import "./globals.css";
 import Background from "@/components/site/Background";
 
@@ -18,6 +19,9 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body className="bg-[#0D0D0D] text-white antialiased overflow-x-hidden">
+        <Script id="reset-scroll-on-load" strategy="beforeInteractive">
+          {`if ('scrollRestoration' in history) { history.scrollRestoration = 'manual'; } window.scrollTo(0, 0);`}
+        </Script>
         <Background />
         {children}
       </body>

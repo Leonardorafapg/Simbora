@@ -1,21 +1,21 @@
-import Hero from "@/components/lp/medicos/Hero";
+import HeroDiretoVideo from "@/components/lp/medicos/HeroDiretoVideo";
 import ProvasSocial from "@/components/lp/medicos/ProvasSocial";
 import Entregaveis from "@/components/lp/medicos/Entregaveis";
-import Resultados from "@/components/lp/medicos/Resultados";
-import Sobre from "@/components/lp/medicos/Sobre";
+import ComoFuncionaDireto from "@/components/lp/medicos/ComoFuncionaDireto";
 import FAQ from "@/components/lp/medicos/FAQ";
 import CTAFinal from "@/components/lp/medicos/CTAFinal";
+import Footer from "@/components/site/Footer";
 
-export default function MedicosPage() {
+export default function DiretoVideoPage() {
   return (
     <main className="relative z-[1] bg-white">
-      <Hero />
+      <HeroDiretoVideo />
       <ProvasSocial />
       <Entregaveis />
-      <Resultados />
-      <Sobre />
+      <ComoFuncionaDireto />
       <FAQ />
       <CTAFinal />
+      <Footer />
     </main>
   );
 }

@@ -1,6 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useRef } from "react";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useGSAP } from "@gsap/react";
+
+gsap.registerPlugin(ScrollTrigger);
 
 const services = [
   {
@@ -33,74 +38,109 @@ const services = [
     title: "Audiovisual de alto impacto para reter a atenção.",
     description:
       "Produzimos criativos em vídeo estruturados especificamente para venda e retenção rápida (Reels e TikTok). Entregamos roteiros estratégicos validados para você gravar sem complicação e fazemos a edição dinâmica com elementos visuais, legendas e sonorização profissional que geram desejo imediato pelo seu produto.",
+    image: "/images/video-mockup.png",
   },
 ];
 
 export default function Servicos() {
-  const [activeTab, setActiveTab] = useState(services[0]);
-  const [isTransitioning, setIsTransitioning] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  const handleTabChange = (tab: typeof services[0]) => {
-    if (tab.id === activeTab.id) return;
-    setIsTransitioning(true);
+  useGSAP(
+    () => {
+      const items = gsap.utils.toArray<HTMLElement>(".servico-item");
 
-    setTimeout(() => {
-      setActiveTab(tab);
-      setIsTransitioning(false);
-    }, 200);
-  };
+      items.forEach((item, i) => {
+        const fromLeft = i % 2 === 0;
+        gsap.fromTo(
+          item,
+          { opacity: 0, x: fromLeft ? -40 : 40 },
+          {
+            opacity: 1,
+            x: 0,
+            duration: 0.7,
+            ease: "power2.out",
+            scrollTrigger: {
+              trigger: item,
+              start: "top 85%",
+            },
+          }
+        );
+      });
+    },
+    { scope: containerRef }
+  );
 
   return (
-    <section id="servicos" className="relative z-[1] py-[120px] px-10 max-sm:py-20 max-sm:px-5">
+    <section
+      ref={containerRef}
+      id="servicos"
+      className="relative z-[1] bg-gray-50 py-20 sm:py-32 px-6 lg:px-10"
+    >
       <div className="max-w-[1200px] mx-auto">
-        <div className="flex justify-center flex-wrap gap-4">
-          {services.map((tab) => {
-            const isActive = activeTab.id === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => handleTabChange(tab)}
-                className={`font-serif text-[0.95rem] py-2.5 px-7 rounded-lg border cursor-pointer transition-all duration-200 hover:-translate-y-px active:translate-y-px ${
-                  isActive
-                    ? "bg-cyan border-cyan text-black font-bold shadow-[0_1px_0_rgba(255,255,255,0.2)_inset,0_-1px_0_rgba(0,0,0,0.3)_inset,0_4px_20px_rgba(0,200,200,0.25)]"
-                    : "border-white/15 bg-transparent text-white/50 shadow-[0_1px_0_rgba(255,255,255,0.08)_inset,0_-1px_0_rgba(0,0,0,0.4)_inset,0_4px_16px_rgba(0,0,0,0.4)] hover:bg-cyan/10 hover:border-cyan/30 hover:text-white hover:shadow-[0_1px_0_rgba(255,255,255,0.08)_inset,0_-1px_0_rgba(0,0,0,0.4)_inset,0_8px_24px_rgba(0,0,0,0.5)]"
-                }`}
-              >
-                {tab.eyebrow}
-              </button>
-            );
-          })}
+        {/* Header da seção */}
+        <div className="text-center mb-20 md:mb-28">
+          <h2 className="font-sans font-bold text-4xl sm:text-5xl text-dark tracking-tight mb-4">
+            Nossos Serviços
+          </h2>
+          <p className="font-sans font-normal text-base sm:text-lg text-gray-500 max-w-2xl mx-auto">
+            Soluções completas de marketing digital sob medida para as necessidades do seu negócio.
+          </p>
         </div>
 
-        <div
-          className={`mt-12 w-full bg-white/5 rounded-2xl overflow-hidden flex flex-col md:flex-row transition-opacity duration-300 ${
-            isTransitioning ? "opacity-0" : "opacity-100"
-          }`}
-        >
-          <div className="md:flex-[0_0_60%] relative min-h-[420px] bg-white/5 flex items-center justify-center overflow-hidden">
-            {activeTab.image ? (
-              <img
-                src={activeTab.image}
-                alt={activeTab.title}
-                className="absolute inset-0 w-full h-full object-cover object-center transition-all duration-500 hover:scale-[1.03]"
-              />
-            ) : (
-              <span className="text-white/20 text-xs tracking-[0.15em] uppercase">
-                [ imagem ]
-              </span>
-            )}
-          </div>
-          <div className="md:flex-[0_0_40%] p-12 max-sm:p-8 flex flex-col justify-center">
-            <span className="inline-block w-fit bg-cyan/10 border border-cyan/20 text-cyan text-[0.75rem] tracking-[0.2em] uppercase py-1.5 px-4 rounded-full mb-6">
-              {activeTab.eyebrow}
-            </span>
-            <h3 className="font-display-serif font-normal text-[2.8rem] max-sm:text-3xl text-white leading-[1.1] mb-5">
-              {activeTab.title}
-            </h3>
-            <p className="font-display-serif font-normal text-base text-white/60 leading-[1.8]">
-              {activeTab.description}
-            </p>
-          </div>
+        {/* Lista de serviços em Grid Alternado */}
+        <div className="flex flex-col gap-8">
+          {services.map((service, index) => {
+            const isEven = index % 2 === 1;
+            return (
+              <div
+                key={service.id}
+                className={`servico-item group flex flex-col gap-10 md:gap-20 items-center w-full rounded-lg border border-gray-100 bg-white p-8 shadow-[0_4px_24px_rgba(0,0,0,0.05)] transition-shadow duration-300 hover:shadow-[0_8px_32px_rgba(0,0,0,0.08)] md:p-12 ${
+                  isEven ? "md:flex-row-reverse" : "md:flex-row"
+                }`}
+              >
+                {/* Imagem do Serviço */}
+                <div className="w-full md:w-1/2 aspect-[4/3] rounded-md overflow-hidden border border-gray-200 bg-white">
+                  <img
+                    src={service.image}
+                    alt={service.eyebrow}
+                    className="w-full h-full object-cover grayscale-[10%] transition-all duration-700 ease-out group-hover:grayscale-0 group-hover:scale-[1.03]"
+                  />
+                </div>
+
+                {/* Conteúdo de Texto */}
+                <div className="w-full md:w-1/2 flex flex-col items-start">
+                  <div className="flex items-center gap-4 mb-6">
+                    {/* Índice numérico */}
+                    <span className="font-display-serif text-4xl text-gray-300 leading-none">
+                      {String(index + 1).padStart(2, "0")}
+                    </span>
+                    <span className="h-px w-8 bg-gray-300" />
+                    {/* Categoria/Título do Serviço */}
+                    <h3 className="font-sans text-xs sm:text-sm font-semibold uppercase tracking-[0.2em] text-gray-500">
+                      {service.eyebrow}
+                    </h3>
+                  </div>
+
+                  {/* Parágrafo de descrição e headline */}
+                  <p className="font-sans text-base text-gray-500 leading-[1.7]">
+                    <strong className="font-display-serif font-normal text-dark block mb-3 text-2xl sm:text-3xl tracking-tight">
+                      {service.title}
+                    </strong>
+                    <span className="font-light">
+                      {service.description}
+                    </span>
+                  </p>
+
+                  <a
+                    href="#"
+                    className="mt-6 inline-flex items-center gap-2 rounded-md border border-dark bg-gray-50 px-6 py-3 font-sans text-sm font-semibold text-dark shadow-[4px_4px_0px_0px_rgba(0,0,0,0.15)] transition-all duration-150 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,0.15)] active:translate-x-0 active:translate-y-0 active:shadow-[0px_0px_0px_0px_rgba(0,0,0,0.15)]"
+                  >
+                    Ver detalhes <span className="text-[10px]">→</span>
+                  </a>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </section>

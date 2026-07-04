@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=Playfair+Display:wght@400;700&display=swap");
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap');
 @import "tailwindcss";
 
 @theme {
@@ -8,19 +8,36 @@
   --color-cyan-dark: #008B8B;
   --color-petrol: #0A3D4D;
   --color-white: #FFFFFF;
-  
-  --font-display: "Inter", sans-serif;
-  --font-body: "Inter", sans-serif;
-  --font-serif: "Playfair Display", serif;
+
+  --font-display: "DM Sans", sans-serif;
+  --font-body: "DM Sans", sans-serif;
+
+  --animate-marquee: marquee 130s linear infinite;
+  --animate-rotate-word-in: rotate-word-in 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  --animate-rotate-word-out: rotate-word-out 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+
+  @keyframes rotate-word-in {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes rotate-word-out {
+    from { opacity: 1; transform: translateY(0); }
+    to { opacity: 0; transform: translateY(-20px); }
+  }
 }
 
 * {
-  font-family: "Inter", sans-serif;
+  font-family: "DM Sans", sans-serif;
 }
 
-/* Playfair Display override classes */
 .font-display-serif {
-  font-family: "Playfair Display", serif !important;
+  font-family: "DM Sans", sans-serif;
 }
 
 html {
@@ -79,3 +96,38 @@ body {
   left: 50%;
   transform: translate(-50%, -50%);
 }
+
+/* Glassmorphism custom classes */
+.glass-card {
+  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+.glass-card-hover {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.glass-card-hover:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(0, 200, 200, 0.25);
+  box-shadow: 0 12px 40px 0 rgba(0, 200, 200, 0.05);
+  transform: translateY(-2px);
+}
+
+.glass-input {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  transition: all 0.2s ease;
+}
+.glass-input:focus {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: #00C8C8;
+  outline: none;
+  box-shadow: 0 0 0 1px rgba(0, 200, 200, 0.2);
+}
+
+
+
