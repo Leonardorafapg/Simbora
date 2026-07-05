@@ -9,49 +9,49 @@ gsap.registerPlugin(ScrollTrigger);
 
 const cards = [
   {
-    title: "Gestão de Redes Sociais",
+    title: "Competência não vira reconhecimento sozinha",
     description:
-      "Postagens diárias estratégicas no Instagram com identidade visual consistente e linguagem médica adequada.",
-    icon: "smartphone",
+      "Anos de prática e resultados consistentes não bastam para virar autoridade pública. Reconhecimento se constrói com visibilidade, não só com competência clínica.",
+    icon: "trend",
   },
   {
-    title: "Tráfego Pago",
+    title: "Indicações de alto ticket passam batido",
     description:
-      "Anúncios no Meta e Google direcionados para pacientes na sua região e especialidade.",
-    icon: "chart",
+      "Pacientes e outros médicos indicam quem lembram, não só quem é tecnicamente melhor. Sem presença digital, boas oportunidades acabam indo para quem aparece.",
+    icon: "wallet",
   },
   {
-    title: "Produção de Vídeos",
+    title: "Você é bom, mas invisível para quem não te conhece",
     description:
-      "Vídeos curtos e reels que posicionam você como autoridade e geram alcance orgânico.",
-    icon: "video",
+      "Seus pacientes já confiam em você. O problema é que fora do consultório, quase ninguém mais sabe que você existe.",
+    icon: "eye",
   },
   {
-    title: "Relatório Mensal",
+    title: "Sua trajetória some com o tempo",
     description:
-      "Acompanhamento completo de métricas, crescimento e resultados de cada ação realizada.",
-    icon: "document",
+      "Sem registro digital da sua história, tudo que você já construiu não vira patrimônio de reputação. Fica só na memória de quem já é seu paciente.",
+    icon: "clock",
   },
 ];
 
-export default function Entregaveis() {
+export default function CustoFicarParado() {
   const containerRef = useRef<HTMLElement>(null);
 
   useGSAP(
     () => {
-      const cards = gsap.utils.toArray<HTMLElement>(".entregavel-card");
-      gsap.fromTo(
-        cards,
-        { opacity: 0, y: 32 },
-        {
-          opacity: 1,
-          y: 0,
-          duration: 0.7,
-          ease: "power2.out",
-          stagger: 0.12,
-          scrollTrigger: { trigger: containerRef.current, start: "top 80%" },
-        }
-      );
+      const items = gsap.utils.toArray<HTMLElement>(".custo-parado-card");
+      const tl = gsap.timeline({
+        scrollTrigger: { trigger: containerRef.current, start: "top 80%" },
+      });
+      items.forEach((card, idx) => {
+        const fromSide = idx % 2 === 0 ? -60 : 60;
+        tl.fromTo(
+          card,
+          { opacity: 0, x: fromSide },
+          { opacity: 1, x: 0, duration: 0.6, ease: "power2.out" },
+          idx === 0 ? 0 : "-=0.05"
+        );
+      });
     },
     { scope: containerRef }
   );
@@ -61,10 +61,10 @@ export default function Entregaveis() {
       <div className="max-w-[1100px] mx-auto">
         <div className="text-center mb-16 max-sm:mb-10">
           <span className="inline-block font-sans font-medium text-[0.8rem] tracking-[0.15em] uppercase text-cyan mb-4">
-            O que você recebe
+            O custo do reconhecimento não capturado
           </span>
           <h2 className="font-display-serif font-normal text-[3.2rem] max-sm:text-3xl text-dark leading-[1.2]">
-            Tudo que sua presença digital precisa.
+            Ser bom e não aparecer também tem um preço.
           </h2>
         </div>
 
@@ -72,23 +72,10 @@ export default function Entregaveis() {
           {cards.map((card, idx) => (
             <div
               key={idx}
-              className="entregavel-card opacity-0 bg-[#f9fafb] border border-gray-200 rounded-md p-9 max-sm:p-8 transition-all duration-300 hover:border-cyan hover:shadow-[0_12px_32px_rgba(0,0,0,0.06)]"
+              className="custo-parado-card opacity-0 bg-white border border-gray-200 rounded-xl p-9 max-sm:p-8 shadow-[0_4px_16px_rgba(0,0,0,0.04)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_40px_rgba(0,0,0,0.08)]"
             >
-              <div className="flex items-center justify-center w-12 h-12 rounded-full bg-cyan/10 text-cyan mb-5">
-                {card.icon === "smartphone" && (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    className="h-6 w-6"
-                  >
-                    <rect x="6" y="2" width="12" height="20" rx="2" />
-                    <line x1="11" y1="18" x2="13" y2="18" />
-                  </svg>
-                )}
-                {card.icon === "chart" && (
+              <div className="flex items-center justify-center w-12 h-12 rounded-full bg-white text-dark mb-5 shadow-[0_2px_6px_rgba(0,0,0,0.08),inset_0_1px_0_rgba(255,255,255,0.8)] border border-gray-100">
+                {card.icon === "trend" && (
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 24 24"
@@ -102,7 +89,7 @@ export default function Entregaveis() {
                     <path d="M16 7h4v4" />
                   </svg>
                 )}
-                {card.icon === "video" && (
+                {card.icon === "wallet" && (
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 24 24"
@@ -111,11 +98,11 @@ export default function Entregaveis() {
                     strokeWidth="1.8"
                     className="h-6 w-6"
                   >
-                    <rect x="3" y="5" width="13" height="14" rx="2" />
-                    <path d="M16 9.5l5-3v11l-5-3z" />
+                    <path d="M3 7a2 2 0 0 1 2-2h13a1 1 0 0 1 1 1v3" />
+                    <path d="M3 7v11a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-6a1 1 0 0 0-1-1h-4a2 2 0 0 0 0 4h5" />
                   </svg>
                 )}
-                {card.icon === "document" && (
+                {card.icon === "eye" && (
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 24 24"
@@ -124,9 +111,21 @@ export default function Entregaveis() {
                     strokeWidth="1.8"
                     className="h-6 w-6"
                   >
-                    <path d="M7 3h7l4 4v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
-                    <path d="M14 3v4h4" />
-                    <path d="M8 13l2 2 4-5" />
+                    <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                )}
+                {card.icon === "clock" && (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    className="h-6 w-6"
+                  >
+                    <circle cx="12" cy="12" r="9" />
+                    <path d="M12 7v5l3 3" />
                   </svg>
                 )}
               </div>

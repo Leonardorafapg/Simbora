@@ -31,11 +31,11 @@ export default function CTAFinal() {
     <section ref={containerRef} className="bg-dark py-32 px-10 max-sm:py-15 max-sm:px-5">
       <div className="max-w-[760px] mx-auto text-center">
         <h2 className="cta-final-fade-in opacity-0 font-display-serif font-normal text-[3.2rem] max-sm:text-3xl text-white leading-[1.2] mb-6">
-          Pronto para ser o médico<br />
-          mais conhecido da sua cidade?
+          Você já é bom no que faz.<br />
+          Falta o reconhecimento chegar até você.
         </h2>
         <p className="cta-final-fade-in opacity-0 font-sans font-normal text-base text-white/50 mb-10">
-          Fale com a Simbora agora e comece sua transformação digital.
+          Fale com a Simbora agora e receba seu planejamento personalizado gratuito.
         </p>
 
         <a

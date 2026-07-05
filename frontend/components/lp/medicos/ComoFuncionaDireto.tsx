@@ -14,14 +14,9 @@ const steps = [
       "Conta sua especialidade e o que busca: migrar pro particular, ganhar tempo ou virar referência na região.",
   },
   {
-    title: "Confirmamos sua vaga exclusiva",
+    title: "Agendamos o envio do seu planejamento",
     description:
-      "Trabalhamos com 1 médico por especialidade/região, garantindo posicionamento sem concorrência direta.",
-  },
-  {
-    title: "Agendamos sua call de diagnóstico",
-    description:
-      "Alinhamos o plano completo e você começa a gravar cerca de 2h por mês — o resto é com a gente.",
+      "Nossa equipe monta seu planejamento personalizado e agenda o envio direto pra você, sem enrolação.",
   },
 ];
 
@@ -48,34 +43,39 @@ export default function ComoFuncionaDireto() {
   );
 
   return (
-    <section ref={containerRef} className="bg-[#f9fafb] py-[100px] px-10 max-sm:py-14 max-sm:px-5">
-      <div className="max-w-[1100px] mx-auto">
-        <div className="text-center mb-16 max-sm:mb-10">
-          <span className="inline-block font-sans font-medium text-[0.8rem] tracking-[0.15em] uppercase text-cyan mb-4">
+    <section ref={containerRef} className="bg-[#f9fafb] py-14 px-10 max-sm:py-10 max-sm:px-5">
+      <div className="max-w-[1000px] mx-auto">
+        <div className="text-center mb-10 max-sm:mb-8">
+          <span className="inline-block font-sans font-medium text-[0.75rem] tracking-[0.15em] uppercase text-cyan mb-3">
             Como funciona
           </span>
-          <h2 className="font-sans font-normal text-[3.2rem] max-sm:text-3xl text-dark leading-[1.2]">
+          <h2 className="font-sans font-normal text-[2rem] max-sm:text-2xl text-dark leading-[1.2]">
             Do primeiro contato à sua vaga garantida.
           </h2>
         </div>
 
-        <div className="grid grid-cols-3 gap-8 max-md:grid-cols-1">
-          {steps.map((step, idx) => (
-            <div
-              key={idx}
-              className="como-funciona-direto-step opacity-0 bg-white border border-gray-200 rounded-md p-8"
-            >
-              <span className="font-sans text-4xl text-gray-300 leading-none">
-                {String(idx + 1).padStart(2, "0")}
-              </span>
-              <h3 className="mt-4 font-sans font-bold text-[1.2rem] text-dark mb-2">
-                {step.title}
-              </h3>
-              <p className="font-sans text-[0.95rem] text-gray-500 leading-[1.7]">
-                {step.description}
-              </p>
-            </div>
-          ))}
+        <div className="grid grid-cols-2 gap-5 max-md:grid-cols-1">
+          {steps.map((step, idx) => {
+            const isLast = idx === steps.length - 1;
+            return (
+              <div
+                key={idx}
+                className="como-funciona-direto-step opacity-0 bg-white border border-gray-200 rounded-md p-5"
+              >
+                <div className="flex items-center gap-3 mb-1.5">
+                  <span className="font-sans text-2xl text-gray-300 leading-none">
+                    {String(idx + 1).padStart(2, "0")}
+                  </span>
+                  <h3 className="font-sans font-bold text-base text-dark">
+                    {step.title}
+                  </h3>
+                </div>
+                <p className="font-sans text-[0.85rem] text-gray-500 leading-[1.6]">
+                  {step.description}
+                </p>
+              </div>
+            );
+          })}
         </div>
       </div>
     </section>

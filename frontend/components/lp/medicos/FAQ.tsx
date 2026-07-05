@@ -9,24 +9,24 @@ gsap.registerPlugin(ScrollTrigger);
 
 const faqs = [
   {
-    question: "Quanto tempo para ver resultados?",
+    question: "Como funciona o planejamento gratuito?",
     answer:
-      "Os primeiros resultados em engajamento e alcance aparecem entre 30 e 60 dias. Autoridade consolidada e crescimento consistente ocorrem a partir do 90º dia.",
+      "Você fala com a gente no WhatsApp, conta sua especialidade e seus objetivos, e nossa equipe monta um planejamento personalizado para o seu caso, sem custo algum.",
   },
   {
-    question: "Preciso aparecer nos vídeos?",
+    question: "Preciso pagar alguma coisa para receber o planejamento?",
     answer:
-      "Sim, para construir autoridade médica real o rosto do profissional é essencial. Mas trabalhamos todo o roteiro e direção para que você se sinta confortável na frente da câmera.",
+      "Não. O planejamento inicial é gratuito e sem compromisso. Você só decide se quer seguir com a assessoria depois de ver a proposta completa.",
   },
   {
-    question: "Tem contrato de fidelidade?",
+    question: "Quanto tempo demora para eu receber uma resposta?",
     answer:
-      "Não. Trabalhamos com recorrência mensal sem fidelidade mínima. Acreditamos que resultado é o que mantém o cliente.",
+      "Nosso time responde rapidamente pelo WhatsApp e agenda o envio do seu planejamento assim que confirma sua especialidade e seus objetivos.",
   },
   {
-    question: "Como funciona a produção de conteúdo?",
+    question: "Já tenho pacientes, por que eu precisaria disso?",
     answer:
-      "Nossa equipe cria o planejamento, roteiros, artes e legendas. Você revisa e aprova antes de qualquer publicação. Sua identidade e ética médica são sempre preservadas.",
+      "Ter pacientes não é o mesmo que ter reconhecimento. Mesmo com a agenda cheia hoje, a falta de presença digital trava indicações de alto ticket, convites e o reconhecimento que sua competência já merece.",
   },
   {
     question: "Atendem médicos de qualquer especialidade?",
