@@ -18,8 +18,8 @@ export default function Hero() {
       switchTimeout = setTimeout(() => {
         setNichoIndex((prev) => (prev + 1) % nichos.length);
         setPhase("in");
-      }, 960);
-    }, 5440);
+      }, 768);
+    }, 4352);
 
     return () => {
       clearInterval(interval);

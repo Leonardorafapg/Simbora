@@ -13,8 +13,8 @@
   --font-body: "DM Sans", sans-serif;
 
   --animate-marquee: marquee 130s linear infinite;
-  --animate-rotate-word-in: rotate-word-in 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-  --animate-rotate-word-out: rotate-word-out 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  --animate-rotate-word-in: rotate-word-in 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  --animate-rotate-word-out: rotate-word-out 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 
   @keyframes marquee {
     from { transform: translateX(0); }
