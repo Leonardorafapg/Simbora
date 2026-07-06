@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   title: "Simbora Maranhão — Marketing que move o Maranhão",
   description: "Agência de marketing no Maranhão. Gestão de mídias, tráfego pago e vídeos cinematográficos que transformam negócios locais.",
   icons: {
-    icon: "/images/logo.png",
+    icon: "/favicon.ico",
   },
 };
 
