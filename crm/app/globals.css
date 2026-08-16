@@ -1,0 +1,79 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap');
+@import "tailwindcss";
+
+/*
+ * Tema claro/escuro: quase todo o app usa só os tokens "white" (texto/borda/
+ * superfície) e "dark" (fundo da página) — nunca hex literal. O Tailwind v4
+ * gera as utilities referenciando essas variáveis via var(), então redefinir
+ * os tokens abaixo por tema propaga pra tudo, sem tocar em componente nenhum.
+ *
+ * "black" e "cyan" ficam de fora da troca de propósito: "black" só é usado
+ * como texto sobre o botão ciano e no overlay dos modais (correto nos dois
+ * temas); "cyan-dark" nunca era realmente "escuro", é o hover do accent —
+ * mantido estável para não confundir com o próprio tema.
+ */
+@theme {
+  --color-black: #000000;
+  --color-dark: #0D0D0D;
+  --color-cyan: #00C8C8;
+  --color-cyan-dark: #008B8B;
+  --color-petrol: #0A3D4D;
+  --color-white: #FFFFFF;
+  --color-danger: #F87171;
+
+  --font-display: "DM Sans", sans-serif;
+  --font-body: "DM Sans", sans-serif;
+}
+
+:root {
+  --surface-card: rgba(255, 255, 255, 0.02);
+  --surface-input: rgba(255, 255, 255, 0.03);
+  --surface-input-focus: rgba(255, 255, 255, 0.05);
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --shadow-card: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+:root[data-theme="light"] {
+  --color-dark: #F5F6F8;
+  --color-white: #16181D;
+  --color-cyan: #007A7A;
+  --color-cyan-dark: #005F5F;
+  --color-danger: #DC2626;
+
+  --surface-card: #FFFFFF;
+  --surface-input: #FFFFFF;
+  --surface-input-focus: #FFFFFF;
+  --border-subtle: rgba(22, 24, 29, 0.10);
+  --shadow-card: 0 4px 20px 0 rgba(22, 24, 29, 0.06);
+}
+
+* {
+  font-family: "DM Sans", sans-serif;
+}
+
+html,
+body {
+  background: var(--color-dark);
+  color: var(--color-white);
+}
+
+.glass-card {
+  background: var(--surface-card);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-card);
+}
+
+.glass-input {
+  background: var(--surface-input);
+  border: 1px solid var(--border-subtle);
+  color: var(--color-white);
+  transition: all 0.2s ease;
+}
+.glass-input:focus {
+  background: var(--surface-input-focus);
+  border-color: var(--color-cyan);
+  outline: none;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-cyan) 25%, transparent);
+}

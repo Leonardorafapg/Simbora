@@ -8,6 +8,10 @@ class Settings(BaseSettings):
     WHATSAPP_NUMBER: str = "5598999999999"
     DATABASE_URL: str = "sqlite:///./simbora.db"
 
+    SECRET_KEY: str = "change-me-in-env"
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 480
+
     model_config = SettingsConfigDict(env_file=".env")
 
 settings = Settings()
