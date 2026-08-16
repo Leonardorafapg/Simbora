@@ -47,6 +47,27 @@
   --shadow-card: 0 4px 20px 0 rgba(22, 24, 29, 0.06);
 }
 
+/*
+ * O tema é preferência do usuário logado, aplicada só na área autenticada —
+ * não é config do sistema. A tela de login é pública (ninguém "é" um usuário
+ * ainda ali) e usa identidade visual fixa: este bloco força os tokens de
+ * volta pro escuro dentro de qualquer subárvore marcada data-theme="dark",
+ * mesmo que o <html> esteja em data-theme="light" por causa do toggle.
+ */
+[data-theme="dark"] {
+  --color-dark: #0D0D0D;
+  --color-white: #FFFFFF;
+  --color-cyan: #00C8C8;
+  --color-cyan-dark: #008B8B;
+  --color-danger: #F87171;
+
+  --surface-card: rgba(255, 255, 255, 0.02);
+  --surface-input: rgba(255, 255, 255, 0.03);
+  --surface-input-focus: rgba(255, 255, 255, 0.05);
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --shadow-card: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
 * {
   font-family: "DM Sans", sans-serif;
 }
