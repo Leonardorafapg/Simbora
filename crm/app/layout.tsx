@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Script from "next/script";
 import "./globals.css";
 import { themeInitScript } from "@/lib/theme";
 
@@ -20,9 +19,10 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <body className="bg-dark text-white antialiased">
-        <Script id="theme-init" strategy="beforeInteractive">
-          {themeInitScript}
-        </Script>
+        {/* Inline puro em vez de next/script: precisa rodar antes do paint pra
+            evitar flash de tema, e o <Script beforeInteractive> quebra o
+            render do RootLayout nessa versão do Next. */}
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         {children}
       </body>
     </html>

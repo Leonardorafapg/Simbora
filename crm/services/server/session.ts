@@ -25,7 +25,8 @@ function isSessionUser(payload: unknown): payload is SessionUser {
     typeof p.email === "string" &&
     typeof p.name === "string" &&
     typeof p.cargo === "string" &&
-    typeof p.is_admin === "boolean"
+    typeof p.is_admin === "boolean" &&
+    Array.isArray(p.permissions)
   );
 }
 

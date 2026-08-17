@@ -5,6 +5,7 @@ export type SessionUser = {
   photo_url: string | null;
   cargo: string;
   is_admin: boolean;
+  permissions: string[];
   exp: number;
 };
 

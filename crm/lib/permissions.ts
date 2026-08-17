@@ -14,4 +14,22 @@ export const PERMISSIONS: { key: string; label: string }[] = [
   { key: "team.create", label: "Criar membros" },
   { key: "team.edit", label: "Editar membros" },
   { key: "team.delete", label: "Remover membros" },
+  { key: "client.view", label: "Ver clientes" },
+  { key: "client.create", label: "Criar clientes" },
+  { key: "client.edit", label: "Editar clientes" },
+  { key: "client.delete", label: "Remover clientes" },
+  { key: "calendar.view", label: "Ver calendário" },
+  { key: "calendar.create", label: "Criar entradas no calendário" },
+  { key: "calendar.edit", label: "Editar entradas no calendário" },
+  { key: "calendar.delete", label: "Remover entradas no calendário" },
 ];
+
+/** Espelha app/core/permissions.py::has_permission — só pra UX, autorização real é sempre no backend. */
+export function hasPermission(
+  user: { is_admin: boolean; permissions: string[] } | null | undefined,
+  key: string,
+): boolean {
+  if (!user) return false;
+  if (user.is_admin) return true;
+  return user.permissions.includes(key);
+}

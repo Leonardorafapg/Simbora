@@ -1,29 +1,36 @@
 "use client";
 
 import { useState } from "react";
+import { useClients } from "@/hooks/useClients";
 import { useTeamMembers } from "@/hooks/useTeamMembers";
-import type { TeamMember } from "@/types/team";
+import type { Client } from "@/types/client";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
-import TeamMemberGrid from "./TeamMemberGrid";
-import TeamMemberDrawer from "./TeamMemberDrawer";
-import NewTeamMemberDialog from "./NewTeamMemberDialog";
+import ClientGrid from "./ClientGrid";
+import ClientDrawer from "./ClientDrawer";
+import NewClientDialog from "./NewClientDialog";
+
+type CalendarPermissions = { canCreate: boolean; canEdit: boolean; canDelete: boolean };
 
 type Props = {
-  canManage: boolean;
+  canCreate: boolean;
+  canEdit: boolean;
+  canDelete: boolean;
+  calendarPermissions: CalendarPermissions;
 };
 
-export default function TeamPageClient({ canManage }: Props) {
-  const { members, loading, error, create, update, remove } = useTeamMembers();
+export default function ClientPageClient({ canCreate, canEdit, canDelete, calendarPermissions }: Props) {
+  const { clients, loading, error, create, update, remove } = useClients();
+  const { members: teamMembers } = useTeamMembers();
 
   // Guardamos o id, não o objeto: assim o drawer sempre reflete a versão mais
   // recente da lista depois de uma edição (e fecha sozinho após a remoção).
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [addOpen, setAddOpen] = useState(false);
-  const [pendingDelete, setPendingDelete] = useState<TeamMember | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<Client | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  const selected = members.find((member) => member.id === selectedId) ?? null;
+  const selected = clients.find((client) => client.id === selectedId) ?? null;
 
   async function handleConfirmDelete() {
     if (!pendingDelete) return;
@@ -44,14 +51,14 @@ export default function TeamPageClient({ canManage }: Props) {
   return (
     <div className="relative h-full p-6 sm:p-8">
       <div className="flex items-center justify-between gap-3 flex-wrap mb-6">
-        <h1 className="text-2xl font-semibold text-white">Equipe</h1>
-        {canManage && (
+        <h1 className="text-2xl font-semibold text-white">Clientes</h1>
+        {canCreate && (
           <button
             type="button"
             onClick={() => setAddOpen(true)}
             className="rounded-lg bg-cyan px-4 py-2 text-sm font-semibold text-black transition hover:bg-cyan-dark"
           >
-            + Novo membro
+            + Novo cliente
           </button>
         )}
       </div>
@@ -60,29 +67,37 @@ export default function TeamPageClient({ canManage }: Props) {
       {error && <p className="text-sm text-danger">{error}</p>}
       {deleteError && <p className="mb-4 text-sm text-danger">{deleteError}</p>}
 
-      <TeamMemberGrid
-        members={members}
-        canManage={canManage}
-        onSelect={(member) => setSelectedId(member.id)}
+      <ClientGrid
+        clients={clients}
+        canCreate={canCreate}
+        onSelect={(client) => setSelectedId(client.id)}
         onAddClick={() => setAddOpen(true)}
       />
 
-      <TeamMemberDrawer
-        member={selected}
-        canManage={canManage}
+      <ClientDrawer
+        client={selected}
+        canEdit={canEdit}
+        canDelete={canDelete}
+        teamMembers={teamMembers}
+        calendarPermissions={calendarPermissions}
         onClose={() => setSelectedId(null)}
         onUpdate={update}
         onRequestDelete={setPendingDelete}
       />
 
-      <NewTeamMemberDialog open={addOpen} onClose={() => setAddOpen(false)} onCreate={create} />
+      <NewClientDialog
+        open={addOpen}
+        onClose={() => setAddOpen(false)}
+        onCreate={create}
+        teamMembers={teamMembers}
+      />
 
       {/* Fora do drawer de propósito: `transform` cria containing block e
           prenderia o overlay `fixed` à área do painel. */}
       <ConfirmDialog
         open={pendingDelete !== null}
-        title={`Remover ${pendingDelete?.full_name ?? ""}?`}
-        description="Essa ação exclui o acesso do membro à equipe permanentemente."
+        title={`Remover ${pendingDelete?.name ?? ""}?`}
+        description="Essa ação exclui o cliente permanentemente."
         confirmLabel="Excluir"
         loading={deleting}
         onConfirm={handleConfirmDelete}

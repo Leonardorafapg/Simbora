@@ -33,7 +33,16 @@
   --shadow-card: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
 }
 
+:root {
+  /* Sem isso, o navegador desenha o popup nativo do <select> (e outros
+     controles de sistema) sempre no tema claro, ignorando nosso CSS — o
+     texto branco do .glass-input fica ilegível em fundo branco. */
+  color-scheme: dark;
+}
+
 :root[data-theme="light"] {
+  color-scheme: light;
+
   --color-dark: #F5F6F8;
   --color-white: #16181D;
   --color-cyan: #00C8C8;
@@ -55,6 +64,8 @@
  * mesmo que o <html> esteja em data-theme="light" por causa do toggle.
  */
 [data-theme="dark"] {
+  color-scheme: dark;
+
   --color-dark: #1A1B1E;
   --color-white: #FFFFFF;
   --color-cyan: #00C8C8;
