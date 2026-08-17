@@ -14,7 +14,7 @@
  */
 @theme {
   --color-black: #000000;
-  --color-dark: #0D0D0D;
+  --color-dark: #1A1B1E;
   --color-cyan: #00C8C8;
   --color-cyan-dark: #008B8B;
   --color-petrol: #0A3D4D;
@@ -36,8 +36,8 @@
 :root[data-theme="light"] {
   --color-dark: #F5F6F8;
   --color-white: #16181D;
-  --color-cyan: #007A7A;
-  --color-cyan-dark: #005F5F;
+  --color-cyan: #00C8C8;
+  --color-cyan-dark: #008B8B;
   --color-danger: #DC2626;
 
   --surface-card: #FFFFFF;
@@ -55,7 +55,7 @@
  * mesmo que o <html> esteja em data-theme="light" por causa do toggle.
  */
 [data-theme="dark"] {
-  --color-dark: #0D0D0D;
+  --color-dark: #1A1B1E;
   --color-white: #FFFFFF;
   --color-cyan: #00C8C8;
   --color-cyan-dark: #008B8B;
@@ -82,6 +82,19 @@ body {
   background: var(--surface-card);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-card);
+}
+
+/*
+ * Variante para diálogos modais (NewTeamMemberDialog, ConfirmDialog): esses
+ * ficam centralizados sobre conteúdo interativo da página (ex.: o botão
+ * "+ Novo membro" do estado vazio da grid), então o fundo quase transparente
+ * do .glass-card deixa esse conteúdo vazar através do blur. Usa um fundo bem
+ * mais opaco pra garantir que o que está atrás fique de fato oculto.
+ */
+.glass-modal {
+  background: var(--color-dark);
   border: 1px solid var(--border-subtle);
   box-shadow: var(--shadow-card);
 }

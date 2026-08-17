@@ -30,3 +30,25 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+def run_light_migrations():
+    """
+    Projeto não usa Alembic ainda. Para colunas novas em bancos sqlite já
+    existentes, `Base.metadata.create_all` não altera tabelas já criadas —
+    então cobrimos isso aqui manualmente, sempre de forma idempotente.
+    """
+    if not IS_SQLITE:
+        return
+
+    with engine.connect() as conn:
+        tables = conn.exec_driver_sql(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='users'"
+        ).fetchall()
+        if not tables:
+            return
+
+        columns = {row[1] for row in conn.exec_driver_sql("PRAGMA table_info(users)")}
+        if "permissions" not in columns:
+            conn.exec_driver_sql("ALTER TABLE users ADD COLUMN permissions TEXT DEFAULT '[]'")
+            conn.commit()

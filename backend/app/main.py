@@ -2,7 +2,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
+from app.core.database import run_light_migrations
 from app.routers import leads, auth, users
+
+run_light_migrations()
 
 app = FastAPI(title=settings.APP_NAME, debug=settings.DEBUG)
 

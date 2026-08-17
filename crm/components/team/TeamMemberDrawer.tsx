@@ -22,7 +22,7 @@ export default function TeamMemberDrawer({ member, canManage, onClose, onUpdate,
         member ? "translate-x-0" : "translate-x-full pointer-events-none"
       }`}
     >
-      <div className="glass-card h-full w-full rounded-2xl p-6 overflow-y-auto">
+      <div className="glass-modal h-full w-full rounded-2xl p-6 overflow-y-auto">
         {member && (
           <TeamMemberDetail
             key={member.id}

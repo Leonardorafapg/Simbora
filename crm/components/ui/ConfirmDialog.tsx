@@ -21,7 +21,7 @@ export default function ConfirmDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6">
-      <div className="glass-card w-full max-w-sm rounded-2xl p-6">
+      <div className="glass-modal w-full max-w-sm rounded-2xl p-6">
         <h2 className="text-base font-semibold text-white">{title}</h2>
         <p className="mt-2 text-sm text-white/60">{description}</p>
         <div className="mt-6 flex justify-end gap-3">

@@ -5,11 +5,17 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.deps import require_admin
+from app.core.permissions import PERMISSIONS
 from app.core.security import hash_password
 from app.models.user import User
-from app.schemas.user import UserCreate, UserOut, UserUpdate
+from app.schemas.user import PermissionCatalogEntry, UserCreate, UserOut, UserUpdate
 
 router = APIRouter()
+
+
+@router.get("/permissions", response_model=list[PermissionCatalogEntry])
+async def list_permissions(_: User = Depends(require_admin)):
+    return [{"key": key, "label": label} for key, label in PERMISSIONS.items()]
 
 
 @router.get("/users", response_model=list[UserOut])
@@ -35,6 +41,7 @@ async def create_user(
         cargo=payload.cargo,
         is_admin=payload.is_admin,
         photo_url=payload.photo_url,
+        permissions=payload.permissions,
     )
     db.add(user)
     try:

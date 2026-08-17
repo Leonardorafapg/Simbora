@@ -8,6 +8,7 @@ export type TeamMember = {
   cargo: string;
   is_admin: boolean;
   is_active: boolean;
+  permissions: string[];
 };
 
 export type TeamMemberCreateInput = {
@@ -18,6 +19,7 @@ export type TeamMemberCreateInput = {
   password: string;
   cargo: string;
   is_admin: boolean;
+  permissions?: string[];
 };
 
 export type TeamMemberUpdateInput = Partial<{
@@ -29,4 +31,5 @@ export type TeamMemberUpdateInput = Partial<{
   cargo: string;
   is_admin: boolean;
   is_active: boolean;
+  permissions: string[];
 }>;

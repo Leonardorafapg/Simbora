@@ -1,6 +1,6 @@
 # backend/app/models/user.py
 from datetime import date, datetime, timezone
-from sqlalchemy import String, Integer, Date, DateTime, Boolean
+from sqlalchemy import String, Integer, Date, DateTime, Boolean, JSON
 from sqlalchemy.orm import Mapped, mapped_column
 from app.core.database import Base
 
@@ -20,6 +20,9 @@ class User(Base):
     # Único controle de acesso do sistema por enquanto: admin gerencia a
     # equipe, quem não é admin só usa o restante do CRM.
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    # Chaves de app/core/permissions.py. Ignorado se is_admin=True (admin tem
+    # tudo liberado sem precisar estar listado aqui).
+    permissions: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(

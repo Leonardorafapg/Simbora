@@ -4,12 +4,21 @@ from datetime import date
 
 from pydantic import BaseModel, EmailStr, field_validator
 
+from app.core.permissions import PERMISSIONS
+
 
 def _clean_cpf(value: str) -> str:
     digits = re.sub(r"\D", "", value)
     if len(digits) != 11:
         raise ValueError("CPF deve ter 11 dígitos")
     return digits
+
+
+def _clean_permissions(value: list[str]) -> list[str]:
+    unknown = set(value) - PERMISSIONS.keys()
+    if unknown:
+        raise ValueError(f"Permissões inválidas: {', '.join(sorted(unknown))}")
+    return sorted(set(value))
 
 
 class UserCreate(BaseModel):
@@ -21,6 +30,7 @@ class UserCreate(BaseModel):
     cargo: str
     is_admin: bool = False
     photo_url: str | None = None
+    permissions: list[str] = []
 
     @field_validator("cpf")
     @classmethod
@@ -35,6 +45,11 @@ class UserCreate(BaseModel):
             raise ValueError("Cargo é obrigatório")
         return value
 
+    @field_validator("permissions")
+    @classmethod
+    def validate_permissions(cls, value: list[str]) -> list[str]:
+        return _clean_permissions(value)
+
 
 class UserUpdate(BaseModel):
     full_name: str | None = None
@@ -46,6 +61,7 @@ class UserUpdate(BaseModel):
     is_admin: bool | None = None
     photo_url: str | None = None
     is_active: bool | None = None
+    permissions: list[str] | None = None
 
     @field_validator("cpf")
     @classmethod
@@ -62,6 +78,11 @@ class UserUpdate(BaseModel):
             raise ValueError("Cargo é obrigatório")
         return value
 
+    @field_validator("permissions")
+    @classmethod
+    def validate_permissions(cls, value: list[str] | None) -> list[str] | None:
+        return _clean_permissions(value) if value is not None else None
+
 
 class UserOut(BaseModel):
     id: int
@@ -73,5 +94,11 @@ class UserOut(BaseModel):
     cargo: str
     is_admin: bool
     is_active: bool
+    permissions: list[str]
 
     model_config = {"from_attributes": True}
+
+
+class PermissionCatalogEntry(BaseModel):
+    key: str
+    label: str

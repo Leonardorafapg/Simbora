@@ -18,7 +18,7 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className="w-60 shrink-0 border-r border-white/10 flex flex-col h-screen sticky top-0">
+    <aside className="w-52 shrink-0 border-r border-white/10 flex flex-col h-screen sticky top-0">
       <div className="h-16 flex items-center px-6 border-b border-white/10">
         <Image src="/logo.png" alt="Simbora" width={53} height={40} className="h-10 w-auto" priority />
       </div>
