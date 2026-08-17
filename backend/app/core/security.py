@@ -25,6 +25,7 @@ def create_access_token(user: User) -> str:
         "photo_url": user.photo_url,
         "cargo": user.cargo,
         "is_admin": user.is_admin,
+        "permissions": user.permissions,
         "iat": now,
         "exp": now + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
     }

@@ -13,6 +13,14 @@ PERMISSIONS: dict[str, str] = {
     "team.create": "Criar membros",
     "team.edit": "Editar membros",
     "team.delete": "Remover membros",
+    "client.view": "Ver clientes",
+    "client.create": "Criar clientes",
+    "client.edit": "Editar clientes",
+    "client.delete": "Remover clientes",
+    "calendar.view": "Ver calendário",
+    "calendar.create": "Criar entradas no calendário",
+    "calendar.edit": "Editar entradas no calendário",
+    "calendar.delete": "Remover entradas no calendário",
 }
 
 

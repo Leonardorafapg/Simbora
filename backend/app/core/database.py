@@ -34,10 +34,13 @@ def get_db():
 
 def run_light_migrations():
     """
-    Projeto não usa Alembic ainda. Para colunas novas em bancos sqlite já
-    existentes, `Base.metadata.create_all` não altera tabelas já criadas —
-    então cobrimos isso aqui manualmente, sempre de forma idempotente.
+    Projeto não usa Alembic ainda. `Base.metadata.create_all` cobre tabelas
+    novas (idempotente, não toca nas existentes) — mas colunas novas em
+    tabelas que já existiam num banco sqlite precisam de ALTER manual, feito
+    abaixo.
     """
+    Base.metadata.create_all(bind=engine)
+
     if not IS_SQLITE:
         return
 

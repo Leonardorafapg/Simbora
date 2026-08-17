@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.database import run_light_migrations
-from app.routers import leads, auth, users
+from app.routers import leads, auth, users, clients, calendar
 
 run_light_migrations()
 
@@ -24,6 +24,8 @@ app.add_middleware(
 app.include_router(leads.router, prefix="/api/v1")
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(users.router, prefix="/api/v1")
+app.include_router(clients.router, prefix="/api/v1")
+app.include_router(calendar.router, prefix="/api/v1")
 
 @app.get("/api/v1/health")
 async def health_check():

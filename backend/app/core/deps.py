@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 import jwt
 
 from app.core.database import get_db
+from app.core.permissions import has_permission
 from app.core.security import decode_access_token
 from app.models.user import User
 
@@ -35,3 +36,14 @@ def require_admin(current_user: User = Depends(get_current_user)) -> User:
     if not current_user.is_admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permissão insuficiente")
     return current_user
+
+
+def require_permission(key: str):
+    """Dependency factory: `Depends(require_permission("client.view"))`."""
+
+    def checker(current_user: User = Depends(get_current_user)) -> User:
+        if not has_permission(current_user, key):
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permissão insuficiente")
+        return current_user
+
+    return checker
