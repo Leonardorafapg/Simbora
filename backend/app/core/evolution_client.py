@@ -6,12 +6,15 @@ nome vem de `settings.EVOLUTION_INSTANCE_NAME`. Erros de rede/config viram
 `HTTPException` claras pro router traduzir em respostas amigáveis pro
 frontend, em vez de um 500 cru.
 """
+import logging
 from typing import Any
 
 import httpx
 from fastapi import HTTPException, status
 
 from app.core.config import settings
+
+logger = logging.getLogger("evolution_client")
 
 
 def _base_url() -> str:
@@ -29,10 +32,15 @@ def _headers() -> dict[str, str]:
 
 async def _request(method: str, path: str, **kwargs: Any) -> httpx.Response:
     url = f"{_base_url()}{path}"
+    # Diagnóstico temporário de um bug de integração em produção — nunca loga
+    # a apikey, só instância/URL/status, pra achar a causa real do 502 sem
+    # depender do usuário abrir o DevTools.
+    logger.warning("Evolution API request: %s %s (instance=%s)", method, url, settings.EVOLUTION_INSTANCE_NAME)
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.request(method, url, headers=_headers(), **kwargs)
     except httpx.RequestError as exc:
+        logger.warning("Evolution API connection failed: %s %s -> %r", method, url, exc)
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail=f"Não foi possível conectar ao servidor Evolution API: {exc}",
@@ -45,10 +53,17 @@ async def _request(method: str, path: str, **kwargs: Any) -> httpx.Response:
             detail = data.get("message") or data.get("error") or detail
         except ValueError:
             pass
-        raise HTTPException(
+        logger.warning("Evolution API returned error: %s %s -> %s %s", method, url, response.status_code, detail)
+        exc = HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail=f"Evolution API retornou erro: {detail}",
         )
+        # Guarda o status real da Evolution à parte — não dá pra confiar em achar
+        # "404"/"409" dentro do texto de `detail`: a Evolution manda o código em
+        # `statusCode` e a mensagem como lista de string, sem o número dentro
+        # (visto comparando com o slzfood-api, que fala com o mesmo servidor).
+        exc.upstream_status = response.status_code  # type: ignore[attr-defined]
+        raise exc
 
     return response
 
@@ -63,24 +78,27 @@ def _instance_name() -> str:
 
 
 async def get_connection_state() -> str:
-    """Retorna o estado bruto da conexão, ex.: 'open', 'connecting', 'close'."""
+    """
+    Retorna o estado bruto da conexão, ex.: 'open', 'connecting', 'close'.
+
+    Usa `fetchInstances`, não `connectionState/{instance}` — esse último não é
+    confiável nessa versão da Evolution (confirmado comparando com o
+    slzfood-api, que fala com o mesmo servidor em produção e usa fetchInstances).
+    """
     instance = _instance_name()
-    try:
-        response = await _request("GET", f"/instance/connectionState/{instance}")
-    except HTTPException as exc:
-        # Instância ainda não existe no servidor Evolution — trata como desconectada.
-        if exc.status_code == status.HTTP_502_BAD_GATEWAY and "404" in str(exc.detail):
-            return "close"
-        raise
+    response = await _request("GET", "/instance/fetchInstances", params={"instanceName": instance})
 
     data = response.json()
-    instance_data = data.get("instance", data)
-    return instance_data.get("state", "close")
+    instances = data if isinstance(data, list) else [data]
+    found = next((i for i in instances if i.get("name") == instance), None)
+    if found is None:
+        return "close"
+    return found.get("connectionStatus") or found.get("state") or "close"
 
 
-async def create_instance() -> None:
+async def create_instance() -> dict[str, Any]:
     instance = _instance_name()
-    await _request(
+    response = await _request(
         "POST",
         "/instance/create",
         json={
@@ -89,6 +107,7 @@ async def create_instance() -> None:
             "integration": "WHATSAPP-BAILEYS",
         },
     )
+    return response.json()
 
 
 async def connect_instance() -> dict[str, Any]:
@@ -102,27 +121,23 @@ async def connect_instance() -> dict[str, Any]:
     if state == "open":
         return {"connected": True}
 
-    if state == "close":
-        try:
-            await create_instance()
-        except HTTPException as exc:
-            # Instância já existe — segue pro connect normalmente.
-            if "already" not in str(exc.detail).lower() and "409" not in str(exc.detail):
-                raise
-
-    response = await _request("GET", f"/instance/connect/{instance}")
-    data = response.json()
+    try:
+        data = await create_instance()
+    except HTTPException as exc:
+        # Instância já existe (a Evolution responde 401/403/409) — só reconecta
+        # pra pegar o QR, em vez de confiar em achar "already"/"409" no texto.
+        if getattr(exc, "upstream_status", 0) in (401, 403, 409):
+            response = await _request("GET", f"/instance/connect/{instance}")
+            data = response.json()
+        else:
+            raise
 
     qrcode = data.get("qrcode") if isinstance(data.get("qrcode"), dict) else data
     base64_qr = qrcode.get("base64") if isinstance(qrcode, dict) else None
     code = qrcode.get("code") if isinstance(qrcode, dict) else data.get("code")
+    pairing_code = data.get("pairingCode") or (qrcode.get("pairingCode") if isinstance(qrcode, dict) else None)
 
-    return {"connected": False, "base64": base64_qr, "code": code, "pairing_code": data.get("pairingCode")}
-
-
-async def logout_instance() -> None:
-    instance = _instance_name()
-    await _request("DELETE", f"/instance/logout/{instance}")
+    return {"connected": False, "base64": base64_qr, "code": code, "pairing_code": pairing_code}
 
 
 async def delete_instance() -> None:

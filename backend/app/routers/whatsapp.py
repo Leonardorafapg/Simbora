@@ -80,7 +80,7 @@ async def connect(
 async def disconnect(
     _: User = Depends(require_permission("whatsapp.view")),
 ):
-    await evolution_client.logout_instance()
+    await evolution_client.delete_instance()
 
 
 @router.get("/whatsapp/chats", response_model=list[WhatsAppChat])
