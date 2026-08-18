@@ -5,6 +5,7 @@ pydantic-settings
 python-dotenv
 email-validator
 sqlalchemy
+psycopg2-binary
 pyjwt
 bcrypt
 httpx
