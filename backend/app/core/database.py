@@ -44,14 +44,21 @@ def run_light_migrations():
     if not IS_SQLITE:
         return
 
-    with engine.connect() as conn:
+    def add_column_if_missing(conn, table: str, column: str, ddl: str):
         tables = conn.exec_driver_sql(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name='users'"
+            f"SELECT name FROM sqlite_master WHERE type='table' AND name='{table}'"
         ).fetchall()
         if not tables:
             return
 
-        columns = {row[1] for row in conn.exec_driver_sql("PRAGMA table_info(users)")}
-        if "permissions" not in columns:
-            conn.exec_driver_sql("ALTER TABLE users ADD COLUMN permissions TEXT DEFAULT '[]'")
+        columns = {row[1] for row in conn.exec_driver_sql(f"PRAGMA table_info({table})")}
+        if column not in columns:
+            conn.exec_driver_sql(f"ALTER TABLE {table} ADD COLUMN {ddl}")
             conn.commit()
+
+    with engine.connect() as conn:
+        add_column_if_missing(conn, "users", "permissions", "permissions TEXT DEFAULT '[]'")
+        add_column_if_missing(conn, "calendar_entries", "reference_image", "reference_image TEXT")
+        add_column_if_missing(conn, "calendar_entries", "material_notes", "material_notes TEXT")
+        add_column_if_missing(conn, "demands", "checklist", "checklist TEXT DEFAULT '[]'")
+        add_column_if_missing(conn, "demands", "has_material", "has_material BOOLEAN DEFAULT 0")

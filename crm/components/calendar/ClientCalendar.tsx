@@ -2,46 +2,49 @@
 
 import { useState } from "react";
 import { useCalendarEntries } from "@/hooks/useCalendarEntries";
+import { useCalendarPeriod } from "@/hooks/useCalendarPeriod";
 import type { CalendarEntry } from "@/types/calendar";
+import { MONTH_LABELS } from "@/types/calendar";
+import type { CalendarPeriodStatus } from "@/types/calendarPeriod";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import CalendarMonthView from "./CalendarMonthView";
 import CalendarEntryDialog from "./CalendarEntryDialog";
+import CalendarPeriodControl from "./CalendarPeriodControl";
+import CalendarReport from "./CalendarReport";
 
 type Props = {
   clientId: number;
+  clientName: string;
   canCreate: boolean;
   canEdit: boolean;
   canDelete: boolean;
 };
 
 /** Calendário de postagens de um único cliente — vive dentro do drawer de detalhe. */
-export default function ClientCalendar({
-  clientId,
-  canCreate,
-  canEdit,
-  canDelete,
-}: Props) {
+export default function ClientCalendar({ clientId, clientName, canCreate, canEdit, canDelete }: Props) {
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth() + 1);
-  const [dialogDate, setDialogDate] = useState(
-    today.toISOString().slice(0, 10),
-  );
+  const [view, setView] = useState<"calendario" | "relatorio">("calendario");
+  const [dialogDate, setDialogDate] = useState(today.toISOString().slice(0, 10));
   const [dialogEntry, setDialogEntry] = useState<CalendarEntry | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [pendingDelete, setPendingDelete] = useState<CalendarEntry | null>(
-    null,
-  );
+  const [pendingDelete, setPendingDelete] = useState<CalendarEntry | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [savingPeriod, setSavingPeriod] = useState(false);
+  const [periodError, setPeriodError] = useState<string | null>(null);
 
   const monthStr = `${year}-${String(month).padStart(2, "0")}`;
+  const monthLabel = `${MONTH_LABELS[month - 1]} ${year}`;
   // Falha ao listar (ou mês sem nenhuma postagem) são o mesmo estado pra UI:
   // `entries` fica `[]` e o calendário renderiza normal — sem banner de erro.
-  const { entries, create, update, remove } = useCalendarEntries(
-    clientId,
-    monthStr,
-  );
+  const { entries, create, update, remove } = useCalendarEntries(clientId, monthStr);
+  const { period, setStatus: setPeriodStatus } = useCalendarPeriod(clientId, year, month);
+
+  // Cronograma finalizado trava o mês inteiro — a checagem real é sempre no
+  // backend, isso aqui só evita abrir diálogos que vão ser recusados.
+  const locked = period.status === "finalizado";
 
   function openCreateDialog(date: string) {
     setDialogDate(date);
@@ -60,6 +63,18 @@ export default function ClientCalendar({
     setPendingDelete(entry);
   }
 
+  async function handlePeriodStatusChange(status: CalendarPeriodStatus) {
+    setPeriodError(null);
+    setSavingPeriod(true);
+    try {
+      await setPeriodStatus(status);
+    } catch (err) {
+      setPeriodError(err instanceof Error ? err.message : "Erro ao atualizar status.");
+    } finally {
+      setSavingPeriod(false);
+    }
+  }
+
   async function handleConfirmDelete() {
     if (!pendingDelete) return;
     setDeleting(true);
@@ -76,21 +91,38 @@ export default function ClientCalendar({
 
   return (
     <div className="space-y-4">
+      <CalendarPeriodControl
+        status={period.status}
+        canManage={canEdit}
+        saving={savingPeriod}
+        onChange={handlePeriodStatusChange}
+      />
+      {periodError && <p className="text-sm text-danger">{periodError}</p>}
       {deleteError && <p className="text-sm text-danger">{deleteError}</p>}
 
-      <CalendarMonthView
-        year={year}
-        month={month}
-        entries={entries}
-        canCreate={canCreate}
-        canEdit={canEdit}
-        onCreateDate={openCreateDialog}
-        onEditEntry={openEditDialog}
-        onChangeMonth={(y, m) => {
-          setYear(y);
-          setMonth(m);
-        }}
-      />
+      {view === "calendario" ? (
+        <CalendarMonthView
+          year={year}
+          month={month}
+          entries={entries}
+          canCreate={canCreate && !locked}
+          canEdit={canEdit && !locked}
+          onCreateDate={openCreateDialog}
+          onEditEntry={openEditDialog}
+          onChangeMonth={(y, m) => {
+            setYear(y);
+            setMonth(m);
+          }}
+          onOpenReport={() => setView("relatorio")}
+        />
+      ) : (
+        <CalendarReport
+          clientName={clientName}
+          monthLabel={monthLabel}
+          entries={entries}
+          onClose={() => setView("calendario")}
+        />
+      )}
 
       {dialogOpen && (
         <CalendarEntryDialog
@@ -99,7 +131,7 @@ export default function ClientCalendar({
           clientId={clientId}
           defaultDate={dialogDate}
           entry={dialogEntry}
-          canDelete={canDelete}
+          canDelete={canDelete && !locked}
           onCreate={create}
           onUpdate={update}
           onRequestDelete={requestDelete}

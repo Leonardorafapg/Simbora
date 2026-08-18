@@ -36,12 +36,17 @@
 :root {
   /* Sem isso, o navegador desenha o popup nativo do <select> (e outros
      controles de sistema) sempre no tema claro, ignorando nosso CSS — o
-     texto branco do .glass-input fica ilegível em fundo branco. */
+     texto branco do .glass-input fica ilegível em fundo branco. Guardado
+     também numa variável porque a propriedade sozinha no :root não é
+     confiável pro popup do <select> em todo motor de renderização — o
+     .glass-input abaixo aplica de novo, direto no elemento. */
   color-scheme: dark;
+  --native-scheme: dark;
 }
 
 :root[data-theme="light"] {
   color-scheme: light;
+  --native-scheme: light;
 
   --color-dark: #F5F6F8;
   --color-white: #16181D;
@@ -65,6 +70,7 @@
  */
 [data-theme="dark"] {
   color-scheme: dark;
+  --native-scheme: dark;
 
   --color-dark: #1A1B1E;
   --color-white: #FFFFFF;
@@ -114,11 +120,71 @@ body {
   background: var(--surface-input);
   border: 1px solid var(--border-subtle);
   color: var(--color-white);
+  /* Reforça o tema no próprio elemento — ver comentário no :root sobre por
+     que a cascata sozinha não é confiável pro popup nativo do <select>. */
+  color-scheme: var(--native-scheme);
   transition: all 0.2s ease;
 }
+/*
+ * O Chrome/Edge no Windows não pinta o popup do <select> a partir de
+ * `color-scheme` nem do `background` do próprio elemento — só respeita
+ * `background`/`color` postos direto na <option>. Sem isso, texto e fundo
+ * do popup saem ambos claros (herdados do UA), ficando ilegível.
+ */
+.glass-input option {
+  background: var(--color-dark);
+  color: var(--color-white);
+}
+
 .glass-input:focus {
   background: var(--surface-input-focus);
   border-color: var(--color-cyan);
   outline: none;
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-cyan) 25%, transparent);
+}
+
+/*
+ * Isola o relatório de calendário (CalendarReport) na hora de imprimir —
+ * esconde sidebar/topbar/drawer/o resto da página e imprime só o card do
+ * relatório, ocupando a folha inteira em vez de sair recortado.
+ */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  [data-print-area],
+  [data-print-area] * {
+    visibility: visible;
+  }
+  /*
+   * `fixed` (não `absolute`): o card do relatório vive dentro de containers
+   * com position própria (drawer, página) — `absolute` ficaria relativo a
+   * esse ancestral e saía pequeno/deslocado. `fixed` sempre parte do
+   * viewport/folha, ocupando a página inteira independente de onde o card
+   * está aninhado no DOM.
+   */
+  [data-print-area] {
+    position: fixed;
+    inset: 0;
+    width: auto;
+    height: auto;
+    margin: 0;
+    padding: 24px;
+    background: #ffffff;
+    border: none;
+    border-radius: 0;
+  }
+  /* Sobrescreve as cores do tema escuro (texto branco, bordas translúcidas)
+     — sem isso o relatório imprime ilegível (texto branco em folha branca). */
+  [data-print-area] * {
+    color: #111111 !important;
+    background: transparent !important;
+    border-color: #d0d0d0 !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    border-radius: 0 !important;
+  }
+  [data-print-area] button {
+    display: none !important;
+  }
 }

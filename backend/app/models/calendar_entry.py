@@ -15,9 +15,15 @@ class CalendarEntry(Base):
     format: Mapped[str] = mapped_column(String(30), nullable=False)
     execution_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     reference_link: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    # Data URI (base64) da imagem de referência — só aparece no drawer de
+    # detalhe da postagem, nunca em relatório/impressão/PDF/calendário.
+    reference_image: Mapped[str | None] = mapped_column(Text, nullable=True)
     caption: Mapped[str | None] = mapped_column(Text, nullable=True)
-    # planejado / aguardando_legenda / agendado / publicado — ver schemas/calendar_entry.py
-    status: Mapped[str] = mapped_column(String(30), nullable=False, default="planejado")
+    # Markdown livre respondendo "já tem material?" — sem UI própria ainda,
+    # reservado pra uso futuro (igual "status", ver comentário abaixo).
+    material_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # nao_iniciado / feito / aprovado / reprovado / concluido — ver schemas/calendar_entry.py
+    status: Mapped[str] = mapped_column(String(30), nullable=False, default="nao_iniciado")
     created_by: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(

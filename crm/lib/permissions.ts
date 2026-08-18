@@ -24,6 +24,10 @@ export const PERMISSIONS: { key: string; label: string }[] = [
   { key: "calendar.delete", label: "Remover entradas no calendário" },
   { key: "whatsapp.view", label: "Ver WhatsApp" },
   { key: "whatsapp.send", label: "Enviar mensagens no WhatsApp" },
+  { key: "demand.view", label: "Ver produção" },
+  { key: "demand.create", label: "Criar demandas" },
+  { key: "demand.edit", label: "Editar demandas" },
+  { key: "demand.delete", label: "Remover demandas" },
 ];
 
 /** Espelha app/core/permissions.py::has_permission — só pra UX, autorização real é sempre no backend. */

@@ -9,10 +9,21 @@ from app.core.database import get_db
 from app.core.deps import require_permission
 from app.models.calendar_entry import CalendarEntry
 from app.models.client import Client
+from app.models.demand import Demand
 from app.models.user import User
+from app.routers.calendar_periods import get_period_status
 from app.schemas.calendar_entry import CalendarEntryCreate, CalendarEntryOut, CalendarEntryUpdate
 
 router = APIRouter()
+
+
+def _ensure_period_editable(db: Session, client_id: int, entry_date: date) -> None:
+    period_status = get_period_status(db, client_id, entry_date.year, entry_date.month)
+    if period_status == "finalizado":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Esse cronograma já foi finalizado — reprove antes de editar.",
+        )
 
 
 @router.get("/calendar-entries", response_model=list[CalendarEntryOut])
@@ -50,6 +61,8 @@ async def create_calendar_entry(
     if db.get(Client, payload.client_id) is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cliente inválido")
 
+    _ensure_period_editable(db, payload.client_id, payload.scheduled_date)
+
     entry = CalendarEntry(**payload.model_dump(), created_by=current_user.id)
     db.add(entry)
     db.commit()
@@ -67,6 +80,8 @@ async def update_calendar_entry(
     entry = db.get(CalendarEntry, entry_id)
     if entry is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Entrada não encontrada")
+
+    _ensure_period_editable(db, entry.client_id, entry.scheduled_date)
 
     data = payload.model_dump(exclude_unset=True)
 
@@ -90,6 +105,13 @@ async def delete_calendar_entry(
     entry = db.get(CalendarEntry, entry_id)
     if entry is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Entrada não encontrada")
+
+    _ensure_period_editable(db, entry.client_id, entry.scheduled_date)
+
+    # A demanda gerada a partir dessa postagem (se existir) sobrevive à
+    # exclusão do planejamento — só perde o vínculo. Sem isso, apagar a
+    # entrada quebra a FK e derruba a request com 500 (IntegrityError).
+    db.query(Demand).filter(Demand.calendar_entry_id == entry_id).update({"calendar_entry_id": None})
 
     db.delete(entry)
     db.commit()

@@ -10,6 +10,7 @@ export default async function ClientsPage() {
       canCreate={hasPermission(session, "client.create")}
       canEdit={hasPermission(session, "client.edit")}
       canDelete={hasPermission(session, "client.delete")}
+      canViewDemands={hasPermission(session, "demand.view")}
       calendarPermissions={{
         canCreate: hasPermission(session, "calendar.create"),
         canEdit: hasPermission(session, "calendar.edit"),

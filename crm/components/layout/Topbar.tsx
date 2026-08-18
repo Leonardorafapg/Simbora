@@ -1,23 +1,28 @@
-import { Search } from "lucide-react";
+import { Menu } from "lucide-react";
 import Avatar from "@/components/ui/Avatar";
 import ThemeToggle from "@/components/layout/ThemeToggle";
+import GlobalSearch from "@/components/layout/GlobalSearch";
 import type { SessionUser } from "@/types/auth";
 
 type Props = {
   user: SessionUser | null;
+  onMenuClick: () => void;
 };
 
-export default function Topbar({ user }: Props) {
+export default function Topbar({ user, onMenuClick }: Props) {
   return (
-    <header className="h-16 shrink-0 border-b border-white/10 flex items-center justify-between gap-4 px-6">
-      <label className="relative flex-1 max-w-sm">
-        <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
-        <input
-          type="search"
-          placeholder="Buscar..."
-          className="glass-input w-full rounded-lg pl-9 pr-3 py-2 text-sm outline-none"
-        />
-      </label>
+    <header className="h-16 shrink-0 border-b border-white/10 flex items-center justify-between gap-3 px-4 sm:px-6">
+      <div className="flex items-center gap-3 min-w-0 flex-1">
+        <button
+          type="button"
+          onClick={onMenuClick}
+          className="text-white/60 hover:text-white lg:hidden shrink-0"
+          aria-label="Abrir menu"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+        <GlobalSearch />
+      </div>
 
       <div className="flex items-center gap-3 shrink-0">
         <ThemeToggle />

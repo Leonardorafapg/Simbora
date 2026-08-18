@@ -1,12 +1,14 @@
 "use client";
 
 import { useLogin } from "@/hooks/useLogin";
+import LoginSplash from "./LoginSplash";
 
 export default function LoginForm() {
-  const { email, setEmail, password, setPassword, error, loading, submit } = useLogin();
+  const { email, setEmail, password, setPassword, error, loading, showSplash, submit } = useLogin();
 
   return (
     <form onSubmit={submit} className="w-full flex flex-col gap-4">
+      {showSplash && <LoginSplash />}
       <div className="flex flex-col gap-1.5">
         <label htmlFor="email" className="text-sm text-white/70">
           Email

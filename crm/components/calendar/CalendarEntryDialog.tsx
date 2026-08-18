@@ -1,19 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import type {
-  CalendarEntry,
-  CalendarEntryCreateInput,
-  CalendarEntryUpdateInput,
-  CalendarFormat,
-  CalendarStatus,
-} from "@/types/calendar";
-import {
-  CALENDAR_FORMATS,
-  CALENDAR_STATUSES,
-  CALENDAR_STATUS_LABELS,
-} from "@/types/calendar";
+import type { CalendarEntry, CalendarEntryCreateInput, CalendarEntryUpdateInput } from "@/types/calendar";
 import Field from "@/components/ui/Field";
+import ImageDropzone from "@/components/ui/ImageDropzone";
 
 type Props = {
   open: boolean;
@@ -24,27 +14,17 @@ type Props = {
   entry?: CalendarEntry | null;
   canDelete?: boolean;
   onCreate: (input: CalendarEntryCreateInput) => Promise<CalendarEntry>;
-  onUpdate: (
-    id: number,
-    input: CalendarEntryUpdateInput,
-  ) => Promise<CalendarEntry>;
+  onUpdate: (id: number, input: CalendarEntryUpdateInput) => Promise<CalendarEntry>;
   onRequestDelete?: (entry: CalendarEntry) => void;
 };
 
-function buildForm(
-  entry: CalendarEntry | null | undefined,
-  clientId: number,
-  defaultDate: string,
-) {
+function buildForm(entry: CalendarEntry | null | undefined, clientId: number, defaultDate: string) {
   return {
     client_id: entry?.client_id ?? clientId,
     scheduled_date: entry?.scheduled_date ?? defaultDate,
     theme: entry?.theme ?? "",
-    format: entry?.format ?? ("Reels" as CalendarFormat),
     execution_notes: entry?.execution_notes ?? "",
-    reference_link: entry?.reference_link ?? "",
-    caption: entry?.caption ?? "",
-    status: entry?.status ?? ("planejado" as CalendarStatus),
+    reference_image: entry?.reference_image ?? null,
   };
 }
 
@@ -59,9 +39,7 @@ export default function CalendarEntryDialog({
   onUpdate,
   onRequestDelete,
 }: Props) {
-  const [form, setForm] = useState(() =>
-    buildForm(entry, clientId, defaultDate),
-  );
+  const [form, setForm] = useState(() => buildForm(entry, clientId, defaultDate));
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [openKey, setOpenKey] = useState(entry?.id ?? "new");
@@ -75,10 +53,7 @@ export default function CalendarEntryDialog({
 
   if (!open) return null;
 
-  function update<K extends keyof typeof form>(
-    key: K,
-    value: (typeof form)[K],
-  ) {
+  function update<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
@@ -114,82 +89,41 @@ export default function CalendarEntryDialog({
         </h2>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Data">
-              <input
-                required
-                type="date"
-                value={form.scheduled_date}
-                onChange={(e) => update("scheduled_date", e.target.value)}
-                className="glass-input rounded-lg px-3 py-2 text-sm outline-none w-full"
-              />
-            </Field>
-            <Field label="Formato">
-              <select
-                value={form.format}
-                onChange={(e) =>
-                  update("format", e.target.value as CalendarFormat)
-                }
-                className="glass-input rounded-lg px-3 py-2 text-sm outline-none w-full"
-              >
-                {CALENDAR_FORMATS.map((f) => (
-                  <option key={f} value={f}>
-                    {f}
-                  </option>
-                ))}
-              </select>
-            </Field>
-          </div>
+          <Field label="Data">
+            <input
+              required
+              type="date"
+              value={form.scheduled_date}
+              onChange={(e) => update("scheduled_date", e.target.value)}
+              className="glass-input rounded-lg px-3 py-2 text-sm outline-none w-full"
+            />
+          </Field>
 
-          <Field label="Tema / Chamada">
+          <Field label="Descrição">
             <textarea
               required
               value={form.theme}
               onChange={(e) => update("theme", e.target.value)}
+              placeholder="Tema / chamada do post"
               className="glass-input rounded-lg px-3 py-2 text-sm outline-none w-full min-h-[70px]"
             />
           </Field>
 
-          <Field label="Execução (objetivo)">
-            <input
+          <Field label="Execução">
+            <textarea
+              required
               value={form.execution_notes}
               onChange={(e) => update("execution_notes", e.target.value)}
-              placeholder="Ex: propaganda para venda do produto"
-              className="glass-input rounded-lg px-3 py-2 text-sm outline-none w-full"
+              placeholder="O que vai ser feito"
+              className="glass-input rounded-lg px-3 py-2 text-sm outline-none w-full min-h-[70px]"
             />
           </Field>
 
-          <Field label="Link de referência">
-            <input
-              value={form.reference_link}
-              onChange={(e) => update("reference_link", e.target.value)}
-              placeholder="https://instagram.com/..."
-              className="glass-input rounded-lg px-3 py-2 text-sm outline-none w-full"
+          <Field label="Referência (opcional)">
+            <ImageDropzone
+              value={form.reference_image}
+              onChange={(value) => update("reference_image", value)}
             />
-          </Field>
-
-          <Field label="Legenda">
-            <textarea
-              value={form.caption}
-              onChange={(e) => update("caption", e.target.value)}
-              className="glass-input rounded-lg px-3 py-2 text-sm outline-none w-full min-h-[60px]"
-            />
-          </Field>
-
-          <Field label="Status">
-            <select
-              value={form.status}
-              onChange={(e) =>
-                update("status", e.target.value as CalendarStatus)
-              }
-              className="glass-input rounded-lg px-3 py-2 text-sm outline-none w-full"
-            >
-              {CALENDAR_STATUSES.map((s) => (
-                <option key={s} value={s}>
-                  {CALENDAR_STATUS_LABELS[s]}
-                </option>
-              ))}
-            </select>
           </Field>
 
           {error && <p className="text-sm text-danger">{error}</p>}

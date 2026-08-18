@@ -1,30 +1,8 @@
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, FileText } from "lucide-react";
 import type { CalendarEntry } from "@/types/calendar";
+import { MONTH_LABELS } from "@/types/calendar";
 
 const WEEKDAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
-
-const MONTH_LABELS = [
-  "Janeiro",
-  "Fevereiro",
-  "Março",
-  "Abril",
-  "Maio",
-  "Junho",
-  "Julho",
-  "Agosto",
-  "Setembro",
-  "Outubro",
-  "Novembro",
-  "Dezembro",
-];
-
-const FORMAT_DOT: Record<string, string> = {
-  Reels: "bg-cyan",
-  Carrossel: "bg-purple-400",
-  "Post estático": "bg-amber-400",
-  Story: "bg-pink-400",
-  Vídeo: "bg-emerald-400",
-};
 
 type Props = {
   year: number;
@@ -35,6 +13,7 @@ type Props = {
   onCreateDate: (date: string) => void;
   onEditEntry: (entry: CalendarEntry) => void;
   onChangeMonth: (year: number, month: number) => void;
+  onOpenReport: () => void;
 };
 
 function toISODate(year: number, month: number, day: number) {
@@ -50,6 +29,7 @@ export default function CalendarMonthView({
   onCreateDate,
   onEditEntry,
   onChangeMonth,
+  onOpenReport,
 }: Props) {
   const firstOfMonth = new Date(year, month - 1, 1);
   const daysInMonth = new Date(year, month, 0).getDate();
@@ -62,8 +42,7 @@ export default function CalendarMonthView({
     entriesByDate.set(entry.scheduled_date, list);
   }
 
-  const today = new Date();
-  const todayISO = today.toISOString().slice(0, 10);
+  const todayISO = new Date().toISOString().slice(0, 10);
 
   const cells: (number | null)[] = [
     ...Array.from({ length: startWeekday }, () => null),
@@ -76,12 +55,8 @@ export default function CalendarMonthView({
     onChangeMonth(date.getFullYear(), date.getMonth() + 1);
   }
 
-  function goToday() {
-    onChangeMonth(today.getFullYear(), today.getMonth() + 1);
-  }
-
   return (
-    <div className="glass-card rounded-2xl p-5">
+    <div className="glass-card rounded-2xl p-3 sm:p-5">
       <div className="flex items-center justify-between gap-3 flex-wrap mb-5">
         <div>
           <h3 className="font-semibold text-white">Calendário de Postagem</h3>
@@ -93,18 +68,18 @@ export default function CalendarMonthView({
         <div className="flex items-center gap-2">
           <button
             type="button"
+            onClick={onOpenReport}
+            className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-white hover:border-white/20 flex items-center gap-1.5"
+          >
+            <FileText className="h-3.5 w-3.5" /> Relatório
+          </button>
+          <button
+            type="button"
             onClick={() => shift(-1)}
             className="rounded-lg border border-white/10 bg-white/5 p-2 text-white/60 hover:text-white hover:border-white/20"
             aria-label="Mês anterior"
           >
             <ChevronLeft className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onClick={goToday}
-            className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-white hover:border-white/20"
-          >
-            Hoje
           </button>
           <button
             type="button"
@@ -135,7 +110,7 @@ export default function CalendarMonthView({
               return (
                 <div
                   key={`empty-${i}`}
-                  className="border-r border-b border-white/5 min-h-[92px]"
+                  className="border-r border-b border-white/5 min-h-[64px] sm:min-h-[92px]"
                 />
               );
             }
@@ -155,7 +130,7 @@ export default function CalendarMonthView({
                   if (canCreate && (e.key === "Enter" || e.key === " "))
                     onCreateDate(dateISO);
                 }}
-                className={`min-h-[92px] p-2 flex flex-col items-start gap-1 text-left border-r border-b border-white/5 transition-colors ${
+                className={`min-h-[64px] sm:min-h-[92px] p-1 sm:p-2 flex flex-col items-start gap-1 text-left border-r border-b border-white/5 transition-colors ${
                   canCreate ? "cursor-pointer hover:bg-white/5" : ""
                 }`}
               >
@@ -169,12 +144,8 @@ export default function CalendarMonthView({
                   {visibleEntries.map((entry) => {
                     const chipContent = (
                       <>
-                        <span
-                          className={`h-1.5 w-1.5 rounded-full shrink-0 ${FORMAT_DOT[entry.format] ?? "bg-white/40"}`}
-                        />
-                        <span className="text-[10px] text-white/60 truncate">
-                          {entry.theme}
-                        </span>
+                        <span className="h-1.5 w-1.5 rounded-full shrink-0 bg-cyan/60" />
+                        <span className="text-[10px] text-white/60 truncate">{entry.theme}</span>
                       </>
                     );
 
@@ -191,10 +162,7 @@ export default function CalendarMonthView({
                         {chipContent}
                       </button>
                     ) : (
-                      <div
-                        key={entry.id}
-                        className="flex items-center gap-1 px-1 py-0.5 w-full min-w-0"
-                      >
+                      <div key={entry.id} className="flex items-center gap-1 px-1 py-0.5 w-full min-w-0">
                         {chipContent}
                       </div>
                     );

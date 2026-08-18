@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { Client, ClientUpdateInput } from "@/types/client";
 import type { TeamMember } from "@/types/team";
 import Field from "@/components/ui/Field";
 import UserSelect from "@/components/ui/UserSelect";
 import Avatar from "@/components/ui/Avatar";
 import ClientCalendar from "@/components/calendar/ClientCalendar";
+import DemandProgressCard from "@/components/demands/DemandProgressCard";
+import { useDemands } from "@/hooks/useDemands";
 
 type CalendarPermissions = {
   canCreate: boolean;
@@ -18,6 +20,7 @@ type Props = {
   client: Client;
   canEdit: boolean;
   canDelete: boolean;
+  canViewDemands: boolean;
   teamMembers: TeamMember[];
   calendarPermissions: CalendarPermissions;
   onBack: () => void;
@@ -29,6 +32,7 @@ export default function ClientDetail({
   client,
   canEdit,
   canDelete,
+  canViewDemands,
   teamMembers,
   calendarPermissions,
   onBack,
@@ -93,6 +97,10 @@ export default function ClientDetail({
   const nameOf = (id: number | null) =>
     teamMembers.find((m) => m.id === id)?.full_name ?? "—";
 
+  // Sem filtro de status: precisamos de todas pra contar concluídas vs. total.
+  const { demands } = useDemands(useMemo(() => ({ client_id: client.id }), [client.id]));
+  const completedDemands = useMemo(() => demands.filter((d) => d.status === "concluida").length, [demands]);
+
   return (
     <>
       <button
@@ -134,7 +142,7 @@ export default function ClientDetail({
                   />
                 </Field>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <Field label="Email">
                     <input
                       type="email"
@@ -152,7 +160,7 @@ export default function ClientDetail({
                   </Field>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <Field label="Instagram">
                     <input
                       value={form.instagram ?? ""}
@@ -171,7 +179,7 @@ export default function ClientDetail({
                   </Field>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <Field label="Social media padrão">
                     <UserSelect
                       options={teamMembers}
@@ -231,6 +239,10 @@ export default function ClientDetail({
             )}
           </div>
 
+          {canViewDemands && (
+            <DemandProgressCard label="Demandas do cliente" total={demands.length} completed={completedDemands} />
+          )}
+
           {error && <p className="text-sm text-danger max-w-md">{error}</p>}
 
           {(canEdit || canDelete) && (
@@ -281,6 +293,7 @@ export default function ClientDetail({
         <div className="w-full min-w-0">
           <ClientCalendar
             clientId={client.id}
+            clientName={client.name}
             canCreate={calendarPermissions.canCreate}
             canEdit={calendarPermissions.canEdit}
             canDelete={calendarPermissions.canDelete}

@@ -81,7 +81,7 @@ export default function NewClientDialog({ open, onClose, onCreate, teamMembers }
             />
           </Field>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Field label="Email">
               <input
                 type="email"
@@ -99,7 +99,7 @@ export default function NewClientDialog({ open, onClose, onCreate, teamMembers }
             </Field>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Field label="Instagram">
               <input
                 placeholder="@usuario"
@@ -117,7 +117,7 @@ export default function NewClientDialog({ open, onClose, onCreate, teamMembers }
             </Field>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Field label="Social media padrão">
               <UserSelect
                 options={teamMembers}

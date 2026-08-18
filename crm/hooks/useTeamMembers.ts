@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createTeamMember, deleteTeamMember, fetchTeamMembers, updateTeamMember } from "@/services/client/teamApi";
+import { getOrFetch, invalidate } from "@/lib/dataCache";
 import type { TeamMember, TeamMemberCreateInput, TeamMemberUpdateInput } from "@/types/team";
 
 const byName = (a: TeamMember, b: TeamMember) => a.full_name.localeCompare(b.full_name);
@@ -18,7 +19,7 @@ export function useTeamMembers() {
 
     (async () => {
       try {
-        const membersData = await fetchTeamMembers();
+        const membersData = await getOrFetch("teamMembers", fetchTeamMembers);
         if (cancelled) return;
         setMembers([...membersData].sort(byName));
       } catch (err) {
@@ -35,18 +36,21 @@ export function useTeamMembers() {
 
   async function create(input: TeamMemberCreateInput) {
     const member = await createTeamMember(input);
+    invalidate("teamMembers");
     setMembers((prev) => [...prev, member].sort(byName));
     return member;
   }
 
   async function update(id: number, input: TeamMemberUpdateInput) {
     const member = await updateTeamMember(id, input);
+    invalidate("teamMembers");
     setMembers((prev) => prev.map((m) => (m.id === id ? member : m)).sort(byName));
     return member;
   }
 
   async function remove(id: number) {
     await deleteTeamMember(id);
+    invalidate("teamMembers");
     setMembers((prev) => prev.filter((m) => m.id !== id));
   }
 

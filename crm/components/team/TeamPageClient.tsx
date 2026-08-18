@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useTeamMembers } from "@/hooks/useTeamMembers";
 import type { TeamMember } from "@/types/team";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
@@ -10,14 +11,22 @@ import NewTeamMemberDialog from "./NewTeamMemberDialog";
 
 type Props = {
   canManage: boolean;
+  canViewDemands: boolean;
 };
 
-export default function TeamPageClient({ canManage }: Props) {
+export default function TeamPageClient({ canManage, canViewDemands }: Props) {
   const { members, loading, error, create, update, remove } = useTeamMembers();
+  const searchParams = useSearchParams();
 
   // Guardamos o id, não o objeto: assim o drawer sempre reflete a versão mais
   // recente da lista depois de uma edição (e fecha sozinho após a remoção).
   const [selectedId, setSelectedId] = useState<number | null>(null);
+
+  // Permite abrir um membro direto via link (usado pela busca geral da topbar).
+  useEffect(() => {
+    const openMember = searchParams.get("openMember");
+    if (openMember) setSelectedId(Number(openMember));
+  }, [searchParams]);
   const [addOpen, setAddOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<TeamMember | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -70,6 +79,7 @@ export default function TeamPageClient({ canManage }: Props) {
       <TeamMemberDrawer
         member={selected}
         canManage={canManage}
+        canViewDemands={canViewDemands}
         onClose={() => setSelectedId(null)}
         onUpdate={update}
         onRequestDelete={setPendingDelete}

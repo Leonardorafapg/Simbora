@@ -3,14 +3,7 @@ from datetime import date
 
 from pydantic import BaseModel, field_validator
 
-CALENDAR_FORMATS = ["Reels", "Carrossel", "Post estático", "Story", "Vídeo"]
-CALENDAR_STATUSES = ["planejado", "aguardando_legenda", "agendado", "publicado"]
-
-
-def _validate_format(value: str) -> str:
-    if value not in CALENDAR_FORMATS:
-        raise ValueError(f"Formato inválido. Use um de: {', '.join(CALENDAR_FORMATS)}")
-    return value
+CALENDAR_STATUSES = ["nao_iniciado", "feito", "aprovado", "reprovado", "concluido"]
 
 
 def _validate_status(value: str) -> str:
@@ -19,28 +12,37 @@ def _validate_status(value: str) -> str:
     return value
 
 
+def _non_empty(value: str, field_label: str) -> str:
+    value = value.strip()
+    if not value:
+        raise ValueError(f"{field_label} é obrigatório")
+    return value
+
+
 class CalendarEntryCreate(BaseModel):
     client_id: int
     scheduled_date: date
     theme: str
-    format: str
-    execution_notes: str | None = None
+    execution_notes: str
+    # "Formato" saiu da UI — Execução assumiu esse lugar. Campo mantido no
+    # banco (não é mais preenchido nem exibido) para não exigir migração
+    # destrutiva; sempre recebe string vazia por baixo dos panos.
+    format: str = ""
     reference_link: str | None = None
+    reference_image: str | None = None
     caption: str | None = None
-    status: str = "planejado"
+    material_notes: str | None = None
+    status: str = "nao_iniciado"
 
     @field_validator("theme")
     @classmethod
     def validate_theme(cls, value: str) -> str:
-        value = value.strip()
-        if not value:
-            raise ValueError("Tema é obrigatório")
-        return value
+        return _non_empty(value, "Descrição")
 
-    @field_validator("format")
+    @field_validator("execution_notes")
     @classmethod
-    def validate_format(cls, value: str) -> str:
-        return _validate_format(value)
+    def validate_execution_notes(cls, value: str) -> str:
+        return _non_empty(value, "Execução")
 
     @field_validator("status")
     @classmethod
@@ -52,26 +54,22 @@ class CalendarEntryUpdate(BaseModel):
     client_id: int | None = None
     scheduled_date: date | None = None
     theme: str | None = None
-    format: str | None = None
     execution_notes: str | None = None
     reference_link: str | None = None
+    reference_image: str | None = None
     caption: str | None = None
+    material_notes: str | None = None
     status: str | None = None
 
     @field_validator("theme")
     @classmethod
     def validate_theme(cls, value: str | None) -> str | None:
-        if value is None:
-            return None
-        value = value.strip()
-        if not value:
-            raise ValueError("Tema é obrigatório")
-        return value
+        return _non_empty(value, "Descrição") if value is not None else None
 
-    @field_validator("format")
+    @field_validator("execution_notes")
     @classmethod
-    def validate_format(cls, value: str | None) -> str | None:
-        return _validate_format(value) if value is not None else None
+    def validate_execution_notes(cls, value: str | None) -> str | None:
+        return _non_empty(value, "Execução") if value is not None else None
 
     @field_validator("status")
     @classmethod
@@ -84,10 +82,11 @@ class CalendarEntryOut(BaseModel):
     client_id: int
     scheduled_date: date
     theme: str
-    format: str
     execution_notes: str | None
     reference_link: str | None
+    reference_image: str | None
     caption: str | None
+    material_notes: str | None
     status: str
     created_by: int
 

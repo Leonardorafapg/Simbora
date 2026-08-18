@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient, deleteClient, fetchClients, updateClient } from "@/services/client/clientApi";
+import { getOrFetch, invalidate } from "@/lib/dataCache";
 import type { Client, ClientCreateInput, ClientUpdateInput } from "@/types/client";
 
 const byName = (a: Client, b: Client) => a.name.localeCompare(b.name);
@@ -16,7 +17,7 @@ export function useClients() {
 
     (async () => {
       try {
-        const clientsData = await fetchClients();
+        const clientsData = await getOrFetch("clients", fetchClients);
         if (cancelled) return;
         setClients([...clientsData].sort(byName));
       } catch (err) {
@@ -33,18 +34,21 @@ export function useClients() {
 
   async function create(input: ClientCreateInput) {
     const client = await createClient(input);
+    invalidate("clients");
     setClients((prev) => [...prev, client].sort(byName));
     return client;
   }
 
   async function update(id: number, input: ClientUpdateInput) {
     const client = await updateClient(id, input);
+    invalidate("clients");
     setClients((prev) => prev.map((c) => (c.id === id ? client : c)).sort(byName));
     return client;
   }
 
   async function remove(id: number) {
     await deleteClient(id);
+    invalidate("clients");
     setClients((prev) => prev.filter((c) => c.id !== id));
   }
 

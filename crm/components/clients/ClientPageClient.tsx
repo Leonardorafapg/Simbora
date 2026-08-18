@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useClients } from "@/hooks/useClients";
 import { useTeamMembers } from "@/hooks/useTeamMembers";
 import type { Client } from "@/types/client";
@@ -15,16 +16,30 @@ type Props = {
   canCreate: boolean;
   canEdit: boolean;
   canDelete: boolean;
+  canViewDemands: boolean;
   calendarPermissions: CalendarPermissions;
 };
 
-export default function ClientPageClient({ canCreate, canEdit, canDelete, calendarPermissions }: Props) {
+export default function ClientPageClient({
+  canCreate,
+  canEdit,
+  canDelete,
+  canViewDemands,
+  calendarPermissions,
+}: Props) {
   const { clients, loading, error, create, update, remove } = useClients();
   const { members: teamMembers } = useTeamMembers();
+  const searchParams = useSearchParams();
 
   // Guardamos o id, não o objeto: assim o drawer sempre reflete a versão mais
   // recente da lista depois de uma edição (e fecha sozinho após a remoção).
   const [selectedId, setSelectedId] = useState<number | null>(null);
+
+  // Permite abrir um cliente direto via link (usado pela busca geral da topbar).
+  useEffect(() => {
+    const openClient = searchParams.get("openClient");
+    if (openClient) setSelectedId(Number(openClient));
+  }, [searchParams]);
   const [addOpen, setAddOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<Client | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -78,6 +93,7 @@ export default function ClientPageClient({ canCreate, canEdit, canDelete, calend
         client={selected}
         canEdit={canEdit}
         canDelete={canDelete}
+        canViewDemands={canViewDemands}
         teamMembers={teamMembers}
         calendarPermissions={calendarPermissions}
         onClose={() => setSelectedId(null)}

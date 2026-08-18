@@ -1,3 +1,4 @@
+import { clearAll } from "@/lib/dataCache";
 import type { LoginCredentials } from "@/types/auth";
 
 export type LoginResult =
@@ -21,4 +22,5 @@ export async function login(credentials: LoginCredentials): Promise<LoginResult>
 
 export async function logout(): Promise<void> {
   await fetch("/api/auth/logout", { method: "POST" });
+  clearAll();
 }
