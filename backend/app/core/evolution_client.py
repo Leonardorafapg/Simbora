@@ -30,12 +30,27 @@ def _headers() -> dict[str, str]:
     return {"apikey": settings.EVOLUTION_API_KEY, "Content-Type": "application/json"}
 
 
+def _key_fingerprint() -> str:
+    """Nunca loga a key inteira — só o suficiente (tamanho + últimos 4
+    caracteres) pra comparar com o valor real sem expor o segredo."""
+    key = settings.EVOLUTION_API_KEY
+    if not key:
+        return "(vazia)"
+    return f"len={len(key)} termina_em='{key[-4:]}'"
+
+
 async def _request(method: str, path: str, **kwargs: Any) -> httpx.Response:
     url = f"{_base_url()}{path}"
     # Diagnóstico temporário de um bug de integração em produção — nunca loga
-    # a apikey, só instância/URL/status, pra achar a causa real do 502 sem
-    # depender do usuário abrir o DevTools.
-    logger.warning("Evolution API request: %s %s (instance=%s)", method, url, settings.EVOLUTION_INSTANCE_NAME)
+    # a apikey inteira, só instância/URL/status/fingerprint, pra achar a causa
+    # real do 502 sem depender do usuário abrir o DevTools.
+    logger.warning(
+        "Evolution API request: %s %s (instance=%s, apikey=%s)",
+        method,
+        url,
+        settings.EVOLUTION_INSTANCE_NAME,
+        _key_fingerprint(),
+    )
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.request(method, url, headers=_headers(), **kwargs)
@@ -86,7 +101,15 @@ async def get_connection_state() -> str:
     slzfood-api, que fala com o mesmo servidor em produção e usa fetchInstances).
     """
     instance = _instance_name()
-    response = await _request("GET", "/instance/fetchInstances", params={"instanceName": instance})
+    try:
+        response = await _request("GET", "/instance/fetchInstances", params={"instanceName": instance})
+    except HTTPException as exc:
+        # Instância nunca foi criada — a Evolution responde 404 pra fetchInstances
+        # filtrado por um nome que não existe. Não é erro: é exatamente o estado
+        # "ainda não conectado", que deixa o connect_instance() seguir pro create.
+        if getattr(exc, "upstream_status", 0) == 404:
+            return "close"
+        raise
 
     data = response.json()
     instances = data if isinstance(data, list) else [data]
