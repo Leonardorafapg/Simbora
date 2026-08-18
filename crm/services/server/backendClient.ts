@@ -8,16 +8,21 @@ function buildUrl(path: string) {
   return `${process.env.BACKEND_URL}${API_BASE}${path}`;
 }
 
+// Sem isso, uma requisição que trava sem responder (backend reiniciando,
+// cold start, rede) nunca resolve nem rejeita — quem espera essa promise
+// (ex.: o prefetch da splash de login) fica pendurado pra sempre.
+const BACKEND_TIMEOUT_MS = 15_000;
+
 /**
  * Envolve o fetch cru pra nunca deixar uma falha de rede (backend fora do ar,
- * DNS, etc.) virar exceção não tratada — isso derrubaria a rota inteira com
- * um 500 genérico do Next em vez da mensagem de erro que a UI sabe mostrar.
+ * DNS, timeout, etc.) virar exceção não tratada — isso derrubaria a rota inteira
+ * com um 500 genérico do Next em vez da mensagem de erro que a UI sabe mostrar.
  * Sintetiza uma Response 503 no mesmo formato que o FastAPI usa (`detail`),
  * então `proxyJson`/`extractErrorMessage` lidam com ela sem saber a diferença.
  */
 async function safeFetch(url: string, init: RequestInit) {
   try {
-    return await fetch(url, init);
+    return await fetch(url, { ...init, signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS) });
   } catch {
     return NextResponse.json(
       { detail: "Não foi possível conectar ao servidor. Tente novamente em instantes." },

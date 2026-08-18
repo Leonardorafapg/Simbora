@@ -11,6 +11,11 @@ import { getOrFetch } from "@/lib/dataCache";
 // — é uma pausa de marca proposital, não só um indicador de carregamento.
 const SPLASH_MIN_MS = 2500;
 
+// Teto de segurança: mesmo que o prefetch trave por algum motivo não previsto
+// (rede, backend fora do ar), a splash não pode ficar presa pra sempre — o
+// usuário precisa conseguir entrar mesmo sem o cache aquecido.
+const PREFETCH_TIMEOUT_MS = 8000;
+
 function wait(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -42,11 +47,12 @@ export function useLogin() {
       // Aproveita a splash pra deixar clientes e equipe já em cache — são
       // listas pequenas e usadas em quase toda tela do CRM. O resto (demandas,
       // calendário) continua carregando por página, sob demanda.
-      await Promise.all([
+      const prefetch = Promise.all([
         getOrFetch("clients", fetchClients).catch(() => null),
         getOrFetch("teamMembers", fetchTeamMembers).catch(() => null),
-        wait(SPLASH_MIN_MS),
       ]);
+
+      await Promise.all([Promise.race([prefetch, wait(PREFETCH_TIMEOUT_MS)]), wait(SPLASH_MIN_MS)]);
 
       router.push("/dashboard");
       router.refresh();
