@@ -7,3 +7,4 @@ email-validator
 sqlalchemy
 pyjwt
 bcrypt
+httpx

@@ -12,6 +12,11 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 480
 
+    # Evolution API — gateway self-hosted de WhatsApp (conexão única, global)
+    EVOLUTION_API_URL: str = ""
+    EVOLUTION_API_KEY: str = ""
+    EVOLUTION_INSTANCE_NAME: str = "simbora"
+
     model_config = SettingsConfigDict(env_file=".env")
 
 settings = Settings()

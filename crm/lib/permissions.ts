@@ -22,6 +22,8 @@ export const PERMISSIONS: { key: string; label: string }[] = [
   { key: "calendar.create", label: "Criar entradas no calendário" },
   { key: "calendar.edit", label: "Editar entradas no calendário" },
   { key: "calendar.delete", label: "Remover entradas no calendário" },
+  { key: "whatsapp.view", label: "Ver WhatsApp" },
+  { key: "whatsapp.send", label: "Enviar mensagens no WhatsApp" },
 ];
 
 /** Espelha app/core/permissions.py::has_permission — só pra UX, autorização real é sempre no backend. */
