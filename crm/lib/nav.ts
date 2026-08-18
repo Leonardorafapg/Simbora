@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, Briefcase, MessageCircle, ClipboardList, type LucideIcon } from "lucide-react";
+import { LayoutDashboard, Users, Briefcase, MessageCircle, ClipboardList, Settings, type LucideIcon } from "lucide-react";
 
 export type NavItem = {
   href: string;
@@ -12,4 +12,5 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/production", label: "Produção", icon: ClipboardList },
   { href: "/whatsapp", label: "WhatsApp", icon: MessageCircle },
   { href: "/team", label: "Equipe", icon: Users },
+  { href: "/settings", label: "Configurações", icon: Settings },
 ];

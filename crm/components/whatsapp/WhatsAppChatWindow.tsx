@@ -3,25 +3,81 @@
 import { useEffect, useRef, useState } from "react";
 import { Send } from "lucide-react";
 import Avatar from "@/components/ui/Avatar";
-import { sendMessage } from "@/services/client/whatsappApi";
+import { sendMessage, sendTyping } from "@/services/client/whatsappApi";
 import type { WhatsAppChat, WhatsAppMessage } from "@/types/whatsapp";
+
+const TYPING_PRESENCE_LABELS: Record<string, string> = {
+  digitando: "digitando...",
+  gravando_audio: "gravando áudio...",
+};
+
+// Não manda um evento por tecla — só no máximo 1 a cada 3s enquanto a pessoa
+// continua digitando (a Evolution já expira o indicador sozinha do lado do
+// contato depois de alguns segundos, então reforçar é o suficiente).
+const TYPING_THROTTLE_MS = 3000;
+
+/** "Hoje" / "Ontem" / "23 de agosto de 2026" — mesmo critério do WhatsApp. */
+function formatDayLabel(date: Date): string {
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+
+  const sameDay = (a: Date, b: Date) =>
+    a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+
+  if (sameDay(date, today)) return "Hoje";
+  if (sameDay(date, yesterday)) return "Ontem";
+  return date.toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric" });
+}
+
+type MessageRow = { type: "message"; message: WhatsAppMessage } | { type: "day"; label: string };
+
+/** Insere um separador de dia antes do primeiro item de cada data — as
+ * mensagens já chegam em ordem cronológica (ver evolution_client.find_messages). */
+function groupByDay(messages: WhatsAppMessage[]): MessageRow[] {
+  const rows: MessageRow[] = [];
+  let lastLabel: string | null = null;
+
+  for (const message of messages) {
+    const label = message.timestamp ? formatDayLabel(new Date(message.timestamp * 1000)) : null;
+    if (label && label !== lastLabel) {
+      rows.push({ type: "day", label });
+      lastLabel = label;
+    }
+    rows.push({ type: "message", message });
+  }
+
+  return rows;
+}
 
 type Props = {
   chat: WhatsAppChat;
   messages: WhatsAppMessage[];
   loading: boolean;
+  /** "digitando" | "gravando_audio" | null — vem do webhook via WebSocket. */
+  typingPresence?: string | null;
   onMessageSent: (message: WhatsAppMessage) => void;
 };
 
-export default function WhatsAppChatWindow({ chat, messages, loading, onMessageSent }: Props) {
+export default function WhatsAppChatWindow({ chat, messages, loading, typingPresence, onMessageSent }: Props) {
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const lastTypingSentAt = useRef(0);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: "end" });
   }, [messages, chat.remote_jid]);
+
+  function handleTextChange(value: string) {
+    setText(value);
+    const now = Date.now();
+    if (value.trim() && now - lastTypingSentAt.current > TYPING_THROTTLE_MS) {
+      lastTypingSentAt.current = now;
+      sendTyping(chat.remote_jid, "composing");
+    }
+  }
 
   async function handleSend() {
     const trimmed = text.trim();
@@ -47,7 +103,11 @@ export default function WhatsAppChatWindow({ chat, messages, loading, onMessageS
         <Avatar name={chat.name ?? chat.remote_jid} photoUrl={chat.profile_pic_url} size="sm" />
         <div className="min-w-0">
           <p className="text-sm font-medium text-white truncate">{chat.name ?? chat.remote_jid}</p>
-          {chat.is_group && <p className="text-xs text-white/40">Grupo</p>}
+          {typingPresence && TYPING_PRESENCE_LABELS[typingPresence] ? (
+            <p className="text-xs text-cyan">{TYPING_PRESENCE_LABELS[typingPresence]}</p>
+          ) : (
+            chat.is_group && <p className="text-xs text-white/40">Grupo</p>
+          )}
         </div>
       </div>
 
@@ -68,16 +128,25 @@ export default function WhatsAppChatWindow({ chat, messages, loading, onMessageS
         )}
 
         {!loading &&
-          messages.map((message, index) => (
-            <div
-              key={message.id ?? index}
-              className={`max-w-[70%] rounded-2xl px-3 py-2 text-sm ${
-                message.from_me ? "self-end bg-cyan/20 text-white" : "self-start bg-white/5 text-white"
-              }`}
-            >
-              {message.text ?? <span className="italic text-white/40">Mensagem sem texto</span>}
-            </div>
-          ))}
+          groupByDay(messages).map((row, index) =>
+            row.type === "day" ? (
+              <div key={`day-${index}`} className="self-center my-2 px-3 py-1 rounded-full bg-white/5 text-xs text-white/50">
+                {row.label}
+              </div>
+            ) : (
+              <div
+                key={row.message.id ?? index}
+                className={`max-w-[70%] rounded-2xl px-3 py-2 text-sm ${
+                  row.message.from_me ? "self-end bg-cyan/20 text-white" : "self-start bg-white/5 text-white"
+                }`}
+              >
+                {chat.is_group && !row.message.from_me && row.message.sender_name && (
+                  <p className="text-xs font-medium text-cyan mb-0.5">{row.message.sender_name}</p>
+                )}
+                {row.message.text ?? <span className="italic text-white/40">Mensagem sem texto</span>}
+              </div>
+            ),
+          )}
 
         <div ref={bottomRef} />
       </div>
@@ -87,7 +156,7 @@ export default function WhatsAppChatWindow({ chat, messages, loading, onMessageS
         <div className="flex items-center gap-2">
           <input
             value={text}
-            onChange={(e) => setText(e.target.value)}
+            onChange={(e) => handleTextChange(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();

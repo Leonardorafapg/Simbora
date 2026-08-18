@@ -16,6 +16,13 @@ class Settings(BaseSettings):
     EVOLUTION_API_URL: str = ""
     EVOLUTION_API_KEY: str = ""
     EVOLUTION_INSTANCE_NAME: str = "simbora"
+    # Secret próprio (não é a EVOLUTION_API_KEY) — a Evolution manda esse valor
+    # de volta no header x-webhook-secret, é como o webhook confirma que quem
+    # chamou foi mesmo a Evolution, já que essa rota não tem JWT.
+    EVOLUTION_WEBHOOK_SECRET: str = ""
+    # URL pública do backend (ex.: https://simbora-backend.up.railway.app) —
+    # sem isso a Evolution não tem pra onde mandar o webhook.
+    PUBLIC_API_URL: str = ""
 
     model_config = SettingsConfigDict(env_file=".env")
 

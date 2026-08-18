@@ -168,6 +168,51 @@ async def delete_instance() -> None:
     await _request("DELETE", f"/instance/delete/{instance}")
 
 
+async def set_webhook(webhook_url: str) -> None:
+    """
+    Registra o webhook na instância — chamado sempre após criar/reconectar
+    (nunca só na criação: a Evolution não garante manter a config numa
+    instância já existente). Best-effort de propósito (mesmo padrão do
+    slzfood-api): falha aqui não pode travar o QR code por causa do webhook.
+    """
+    instance = _instance_name()
+    try:
+        await _request(
+            "POST",
+            f"/webhook/set/{instance}",
+            json={
+                "webhook": {
+                    "enabled": True,
+                    "url": webhook_url,
+                    "webhookByEvents": True,
+                    "events": ["MESSAGES_UPSERT", "MESSAGES_UPDATE", "CONNECTION_UPDATE", "PRESENCE_UPDATE"],
+                    "headers": {"x-webhook-secret": settings.EVOLUTION_WEBHOOK_SECRET or ""},
+                }
+            },
+        )
+    except HTTPException as exc:
+        logger.warning("Falha ao registrar webhook (ignorado): %s", exc.detail)
+
+
+async def send_presence(remote_jid: str, presence: str, delay_ms: int = 2000) -> None:
+    """
+    Manda o indicador de "digitando"/"gravando áudio" pro contato ver na tela
+    dele. Best-effort: nunca pode travar o envio da mensagem de verdade por
+    causa disso. Payload PLANO (number/presence/delay direto na raiz, sem
+    aninhar em "options") — é isso que a Evolution realmente espera, apesar da
+    documentação mostrar aninhado (ver comentário equivalente no slzfood-api).
+    """
+    instance = _instance_name()
+    try:
+        await _request(
+            "POST",
+            f"/chat/sendPresence/{instance}",
+            json={"number": remote_jid, "presence": presence, "delay": delay_ms},
+        )
+    except HTTPException as exc:
+        logger.warning("Falha ao mandar presença '%s' (ignorado): %s", presence, exc.detail)
+
+
 async def find_chats() -> list[dict[str, Any]]:
     instance = _instance_name()
     response = await _request("POST", f"/chat/findChats/{instance}", json={})
@@ -184,11 +229,17 @@ async def find_messages(remote_jid: str, limit: int = 50, page: int = 1) -> list
     )
     data = response.json()
     if isinstance(data, list):
-        return data
-    if isinstance(data, dict) and "messages" in data:
+        records = data
+    elif isinstance(data, dict) and "messages" in data:
         messages = data["messages"]
-        return messages.get("records", messages) if isinstance(messages, dict) else messages
-    return data.get("records", []) if isinstance(data, dict) else []
+        records = messages.get("records", messages) if isinstance(messages, dict) else messages
+    else:
+        records = data.get("records", []) if isinstance(data, dict) else []
+
+    # A Evolution pagina da mais recente pra mais antiga (page 1 = últimas N) —
+    # sem reordenar aqui, o chat renderizava de trás pra frente (mais recente
+    # no topo, precisava rolar pra cima pra achar as primeiras da conversa).
+    return sorted(records, key=lambda m: m.get("messageTimestamp") or 0)
 
 
 async def send_text_message(remote_jid: str, text: str) -> dict[str, Any]:

@@ -34,3 +34,7 @@ class WhatsAppMessage(BaseModel):
 
 class SendMessageInput(BaseModel):
     text: str
+
+
+class TypingInput(BaseModel):
+    presence: str = "composing"  # "composing" (digitando) ou "recording" (gravando áudio)

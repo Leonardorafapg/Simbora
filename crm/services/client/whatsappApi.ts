@@ -34,6 +34,16 @@ export async function getMessages(remoteJid: string): Promise<WhatsAppMessage[]>
   return res.json();
 }
 
+export async function sendTyping(remoteJid: string, presence: "composing" | "recording" = "composing"): Promise<void> {
+  // Best-effort: não precisa de tratamento de erro visível — se falhar, o
+  // pior caso é o contato não ver "digitando...", nada quebra no envio real.
+  await fetch(`/api/whatsapp/chats/${encodeURIComponent(remoteJid)}/typing`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ presence }),
+  }).catch(() => undefined);
+}
+
 export async function sendMessage(remoteJid: string, text: string): Promise<WhatsAppMessage> {
   const res = await fetch(`/api/whatsapp/chats/${encodeURIComponent(remoteJid)}/messages`, {
     method: "POST",

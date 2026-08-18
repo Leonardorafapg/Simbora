@@ -7,7 +7,12 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "Painel operacional interno da Simbora.",
     start_url: "/",
     display: "standalone",
-    background_color: "#1A1B1E",
+    // Só o `background_color` (a tela nativa de abertura do PWA, antes do
+    // app carregar) é diferente do fundo escuro do resto do app — de
+    // propósito, pra não parecer a mesma tela do LoginSplash pós-login.
+    // `theme_color` continua igual ao `--color-dark`: é o que tinge a barra
+    // de status durante o uso normal, não é a splash.
+    background_color: "#0A3D4D",
     theme_color: "#1A1B1E",
     icons: [
       {

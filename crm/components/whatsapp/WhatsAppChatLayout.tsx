@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { LogOut, MessageCircle } from "lucide-react";
 import { disconnect, getChats, getMessages } from "@/services/client/whatsappApi";
+import { useWhatsAppSocket } from "@/hooks/useWhatsAppSocket";
 import type { WhatsAppChat, WhatsAppMessage } from "@/types/whatsapp";
 import WhatsAppChatList from "@/components/whatsapp/WhatsAppChatList";
 import WhatsAppChatWindow from "@/components/whatsapp/WhatsAppChatWindow";
@@ -18,6 +19,8 @@ export default function WhatsAppChatLayout({ onDisconnected }: Props) {
   const [messages, setMessages] = useState<WhatsAppMessage[]>([]);
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // remote_jid -> "digitando" | "gravando_audio" | null (limpa o indicador).
+  const [typingByJid, setTypingByJid] = useState<Record<string, string | null>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -40,8 +43,44 @@ export default function WhatsAppChatLayout({ onDisconnected }: Props) {
     };
   }, []);
 
+  // Tempo real: mensagem nova chega aqui sem precisar reabrir a conversa nem
+  // dar F5 — a lista de conversas e a janela aberta (se for a mesma) atualizam
+  // sozinhas. Ver hooks/useWhatsAppSocket.ts.
+  useWhatsAppSocket(true, {
+    onMessage: (message) => {
+      setChats((prev) => {
+        const existing = prev.find((c) => c.remote_jid === message.remote_jid);
+        const isOpenChat = selectedChat?.remote_jid === message.remote_jid;
+        const updated: WhatsAppChat = existing
+          ? {
+              ...existing,
+              last_message: message.text,
+              unread_count: isOpenChat || message.from_me ? existing.unread_count : existing.unread_count + 1,
+            }
+          : {
+              remote_jid: message.remote_jid,
+              name: message.sender_name ?? message.remote_jid,
+              is_group: message.remote_jid.endsWith("@g.us"),
+              last_message: message.text,
+              unread_count: message.from_me ? 0 : 1,
+              profile_pic_url: null,
+              updated_at: message.timestamp ? String(message.timestamp) : null,
+            };
+        return [updated, ...prev.filter((c) => c.remote_jid !== message.remote_jid)];
+      });
+
+      if (selectedChat?.remote_jid === message.remote_jid) {
+        setMessages((prev) => (prev.some((m) => m.id && m.id === message.id) ? prev : [...prev, message]));
+      }
+    },
+    onPresence: (remoteJid, presence) => {
+      setTypingByJid((prev) => ({ ...prev, [remoteJid]: presence }));
+    },
+  });
+
   async function handleSelectChat(chat: WhatsAppChat) {
     setSelectedChat(chat);
+    setChats((prev) => prev.map((c) => (c.remote_jid === chat.remote_jid ? { ...c, unread_count: 0 } : c)));
     setMessagesLoading(true);
     try {
       const data = await getMessages(chat.remote_jid);
@@ -99,6 +138,7 @@ export default function WhatsAppChatLayout({ onDisconnected }: Props) {
           chat={selectedChat}
           messages={messages}
           loading={messagesLoading}
+          typingPresence={typingByJid[selectedChat.remote_jid] ?? null}
           onMessageSent={handleMessageSent}
         />
       ) : (
