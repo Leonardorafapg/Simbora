@@ -19,22 +19,33 @@ function getSecret() {
  */
 function isSessionUser(payload: unknown): payload is SessionUser {
   const p = payload as Partial<SessionUser> | null;
-  return (
-    !!p &&
-    typeof p.sub === "string" &&
-    typeof p.email === "string" &&
-    typeof p.name === "string" &&
-    typeof p.cargo === "string" &&
-    typeof p.is_admin === "boolean" &&
-    Array.isArray(p.permissions)
-  );
+  const checks = {
+    sub: typeof p?.sub === "string",
+    email: typeof p?.email === "string",
+    name: typeof p?.name === "string",
+    cargo: typeof p?.cargo === "string",
+    is_admin: typeof p?.is_admin === "boolean",
+    permissions: Array.isArray(p?.permissions),
+  };
+
+  const ok = !!p && Object.values(checks).every(Boolean);
+  if (!ok) {
+    const missing = Object.entries(checks)
+      .filter(([, valid]) => !valid)
+      .map(([key]) => key);
+    // eslint-disable-next-line no-console -- diagnóstico temporário de um bug de login em produção
+    console.error("[session] payload do JWT não bate com SessionUser. Campos inválidos/ausentes:", missing);
+  }
+  return ok;
 }
 
 export async function verifySessionToken(token: string): Promise<SessionUser | null> {
   try {
     const { payload } = await jwtVerify(token, getSecret());
     return isSessionUser(payload) ? payload : null;
-  } catch {
+  } catch (err) {
+    // eslint-disable-next-line no-console -- diagnóstico temporário de um bug de login em produção
+    console.error("[session] verificação do JWT falhou:", err instanceof Error ? err.message : err);
     return null;
   }
 }
