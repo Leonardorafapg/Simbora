@@ -21,8 +21,14 @@ export function useWhatsAppSocket(enabled: boolean, handlers: Handlers) {
 
     let socket: WebSocket | null = null;
     let cancelled = false;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    // Cresce a cada tentativa (1s, 2s, 4s... até 30s) — sem isso, servidor
+    // fora do ar por um tempo vira uma tempestade de reconexão a cada troca
+    // de aba/rede em vez de uma espera razoável.
+    let retryDelayMs = 1000;
 
-    (async () => {
+    async function connect() {
+      if (cancelled) return;
       try {
         const res = await fetch("/api/whatsapp/ws-token");
         if (!res.ok || cancelled) return;
@@ -30,6 +36,9 @@ export function useWhatsAppSocket(enabled: boolean, handlers: Handlers) {
         if (cancelled) return;
 
         socket = new WebSocket(`${wsUrl}?token=${encodeURIComponent(token)}`);
+        socket.onopen = () => {
+          retryDelayMs = 1000;
+        };
         socket.onmessage = (event) => {
           try {
             const data = JSON.parse(event.data);
@@ -39,15 +48,33 @@ export function useWhatsAppSocket(enabled: boolean, handlers: Handlers) {
             // mensagem que não é JSON válido (não deveria acontecer) — ignora.
           }
         };
+        // Servidor caiu, rede oscilou, deploy reiniciou o backend — sem isso o
+        // tempo real morria silenciosamente até o usuário dar F5 na página.
+        socket.onclose = scheduleReconnect;
+        socket.onerror = () => socket?.close();
       } catch {
-        // Sem WS, o app continua funcional — só perde a atualização em tempo
-        // real (usuário ainda vê mensagens ao reabrir/trocar de conversa).
+        scheduleReconnect();
       }
-    })();
+    }
+
+    function scheduleReconnect() {
+      if (cancelled) return;
+      reconnectTimer = setTimeout(() => {
+        retryDelayMs = Math.min(retryDelayMs * 2, 30_000);
+        connect();
+      }, retryDelayMs);
+    }
+
+    connect();
 
     return () => {
       cancelled = true;
-      socket?.close();
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      if (socket) {
+        socket.onclose = null;
+        socket.onerror = null;
+        socket.close();
+      }
     };
   }, [enabled]);
 }

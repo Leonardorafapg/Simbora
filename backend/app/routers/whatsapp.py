@@ -194,6 +194,19 @@ async def list_chats(
     except Exception:
         logger.warning("Não foi possível buscar contatos na Evolution (seguindo sem nome da agenda).", exc_info=True)
 
+    # Nome de verdade do grupo — `find_chats` não traz `subject` nessa versão
+    # da Evolution (só o endpoint de grupo mesmo tem), por isso a versão
+    # anterior caía pro JID cru sempre que o grupo vinha do banco.
+    group_subject_by_jid: dict[str, str] = {}
+    try:
+        for group in await evolution_client.fetch_all_groups():
+            jid = group.get("id") or group.get("remoteJid") or ""
+            subject = group.get("subject")
+            if jid and subject:
+                group_subject_by_jid[jid] = subject
+    except Exception:
+        logger.warning("Não foi possível buscar grupos na Evolution (seguindo sem nome de grupo atualizado).", exc_info=True)
+
     def _contact_fallback_name(jid: str) -> str | None:
         contact = contact_by_jid.get(jid)
         if not contact:
@@ -207,7 +220,7 @@ async def list_chats(
         # banco nunca vem preenchido pra grupo (whatsapp_store.list_chats já
         # filtra isso), mas a ordem aqui garante o mesmo mesmo se isso mudar.
         if chat["is_group"]:
-            name = _resolve_chat_name(raw, True, jid)
+            name = group_subject_by_jid.get(jid) or _resolve_chat_name(raw, True, jid)
         else:
             name = chat["name"] or _contact_fallback_name(jid) or _resolve_chat_name(raw, False, jid)
         result.append(
@@ -226,7 +239,9 @@ async def list_chats(
     # webhook nenhuma vez — mostra do jeito antigo (sem tempo real ainda).
     for jid, raw in raw_by_jid.items():
         chat = _map_chat_from_evolution(raw)
-        if not chat.is_group and chat.name == jid:
+        if chat.is_group:
+            chat.name = group_subject_by_jid.get(jid) or chat.name
+        elif chat.name == jid:
             fallback = _contact_fallback_name(jid)
             if fallback:
                 chat.name = fallback

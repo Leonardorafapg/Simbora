@@ -220,6 +220,22 @@ async def find_chats() -> list[dict[str, Any]]:
     return data if isinstance(data, list) else data.get("chats", [])
 
 
+async def fetch_all_groups() -> list[dict[str, Any]]:
+    """
+    Nome de verdade de cada grupo (`subject`) — o objeto de Chat devolvido por
+    `find_chats` não carrega isso nessa versão da Evolution (testado em
+    produção: `subject`/`name` sempre vazios pra JID `@g.us`), só o endpoint
+    de grupo mesmo tem. `getParticipants=false` porque só o nome importa aqui,
+    e a lista de participantes deixaria a resposta bem mais pesada à toa.
+    """
+    instance = _instance_name()
+    response = await _request(
+        "GET", f"/group/fetchAllGroups/{instance}", params={"getParticipants": "false"}
+    )
+    data = response.json()
+    return data if isinstance(data, list) else data.get("groups", [])
+
+
 async def find_contacts() -> list[dict[str, Any]]:
     """
     Agenda de contatos salvos (nome/pushName por JID) — o objeto de Chat da
