@@ -46,7 +46,11 @@ export default function DemandAttachments({ entry, loading, error, canEdit, onSa
       </div>
 
       {loading && <p className="text-xs text-white/40">Carregando...</p>}
-      {error && <p className="text-xs text-danger">{error}</p>}
+      {error && (
+        <p className="text-xs text-danger">
+          {canEdit ? `${error} (dá pra adicionar mesmo assim)` : error}
+        </p>
+      )}
 
       {!loading && !error && !canEdit && (
         <>
@@ -75,7 +79,7 @@ export default function DemandAttachments({ entry, loading, error, canEdit, onSa
         </>
       )}
 
-      {!loading && !error && canEdit && (
+      {!loading && canEdit && (
         <>
           <div>
             <p className="text-xs text-white/50 mb-1.5">Referência (post principal)</p>

@@ -44,6 +44,11 @@ export default function DemandDeliverable({ entry, loading, error, canEdit, onSa
     }
   }
 
+  // Não bloqueia o upload por causa de falha ao carregar o que já existe:
+  // quem pode editar precisa poder soltar um arquivo mesmo sem saber o
+  // estado anterior (nesse caso, salvar substitui em vez de completar).
+  const canShowForm = !loading && (canEdit || (!error && entry));
+
   return (
     <div className="glass-card rounded-2xl p-4 space-y-3">
       <div className="flex items-center gap-2 text-sm font-semibold text-white">
@@ -52,9 +57,13 @@ export default function DemandDeliverable({ entry, loading, error, canEdit, onSa
       </div>
 
       {loading && <p className="text-xs text-white/40">Carregando...</p>}
-      {error && <p className="text-xs text-danger">{error}</p>}
+      {error && (
+        <p className="text-xs text-danger">
+          {canEdit ? `${error} (dá pra entregar mesmo assim)` : error}
+        </p>
+      )}
 
-      {!loading && !error && (
+      {canShowForm && (
         <>
           <div>
             <p className="text-xs text-white/50 mb-1.5">Imagem final</p>
