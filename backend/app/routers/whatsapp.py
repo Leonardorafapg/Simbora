@@ -47,6 +47,47 @@ def _message_out(message) -> WhatsAppMessage:
     )
 
 
+def _map_chat_from_evolution(raw: dict) -> WhatsAppChat:
+    remote_jid = raw.get("remoteJid") or raw.get("id") or ""
+    last_message_raw = raw.get("lastMessage") or {}
+    last_message_text = None
+    if isinstance(last_message_raw, dict):
+        message = last_message_raw.get("message") or {}
+        last_message_text = (
+            message.get("conversation")
+            or (message.get("extendedTextMessage") or {}).get("text")
+            or last_message_raw.get("body")
+        )
+
+    return WhatsAppChat(
+        remote_jid=remote_jid,
+        name=raw.get("name") or raw.get("pushName") or raw.get("subject") or remote_jid,
+        is_group=remote_jid.endswith("@g.us"),
+        last_message=last_message_text,
+        unread_count=raw.get("unreadCount") or raw.get("unread_count") or 0,
+        profile_pic_url=raw.get("profilePicUrl") or raw.get("profile_pic_url"),
+        updated_at=str(raw.get("updatedAt")) if raw.get("updatedAt") else None,
+    )
+
+
+def _map_message_from_evolution(raw: dict) -> WhatsAppMessage:
+    key = raw.get("key") or {}
+    message = raw.get("message") or {}
+    text = (
+        message.get("conversation")
+        or (message.get("extendedTextMessage") or {}).get("text")
+        or (message.get("imageMessage") or {}).get("caption")
+    )
+    return WhatsAppMessage(
+        id=key.get("id"),
+        remote_jid=key.get("remoteJid", ""),
+        from_me=bool(key.get("fromMe")),
+        text=text,
+        timestamp=raw.get("messageTimestamp"),
+        sender_name=raw.get("pushName"),
+    )
+
+
 @router.get("/whatsapp/status", response_model=WhatsAppStatus)
 async def get_status(
     _: User = Depends(require_permission("whatsapp.view")),
@@ -85,11 +126,14 @@ async def list_chats(
     db: Session = Depends(get_db),
     _: User = Depends(require_permission("whatsapp.view")),
 ):
-    chats = whatsapp_store.list_chats(db)
+    # Enquanto o webhook não está configurado (ou pra conversa antiga, anterior
+    # a ele existir), o banco não tem nada — sem isso a lista aparecia vazia
+    # mesmo com histórico real esperando na Evolution. Busca sempre os dois e
+    # funde: banco manda em quem já tem (unread/última mensagem corretos), o
+    # que só existe na Evolution ainda aparece, só sem esses dois refinamentos.
+    db_chats = whatsapp_store.list_chats(db)
+    db_by_jid = {c["remote_jid"]: c for c in db_chats}
 
-    # Enriquecimento best-effort: nome/foto que a Evolution ainda tem em cache
-    # dela, pra conversa que a gente watchou pouco (ex.: recém conectado, ainda
-    # sem histórico nosso). Se falhar, segue só com o que já está no banco.
     raw_by_jid: dict[str, dict] = {}
     try:
         for raw in await evolution_client.find_chats():
@@ -97,15 +141,15 @@ async def list_chats(
             if jid:
                 raw_by_jid[jid] = raw
     except Exception:
-        pass
+        logger.warning("Não foi possível buscar conversas na Evolution (seguindo só com o banco).", exc_info=True)
 
     result = []
-    for chat in chats:
-        raw = raw_by_jid.get(chat["remote_jid"], {})
+    for jid, chat in db_by_jid.items():
+        raw = raw_by_jid.pop(jid, {})
         result.append(
             WhatsAppChat(
-                remote_jid=chat["remote_jid"],
-                name=chat["name"] or raw.get("name") or raw.get("pushName") or raw.get("subject") or chat["remote_jid"],
+                remote_jid=jid,
+                name=chat["name"] or raw.get("name") or raw.get("pushName") or raw.get("subject") or jid,
                 is_group=chat["is_group"],
                 last_message=chat["last_message"],
                 unread_count=chat["unread_count"],
@@ -113,6 +157,28 @@ async def list_chats(
                 updated_at=str(chat["updated_at"]) if chat["updated_at"] else None,
             )
         )
+
+    # Sobrou na Evolution e não no banco: conversa que ainda não passou pelo
+    # webhook nenhuma vez — mostra do jeito antigo (sem tempo real ainda).
+    for raw in raw_by_jid.values():
+        result.append(_map_chat_from_evolution(raw))
+
+    def _sort_key(chat: WhatsAppChat) -> float:
+        # `updated_at` mistura dois formatos (epoch do banco, ISO da Evolution
+        # pra quem ainda não passou pelo webhook) — não dá pra comparar como
+        # string direto. Normaliza os dois pra epoch só pra ordenar.
+        if not chat.updated_at:
+            return 0
+        if chat.updated_at.isdigit():
+            return float(chat.updated_at)
+        try:
+            from datetime import datetime
+
+            return datetime.fromisoformat(chat.updated_at.replace("Z", "+00:00")).timestamp()
+        except ValueError:
+            return 0
+
+    result.sort(key=_sort_key, reverse=True)
     return result
 
 
@@ -124,6 +190,34 @@ async def get_messages(
     _: User = Depends(require_permission("whatsapp.view")),
 ):
     messages = whatsapp_store.list_messages(db, remote_jid, limit=limit)
+
+    if not messages:
+        # Nada no banco ainda pra essa conversa (comum: webhook só configurado
+        # agora, ou conversa nunca recebeu mensagem depois disso) — busca na
+        # Evolution como antes E aproveita pra semear o banco, então da
+        # próxima vez que abrir essa conversa já sai do banco, mais rápido.
+        try:
+            raw_messages = await evolution_client.find_messages(remote_jid, limit=limit)
+        except Exception:
+            logger.warning("Não foi possível buscar mensagens na Evolution.", exc_info=True)
+            return []
+
+        is_group = remote_jid.endswith("@g.us")
+        for raw in raw_messages:
+            key = raw.get("key") or {}
+            whatsapp_store.save_message(
+                db,
+                message_id=key.get("id"),
+                remote_jid=key.get("remoteJid") or remote_jid,
+                from_me=bool(key.get("fromMe")),
+                text=_map_message_from_evolution(raw).text,
+                sender_name=raw.get("pushName"),
+                is_group=is_group,
+                status="recebida" if not key.get("fromMe") else "enviada",
+                timestamp=raw.get("messageTimestamp") or 0,
+            )
+        messages = whatsapp_store.list_messages(db, remote_jid, limit=limit)
+
     whatsapp_store.mark_read(db, remote_jid)
     return [_message_out(m) for m in messages]
 
