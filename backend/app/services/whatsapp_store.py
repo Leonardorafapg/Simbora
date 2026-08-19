@@ -25,6 +25,8 @@ def save_message(
     is_group: bool,
     status: str,
     timestamp: int,
+    media_type: str | None = None,
+    media_mimetype: str | None = None,
 ) -> WhatsAppMessage | None:
     """
     None se a mensagem já existia (dedup por message_id) — acontece quando o
@@ -45,6 +47,8 @@ def save_message(
         is_group=is_group,
         status=status,
         timestamp=timestamp,
+        media_type=media_type,
+        media_mimetype=media_mimetype,
     )
     db.add(message)
     try:
@@ -55,6 +59,10 @@ def save_message(
         return None
     db.refresh(message)
     return message
+
+
+def get_message(db: Session, message_id: str) -> WhatsAppMessage | None:
+    return db.query(WhatsAppMessage).filter(WhatsAppMessage.message_id == message_id).first()
 
 
 def update_message_status(db: Session, message_id: str, status: str) -> None:
@@ -117,9 +125,16 @@ def list_chats(db: Session) -> list[dict[str, Any]]:
     # Nome do contato: pega da mensagem RECEBIDA mais recente que tem
     # sender_name — se a última mensagem da conversa for nossa (mais comum),
     # `last_by_jid` sozinho perderia o nome (nunca preenchido em envio nosso).
+    # Só pra conversa individual: em grupo, sender_name é quem mandou a
+    # mensagem (um integrante), não o nome do grupo — isso não pode virar o
+    # nome exibido da conversa.
     contact_name_rows = (
         db.query(WhatsAppMessage.remote_jid, WhatsAppMessage.sender_name, WhatsAppMessage.timestamp)
-        .filter(WhatsAppMessage.from_me.is_(False), WhatsAppMessage.sender_name.is_not(None))
+        .filter(
+            WhatsAppMessage.from_me.is_(False),
+            WhatsAppMessage.sender_name.is_not(None),
+            WhatsAppMessage.is_group.is_(False),
+        )
         .order_by(WhatsAppMessage.timestamp.desc())
         .all()
     )

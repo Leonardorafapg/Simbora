@@ -30,6 +30,8 @@ class WhatsAppMessage(BaseModel):
     text: str | None = None
     timestamp: int | None = None
     sender_name: str | None = None
+    media_type: str | None = None
+    media_mimetype: str | None = None
 
 
 class SendMessageInput(BaseModel):

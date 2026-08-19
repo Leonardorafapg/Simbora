@@ -1,7 +1,8 @@
 import asyncio
+import base64
 import logging
 
-from fastapi import APIRouter, Depends, Query, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, WebSocket, WebSocketDisconnect, status
 from sqlalchemy.orm import Session
 
 from app.core import evolution_client
@@ -44,11 +45,44 @@ def _message_out(message) -> WhatsAppMessage:
         text=message.text,
         timestamp=message.timestamp,
         sender_name=message.sender_name,
+        media_type=message.media_type,
+        media_mimetype=message.media_mimetype,
     )
+
+
+# Chave da mensagem (Baileys) -> tipo de mídia pra UI — mesmo mapeamento do
+# webhook (routers/whatsapp_webhook.py), duplicado aqui de propósito: módulos
+# não têm motivo pra depender um do outro só por causa disso.
+_MEDIA_KEYS = {
+    "imageMessage": "image",
+    "videoMessage": "video",
+    "audioMessage": "audio",
+    "documentMessage": "document",
+}
+
+
+def _extract_media(message: dict) -> tuple[str | None, str | None]:
+    for key, media_type in _MEDIA_KEYS.items():
+        payload = message.get(key)
+        if isinstance(payload, dict):
+            return media_type, payload.get("mimetype")
+    return None, None
+
+
+def _resolve_chat_name(raw: dict, is_group: bool, remote_jid: str) -> str:
+    # Em grupo, `pushName`/parte de `name` costuma vir preenchido com o nome
+    # de quem mandou a última mensagem, não o nome do grupo — `subject` (ou
+    # `name` da própria Evolution pra chat, que reflete o assunto do grupo)
+    # tem que vir primeiro. Em conversa individual não tem `subject`, então a
+    # ordem original serve.
+    if is_group:
+        return raw.get("subject") or raw.get("name") or remote_jid
+    return raw.get("name") or raw.get("pushName") or remote_jid
 
 
 def _map_chat_from_evolution(raw: dict) -> WhatsAppChat:
     remote_jid = raw.get("remoteJid") or raw.get("id") or ""
+    is_group = remote_jid.endswith("@g.us")
     last_message_raw = raw.get("lastMessage") or {}
     last_message_text = None
     if isinstance(last_message_raw, dict):
@@ -61,8 +95,8 @@ def _map_chat_from_evolution(raw: dict) -> WhatsAppChat:
 
     return WhatsAppChat(
         remote_jid=remote_jid,
-        name=raw.get("name") or raw.get("pushName") or raw.get("subject") or remote_jid,
-        is_group=remote_jid.endswith("@g.us"),
+        name=_resolve_chat_name(raw, is_group, remote_jid),
+        is_group=is_group,
         last_message=last_message_text,
         unread_count=raw.get("unreadCount") or raw.get("unread_count") or 0,
         profile_pic_url=raw.get("profilePicUrl") or raw.get("profile_pic_url"),
@@ -77,7 +111,10 @@ def _map_message_from_evolution(raw: dict) -> WhatsAppMessage:
         message.get("conversation")
         or (message.get("extendedTextMessage") or {}).get("text")
         or (message.get("imageMessage") or {}).get("caption")
+        or (message.get("videoMessage") or {}).get("caption")
+        or (message.get("documentMessage") or {}).get("caption")
     )
+    media_type, media_mimetype = _extract_media(message)
     return WhatsAppMessage(
         id=key.get("id"),
         remote_jid=key.get("remoteJid", ""),
@@ -85,6 +122,8 @@ def _map_message_from_evolution(raw: dict) -> WhatsAppMessage:
         text=text,
         timestamp=raw.get("messageTimestamp"),
         sender_name=raw.get("pushName"),
+        media_type=media_type,
+        media_mimetype=media_mimetype,
     )
 
 
@@ -143,13 +182,38 @@ async def list_chats(
     except Exception:
         logger.warning("Não foi possível buscar conversas na Evolution (seguindo só com o banco).", exc_info=True)
 
+    # Nome salvo na agenda — único jeito de nomear um contato individual que
+    # nunca mandou mensagem pra gente ainda (chat só existe porque enviamos
+    # primeiro), já que aí não há `sender_name` nenhum no banco pra usar.
+    contact_by_jid: dict[str, dict] = {}
+    try:
+        for contact in await evolution_client.find_contacts():
+            jid = contact.get("remoteJid") or contact.get("id") or ""
+            if jid:
+                contact_by_jid[jid] = contact
+    except Exception:
+        logger.warning("Não foi possível buscar contatos na Evolution (seguindo sem nome da agenda).", exc_info=True)
+
+    def _contact_fallback_name(jid: str) -> str | None:
+        contact = contact_by_jid.get(jid)
+        if not contact:
+            return None
+        return contact.get("pushName") or contact.get("name")
+
     result = []
     for jid, chat in db_by_jid.items():
         raw = raw_by_jid.pop(jid, {})
+        # Nome do grupo primeiro sempre que for grupo — `chat["name"]` do
+        # banco nunca vem preenchido pra grupo (whatsapp_store.list_chats já
+        # filtra isso), mas a ordem aqui garante o mesmo mesmo se isso mudar.
+        if chat["is_group"]:
+            name = _resolve_chat_name(raw, True, jid)
+        else:
+            name = chat["name"] or _contact_fallback_name(jid) or _resolve_chat_name(raw, False, jid)
         result.append(
             WhatsAppChat(
                 remote_jid=jid,
-                name=chat["name"] or raw.get("name") or raw.get("pushName") or raw.get("subject") or jid,
+                name=name,
                 is_group=chat["is_group"],
                 last_message=chat["last_message"],
                 unread_count=chat["unread_count"],
@@ -160,8 +224,13 @@ async def list_chats(
 
     # Sobrou na Evolution e não no banco: conversa que ainda não passou pelo
     # webhook nenhuma vez — mostra do jeito antigo (sem tempo real ainda).
-    for raw in raw_by_jid.values():
-        result.append(_map_chat_from_evolution(raw))
+    for jid, raw in raw_by_jid.items():
+        chat = _map_chat_from_evolution(raw)
+        if not chat.is_group and chat.name == jid:
+            fallback = _contact_fallback_name(jid)
+            if fallback:
+                chat.name = fallback
+        result.append(chat)
 
     def _sort_key(chat: WhatsAppChat) -> float:
         # `updated_at` mistura dois formatos (epoch do banco, ISO da Evolution
@@ -205,21 +274,67 @@ async def get_messages(
         is_group = remote_jid.endswith("@g.us")
         for raw in raw_messages:
             key = raw.get("key") or {}
+            mapped = _map_message_from_evolution(raw)
             whatsapp_store.save_message(
                 db,
                 message_id=key.get("id"),
                 remote_jid=key.get("remoteJid") or remote_jid,
                 from_me=bool(key.get("fromMe")),
-                text=_map_message_from_evolution(raw).text,
+                text=mapped.text,
                 sender_name=raw.get("pushName"),
                 is_group=is_group,
                 status="recebida" if not key.get("fromMe") else "enviada",
                 timestamp=raw.get("messageTimestamp") or 0,
+                media_type=mapped.media_type,
+                media_mimetype=mapped.media_mimetype,
             )
         messages = whatsapp_store.list_messages(db, remote_jid, limit=limit)
 
     whatsapp_store.mark_read(db, remote_jid)
     return [_message_out(m) for m in messages]
+
+
+@router.get("/whatsapp/chats/{remote_jid}/messages/{message_id}/media")
+async def get_message_media(
+    remote_jid: str,
+    message_id: str,
+    download: bool = False,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_permission("whatsapp.view")),
+):
+    """
+    Binário (imagem/vídeo/áudio/documento) de uma mensagem, decodificado sob
+    demanda pela Evolution — não fica guardado no banco (ver evolution_client.
+    get_media_base64). `download=true` marca a resposta pra baixar em vez de
+    abrir inline (usado pelo botão de download do documento no frontend).
+    """
+    message = whatsapp_store.get_message(db, message_id)
+    if message is None or message.remote_jid != remote_jid:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Mensagem não encontrada.")
+    if message.media_type is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Essa mensagem não tem mídia.")
+
+    result = await evolution_client.get_media_base64(remote_jid, message_id, message.from_me)
+    raw_base64 = result.get("base64") or ""
+    # Evolution às vezes manda como data URI (`data:<mime>;base64,xxx`), às
+    # vezes só o base64 cru — cobre os dois pra não quebrar o decode abaixo.
+    if "," in raw_base64 and raw_base64.strip().startswith("data:"):
+        raw_base64 = raw_base64.split(",", 1)[1]
+
+    try:
+        content = base64.b64decode(raw_base64)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY, detail="Não foi possível decodificar a mídia."
+        ) from exc
+
+    mimetype = result.get("mimetype") or message.media_mimetype or "application/octet-stream"
+    headers = {}
+    if download:
+        ext = mimetype.split("/")[-1].split(";")[0]
+        headers["Content-Disposition"] = f'attachment; filename="whatsapp-{message_id}.{ext}"'
+
+    return Response(content=content, media_type=mimetype, headers=headers)
 
 
 @router.post("/whatsapp/chats/{remote_jid}/messages", response_model=WhatsAppMessage)

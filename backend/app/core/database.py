@@ -74,3 +74,5 @@ def run_light_migrations():
         # moderno — 0 quebra o ALTER em Postgres (BOOLEAN não aceita
         # inteiro como default sem cast explícito).
         add_column_if_missing(conn, "demands", "has_material", "has_material BOOLEAN DEFAULT FALSE")
+        add_column_if_missing(conn, "whatsapp_messages", "media_type", "media_type VARCHAR(20)")
+        add_column_if_missing(conn, "whatsapp_messages", "media_mimetype", "media_mimetype VARCHAR(100)")

@@ -44,6 +44,12 @@ export async function sendTyping(remoteJid: string, presence: "composing" | "rec
   }).catch(() => undefined);
 }
 
+/** URL da mídia de uma mensagem — usada direto em `src`/`href`, sem fetch manual. */
+export function mediaUrl(remoteJid: string, messageId: string, download = false): string {
+  const query = download ? "?download=true" : "";
+  return `/api/whatsapp/chats/${encodeURIComponent(remoteJid)}/messages/${encodeURIComponent(messageId)}/media${query}`;
+}
+
 export async function sendMessage(remoteJid: string, text: string): Promise<WhatsAppMessage> {
   const res = await fetch(`/api/whatsapp/chats/${encodeURIComponent(remoteJid)}/messages`, {
     method: "POST",

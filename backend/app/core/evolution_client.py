@@ -220,6 +220,19 @@ async def find_chats() -> list[dict[str, Any]]:
     return data if isinstance(data, list) else data.get("chats", [])
 
 
+async def find_contacts() -> list[dict[str, Any]]:
+    """
+    Agenda de contatos salvos (nome/pushName por JID) — o objeto de Chat da
+    Evolution não carrega nome pra conversa individual, só o `remoteJid`
+    (número ou `@lid`). Sem isso, contato sem mensagem recebida com pushName
+    ainda salva no banco aparece só com o número/JID cru na lista.
+    """
+    instance = _instance_name()
+    response = await _request("POST", f"/chat/findContacts/{instance}", json={})
+    data = response.json()
+    return data if isinstance(data, list) else data.get("contacts", [])
+
+
 async def find_messages(remote_jid: str, limit: int = 50, page: int = 1) -> list[dict[str, Any]]:
     instance = _instance_name()
     response = await _request(
@@ -240,6 +253,25 @@ async def find_messages(remote_jid: str, limit: int = 50, page: int = 1) -> list
     # sem reordenar aqui, o chat renderizava de trás pra frente (mais recente
     # no topo, precisava rolar pra cima pra achar as primeiras da conversa).
     return sorted(records, key=lambda m: m.get("messageTimestamp") or 0)
+
+
+async def get_media_base64(remote_jid: str, message_id: str, from_me: bool) -> dict[str, Any]:
+    """
+    Baixa o conteúdo (imagem/vídeo/áudio/documento) de uma mensagem já
+    recebida/enviada. A Evolution decripta o mídia da WhatsApp (que só ela
+    tem a chave pra abrir) e devolve em base64 — não dá pra servir a `url`
+    bruta da mensagem direto, ela é inútil sem passar por aqui antes.
+    """
+    instance = _instance_name()
+    response = await _request(
+        "POST",
+        f"/chat/getBase64FromMediaMessage/{instance}",
+        json={
+            "message": {"key": {"id": message_id, "remoteJid": remote_jid, "fromMe": from_me}},
+            "convertToMp4": False,
+        },
+    )
+    return response.json()
 
 
 async def send_text_message(remote_jid: str, text: str) -> dict[str, Any]:

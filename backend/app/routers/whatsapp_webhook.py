@@ -41,7 +41,27 @@ def _extract_text(message: dict[str, Any]) -> str | None:
         message.get("conversation")
         or (message.get("extendedTextMessage") or {}).get("text")
         or (message.get("imageMessage") or {}).get("caption")
+        or (message.get("videoMessage") or {}).get("caption")
+        or (message.get("documentMessage") or {}).get("caption")
     )
+
+
+# Chave da mensagem (Baileys) -> (tipo pra UI, chave do mimetype dentro dela).
+_MEDIA_KEYS = {
+    "imageMessage": "image",
+    "videoMessage": "video",
+    "audioMessage": "audio",
+    "documentMessage": "document",
+}
+
+
+def _extract_media(message: dict[str, Any]) -> tuple[str | None, str | None]:
+    """(media_type, mimetype) da mensagem, ou (None, None) se for só texto."""
+    for key, media_type in _MEDIA_KEYS.items():
+        payload = message.get(key)
+        if isinstance(payload, dict):
+            return media_type, payload.get("mimetype")
+    return None, None
 
 
 async def _handle_messages_upsert(db: Session, data: dict[str, Any]) -> None:
@@ -49,6 +69,8 @@ async def _handle_messages_upsert(db: Session, data: dict[str, Any]) -> None:
     remote_jid = key.get("remoteJid") or ""
     if not remote_jid:
         return
+
+    media_type, media_mimetype = _extract_media(data.get("message") or {})
 
     message = whatsapp_store.save_message(
         db,
@@ -60,6 +82,8 @@ async def _handle_messages_upsert(db: Session, data: dict[str, Any]) -> None:
         is_group=remote_jid.endswith("@g.us"),
         status="recebida" if not key.get("fromMe") else "enviada",
         timestamp=data.get("messageTimestamp") or 0,
+        media_type=media_type,
+        media_mimetype=media_mimetype,
     )
     if message is None:
         return  # já existia (dedup) — nosso próprio envio ecoando de volta
@@ -73,6 +97,8 @@ async def _handle_messages_upsert(db: Session, data: dict[str, Any]) -> None:
             "text": message.text,
             "timestamp": message.timestamp,
             "sender_name": message.sender_name,
+            "media_type": message.media_type,
+            "media_mimetype": message.media_mimetype,
         },
     })
 

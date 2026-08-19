@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { LogOut, MessageCircle } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { LogOut, MessageCircle, Search } from "lucide-react";
 import { disconnect, getChats, getMessages } from "@/services/client/whatsappApi";
 import { useWhatsAppSocket } from "@/hooks/useWhatsAppSocket";
 import type { WhatsAppChat, WhatsAppMessage } from "@/types/whatsapp";
@@ -21,6 +21,13 @@ export default function WhatsAppChatLayout({ onDisconnected }: Props) {
   const [error, setError] = useState<string | null>(null);
   // remote_jid -> "digitando" | "gravando_audio" | null (limpa o indicador).
   const [typingByJid, setTypingByJid] = useState<Record<string, string | null>>({});
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredChats = useMemo(() => {
+    const term = searchQuery.trim().toLowerCase();
+    if (!term) return chats;
+    return chats.filter((chat) => (chat.name ?? chat.remote_jid).toLowerCase().includes(term));
+  }, [chats, searchQuery]);
 
   useEffect(() => {
     let cancelled = false;
@@ -121,11 +128,24 @@ export default function WhatsAppChatLayout({ onDisconnected }: Props) {
           </button>
         </div>
 
+        <div className="px-3 py-2 border-b border-white/10">
+          <label className="relative block">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/40" />
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Buscar conversa..."
+              className="glass-input w-full rounded-lg pl-8 pr-3 py-1.5 text-sm outline-none"
+            />
+          </label>
+        </div>
+
         {error && <p className="px-4 py-2 text-xs text-danger">{error}</p>}
 
         <div className="flex-1 overflow-y-auto">
           <WhatsAppChatList
-            chats={chats}
+            chats={filteredChats}
             loading={chatsLoading}
             selectedJid={selectedChat?.remote_jid ?? null}
             onSelect={handleSelectChat}

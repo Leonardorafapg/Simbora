@@ -20,6 +20,8 @@ export type WhatsAppChat = {
   updated_at: string | null;
 };
 
+export type WhatsAppMediaType = "image" | "video" | "audio" | "document";
+
 export type WhatsAppMessage = {
   id: string | null;
   remote_jid: string;
@@ -27,4 +29,6 @@ export type WhatsAppMessage = {
   text: string | null;
   timestamp: number | null;
   sender_name: string | null;
+  media_type: WhatsAppMediaType | null;
+  media_mimetype: string | null;
 };

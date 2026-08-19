@@ -1,10 +1,65 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Send } from "lucide-react";
+import { Download, FileText, Send } from "lucide-react";
 import Avatar from "@/components/ui/Avatar";
-import { sendMessage, sendTyping } from "@/services/client/whatsappApi";
+import { mediaUrl, sendMessage, sendTyping } from "@/services/client/whatsappApi";
 import type { WhatsAppChat, WhatsAppMessage } from "@/types/whatsapp";
+
+function MessageMedia({ chat, message }: { chat: WhatsAppChat; message: WhatsAppMessage }) {
+  if (!message.media_type || !message.id) return null;
+  const src = mediaUrl(chat.remote_jid, message.id);
+
+  switch (message.media_type) {
+    case "image":
+      return (
+        <div className="relative group">
+          {/* eslint-disable-next-line @next/next/no-img-element -- mídia decodificada sob demanda no backend, sem loader configurado */}
+          <img
+            src={src}
+            alt={message.text || "Imagem"}
+            className="max-w-full max-h-72 rounded-lg object-cover cursor-pointer"
+            onClick={() => window.open(src, "_blank")}
+          />
+          <a
+            href={mediaUrl(chat.remote_jid, message.id, true)}
+            className="absolute top-1.5 right-1.5 h-7 w-7 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+            title="Baixar imagem"
+          >
+            <Download className="h-3.5 w-3.5 text-white" />
+          </a>
+        </div>
+      );
+    case "video":
+      return (
+        <div className="relative group">
+          <video src={src} controls className="max-w-full max-h-72 rounded-lg" />
+          <a
+            href={mediaUrl(chat.remote_jid, message.id, true)}
+            className="absolute top-1.5 right-1.5 h-7 w-7 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+            title="Baixar vídeo"
+          >
+            <Download className="h-3.5 w-3.5 text-white" />
+          </a>
+        </div>
+      );
+    case "audio":
+      return <audio src={src} controls className="max-w-[240px]" />;
+    case "document":
+      return (
+        <a
+          href={mediaUrl(chat.remote_jid, message.id, true)}
+          className="flex items-center gap-2 rounded-lg bg-black/20 px-3 py-2 hover:bg-black/30 transition-colors"
+        >
+          <FileText className="h-5 w-5 shrink-0 text-cyan" />
+          <span className="text-sm truncate flex-1">{message.text || "Documento"}</span>
+          <Download className="h-4 w-4 shrink-0 text-white/50" />
+        </a>
+      );
+    default:
+      return null;
+  }
+}
 
 const TYPING_PRESENCE_LABELS: Record<string, string> = {
   digitando: "digitando...",
@@ -64,6 +119,7 @@ export default function WhatsAppChatWindow({ chat, messages, loading, typingPres
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const lastTypingSentAt = useRef(0);
 
   useEffect(() => {
@@ -94,6 +150,9 @@ export default function WhatsAppChatWindow({ chat, messages, loading, typingPres
       setError(err instanceof Error ? err.message : "Não foi possível enviar a mensagem.");
     } finally {
       setSending(false);
+      // Clicar no ícone de enviar tira o foco da caixa de texto — devolve pra
+      // continuar digitando a próxima mensagem sem precisar clicar de novo.
+      inputRef.current?.focus();
     }
   }
 
@@ -143,7 +202,18 @@ export default function WhatsAppChatWindow({ chat, messages, loading, typingPres
                 {chat.is_group && !row.message.from_me && row.message.sender_name && (
                   <p className="text-xs font-medium text-cyan mb-0.5">{row.message.sender_name}</p>
                 )}
-                {row.message.text ?? <span className="italic text-white/40">Mensagem sem texto</span>}
+
+                {row.message.media_type && (
+                  <div className="mb-1">
+                    <MessageMedia chat={chat} message={row.message} />
+                  </div>
+                )}
+
+                {row.message.media_type === "image" || row.message.media_type === "video" ? (
+                  row.message.text && <p className="mt-1">{row.message.text}</p>
+                ) : row.message.media_type === "document" ? null : (
+                  row.message.text ?? <span className="italic text-white/40">Mensagem sem texto</span>
+                )}
               </div>
             ),
           )}
@@ -155,6 +225,7 @@ export default function WhatsAppChatWindow({ chat, messages, loading, typingPres
         {error && <p className="text-xs text-danger mb-2">{error}</p>}
         <div className="flex items-center gap-2">
           <input
+            ref={inputRef}
             value={text}
             onChange={(e) => handleTextChange(e.target.value)}
             onKeyDown={(e) => {
