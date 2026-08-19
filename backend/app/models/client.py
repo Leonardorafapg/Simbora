@@ -10,6 +10,7 @@ class Client(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(150), nullable=False)
+    photo_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     contact_name: Mapped[str | None] = mapped_column(String(150), nullable=True)
     email: Mapped[str | None] = mapped_column(String(255), nullable=True)
     phone: Mapped[str | None] = mapped_column(String(30), nullable=True)

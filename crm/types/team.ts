@@ -17,6 +17,7 @@ export type TeamMemberCreateInput = {
   birth_date: string;
   email: string;
   password: string;
+  photo_url?: string | null;
   cargo: string;
   is_admin: boolean;
   permissions?: string[];
@@ -28,6 +29,7 @@ export type TeamMemberUpdateInput = Partial<{
   birth_date: string;
   email: string;
   password: string;
+  photo_url: string | null;
   cargo: string;
   is_admin: boolean;
   is_active: boolean;

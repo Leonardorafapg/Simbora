@@ -5,6 +5,7 @@ import type { Client, ClientCreateInput } from "@/types/client";
 import type { TeamMember } from "@/types/team";
 import Field from "@/components/ui/Field";
 import UserSelect from "@/components/ui/UserSelect";
+import ImageDropzone from "@/components/ui/ImageDropzone";
 
 type Props = {
   open: boolean;
@@ -15,6 +16,7 @@ type Props = {
 
 const emptyForm: ClientCreateInput = {
   name: "",
+  photo_url: null,
   contact_name: "",
   email: "",
   phone: "",
@@ -64,6 +66,10 @@ export default function NewClientDialog({ open, onClose, onCreate, teamMembers }
         <h2 className="text-lg font-semibold text-white mb-4">Novo cliente</h2>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+          <Field label="Foto do cliente">
+            <ImageDropzone value={form.photo_url ?? null} onChange={(value) => update("photo_url", value)} />
+          </Field>
+
           <Field label="Nome do cliente">
             <input
               required

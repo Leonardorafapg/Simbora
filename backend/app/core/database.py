@@ -76,3 +76,4 @@ def run_light_migrations():
         add_column_if_missing(conn, "demands", "has_material", "has_material BOOLEAN DEFAULT FALSE")
         add_column_if_missing(conn, "whatsapp_messages", "media_type", "media_type VARCHAR(20)")
         add_column_if_missing(conn, "whatsapp_messages", "media_mimetype", "media_mimetype VARCHAR(100)")
+        add_column_if_missing(conn, "clients", "photo_url", "photo_url VARCHAR(500)")

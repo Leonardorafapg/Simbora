@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { TeamMember, TeamMemberCreateInput } from "@/types/team";
 import Field from "@/components/ui/Field";
+import ImageDropzone from "@/components/ui/ImageDropzone";
 
 type Props = {
   open: boolean;
@@ -16,6 +17,7 @@ const emptyForm: TeamMemberCreateInput = {
   birth_date: "",
   email: "",
   password: "",
+  photo_url: null,
   cargo: "",
   is_admin: false,
 };
@@ -59,6 +61,10 @@ export default function NewTeamMemberDialog({ open, onClose, onCreate }: Props) 
         <h2 className="text-lg font-semibold text-white mb-4">Novo membro</h2>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+          <Field label="Foto de perfil">
+            <ImageDropzone value={form.photo_url ?? null} onChange={(value) => update("photo_url", value)} />
+          </Field>
+
           <Field label="Nome completo">
             <input
               required

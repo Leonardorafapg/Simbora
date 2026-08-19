@@ -7,6 +7,7 @@ import { PERMISSIONS } from "@/lib/permissions";
 import Avatar from "@/components/ui/Avatar";
 import Field from "@/components/ui/Field";
 import Switch from "@/components/ui/Switch";
+import ImageDropzone from "@/components/ui/ImageDropzone";
 import DemandProgressCard from "@/components/demands/DemandProgressCard";
 import { useDemands } from "@/hooks/useDemands";
 
@@ -38,6 +39,7 @@ export default function TeamMemberDetail({
     cpf: member.cpf,
     birth_date: member.birth_date,
     email: member.email,
+    photo_url: member.photo_url,
     cargo: member.cargo,
     is_admin: member.is_admin,
     is_active: member.is_active,
@@ -56,6 +58,7 @@ export default function TeamMemberDetail({
       cpf: member.cpf,
       birth_date: member.birth_date,
       email: member.email,
+      photo_url: member.photo_url,
       cargo: member.cargo,
       is_admin: member.is_admin,
       is_active: member.is_active,
@@ -111,6 +114,10 @@ export default function TeamMemberDetail({
           <div className="glass-card w-full max-w-md rounded-2xl p-5 space-y-4">
             {editing ? (
               <>
+                <Field label="Foto de perfil">
+                  <ImageDropzone value={form.photo_url ?? null} onChange={(value) => update("photo_url", value)} />
+                </Field>
+
                 <Field label="Nome completo">
                   <input
                     value={form.full_name ?? ""}

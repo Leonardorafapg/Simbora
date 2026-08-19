@@ -6,6 +6,7 @@ import type { TeamMember } from "@/types/team";
 import Field from "@/components/ui/Field";
 import UserSelect from "@/components/ui/UserSelect";
 import Avatar from "@/components/ui/Avatar";
+import ImageDropzone from "@/components/ui/ImageDropzone";
 import ClientCalendar from "@/components/calendar/ClientCalendar";
 import DemandProgressCard from "@/components/demands/DemandProgressCard";
 import { useDemands } from "@/hooks/useDemands";
@@ -52,6 +53,7 @@ export default function ClientDetail({
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<ClientUpdateInput>(() => ({
     name: client.name,
+    photo_url: client.photo_url,
     contact_name: client.contact_name ?? "",
     email: client.email ?? "",
     phone: client.phone ?? "",
@@ -75,6 +77,7 @@ export default function ClientDetail({
   function cancelEdit() {
     setForm({
       name: client.name,
+      photo_url: client.photo_url,
       contact_name: client.contact_name ?? "",
       email: client.email ?? "",
       phone: client.phone ?? "",
@@ -132,7 +135,7 @@ export default function ClientDetail({
       </button>
 
       <div className="flex items-center gap-4 mb-8">
-        <Avatar name={client.name} size="lg" />
+        <Avatar name={client.name} photoUrl={client.photo_url} size="lg" />
         <div>
           <p className="text-lg font-semibold text-white">{client.name}</p>
           <p className="text-sm text-cyan">
@@ -146,6 +149,10 @@ export default function ClientDetail({
           <div className="glass-card w-full rounded-2xl p-5 space-y-4">
             {editing ? (
               <>
+                <Field label="Foto do cliente">
+                  <ImageDropzone value={form.photo_url ?? null} onChange={(value) => update("photo_url", value)} />
+                </Field>
+
                 <Field label="Nome do cliente">
                   <input
                     value={form.name ?? ""}

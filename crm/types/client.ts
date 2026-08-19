@@ -1,6 +1,7 @@
 export type Client = {
   id: number;
   name: string;
+  photo_url: string | null;
   contact_name: string | null;
   email: string | null;
   phone: string | null;
@@ -14,6 +15,7 @@ export type Client = {
 
 export type ClientCreateInput = {
   name: string;
+  photo_url?: string | null;
   contact_name?: string;
   email?: string;
   phone?: string;
@@ -26,6 +28,7 @@ export type ClientCreateInput = {
 
 export type ClientUpdateInput = Partial<{
   name: string;
+  photo_url: string | null;
   contact_name: string;
   email: string;
   phone: string;

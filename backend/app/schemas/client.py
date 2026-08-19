@@ -4,6 +4,7 @@ from pydantic import BaseModel, EmailStr, field_validator
 
 class ClientCreate(BaseModel):
     name: str
+    photo_url: str | None = None
     contact_name: str | None = None
     email: EmailStr | None = None
     phone: str | None = None
@@ -24,6 +25,7 @@ class ClientCreate(BaseModel):
 
 class ClientUpdate(BaseModel):
     name: str | None = None
+    photo_url: str | None = None
     contact_name: str | None = None
     email: EmailStr | None = None
     phone: str | None = None
@@ -48,6 +50,7 @@ class ClientUpdate(BaseModel):
 class ClientOut(BaseModel):
     id: int
     name: str
+    photo_url: str | None
     contact_name: str | None
     email: str | None
     phone: str | None
