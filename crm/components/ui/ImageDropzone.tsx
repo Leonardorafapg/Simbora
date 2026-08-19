@@ -10,8 +10,6 @@ type Props = {
   onChange: (url: string | null) => void;
 };
 
-const MAX_SIZE_MB = 5;
-
 export default function ImageDropzone({ value, onChange }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -19,16 +17,14 @@ export default function ImageDropzone({ value, onChange }: Props) {
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState(false);
 
+  // Sem limite de tamanho de propósito — o backend/Cloudinary que dizem
+  // a última palavra; se recusar, o erro aparece igual (catch abaixo).
   async function handleFile(file: File | undefined | null) {
     setError(null);
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
       setError("Selecione um arquivo de imagem.");
-      return;
-    }
-    if (file.size > MAX_SIZE_MB * 1024 * 1024) {
-      setError(`Imagem muito grande (máx. ${MAX_SIZE_MB}MB).`);
       return;
     }
 

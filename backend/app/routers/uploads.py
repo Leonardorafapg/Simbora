@@ -10,8 +10,6 @@ from app.schemas.upload import UploadOut
 
 router = APIRouter()
 
-MAX_UPLOAD_BYTES = 5 * 1024 * 1024  # 5MB — mesmo limite já validado no client (ImageDropzone)
-
 
 @router.post("/uploads/image", response_model=UploadOut)
 async def upload_image(
@@ -27,9 +25,9 @@ async def upload_image(
     if not (file.content_type or "").startswith("image/"):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Selecione um arquivo de imagem")
 
+    # Sem limite de tamanho por decisão de produto — quem estourar o teto do
+    # plano do Cloudinary recebe o 502 abaixo, que já é uma mensagem clara.
     contents = await file.read()
-    if len(contents) > MAX_UPLOAD_BYTES:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Imagem muito grande (máx. 5MB)")
 
     ensure_configured()
 

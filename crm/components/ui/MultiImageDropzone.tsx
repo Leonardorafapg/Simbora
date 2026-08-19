@@ -10,8 +10,6 @@ type Props = {
   onChange: (urls: string[]) => void;
 };
 
-const MAX_SIZE_MB = 5;
-
 export default function MultiImageDropzone({ value, onChange }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -19,6 +17,8 @@ export default function MultiImageDropzone({ value, onChange }: Props) {
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
 
+  // Sem limite de tamanho de propósito — o backend/Cloudinary que dizem
+  // a última palavra; se recusar, o erro aparece igual (catch abaixo).
   async function handleFiles(fileList: FileList | null) {
     setError(null);
     if (!fileList || fileList.length === 0) return;
@@ -27,11 +27,6 @@ export default function MultiImageDropzone({ value, onChange }: Props) {
     const invalid = files.find((f) => !f.type.startsWith("image/"));
     if (invalid) {
       setError("Selecione apenas arquivos de imagem.");
-      return;
-    }
-    const tooBig = files.find((f) => f.size > MAX_SIZE_MB * 1024 * 1024);
-    if (tooBig) {
-      setError(`Imagem muito grande (máx. ${MAX_SIZE_MB}MB): ${tooBig.name}`);
       return;
     }
 
