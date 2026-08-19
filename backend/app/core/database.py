@@ -1,5 +1,5 @@
 # backend/app/core/database.py
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine, event, inspect
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
@@ -42,22 +42,23 @@ def run_light_migrations():
     """
     Projeto não usa Alembic ainda. `Base.metadata.create_all` cobre tabelas
     novas (idempotente, não toca nas existentes) — mas colunas novas em
-    tabelas que já existiam num banco sqlite precisam de ALTER manual, feito
-    abaixo.
+    tabelas que já existiam precisam de ALTER manual, feito abaixo.
+
+    Roda tanto em SQLite (dev local) quanto em Postgres (produção/Railway):
+    a versão anterior só cobria SQLite, então qualquer coluna adicionada a
+    uma tabela já existente ficava faltando em produção sem ninguém notar
+    até uma query esbarrar nela — foi exatamente o que aconteceu com
+    `calendar_entries.material_files`/`final_image`.
     """
     Base.metadata.create_all(bind=engine)
 
-    if not IS_SQLITE:
-        return
+    inspector = inspect(engine)
 
     def add_column_if_missing(conn, table: str, column: str, ddl: str):
-        tables = conn.exec_driver_sql(
-            f"SELECT name FROM sqlite_master WHERE type='table' AND name='{table}'"
-        ).fetchall()
-        if not tables:
+        if not inspector.has_table(table):
             return
 
-        columns = {row[1] for row in conn.exec_driver_sql(f"PRAGMA table_info({table})")}
+        columns = {col["name"] for col in inspector.get_columns(table)}
         if column not in columns:
             conn.exec_driver_sql(f"ALTER TABLE {table} ADD COLUMN {ddl}")
             conn.commit()
@@ -69,4 +70,7 @@ def run_light_migrations():
         add_column_if_missing(conn, "calendar_entries", "material_files", "material_files TEXT DEFAULT '[]'")
         add_column_if_missing(conn, "calendar_entries", "final_image", "final_image TEXT")
         add_column_if_missing(conn, "demands", "checklist", "checklist TEXT DEFAULT '[]'")
-        add_column_if_missing(conn, "demands", "has_material", "has_material BOOLEAN DEFAULT 0")
+        # FALSE (não 0): literal válido tanto em Postgres quanto em SQLite
+        # moderno — 0 quebra o ALTER em Postgres (BOOLEAN não aceita
+        # inteiro como default sem cast explícito).
+        add_column_if_missing(conn, "demands", "has_material", "has_material BOOLEAN DEFAULT FALSE")
