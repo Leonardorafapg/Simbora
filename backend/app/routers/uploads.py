@@ -1,4 +1,7 @@
 # backend/app/routers/uploads.py
+import asyncio
+import logging
+
 import cloudinary.uploader
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 
@@ -7,6 +10,8 @@ from app.core.config import settings
 from app.core.deps import get_current_user
 from app.models.user import User
 from app.schemas.upload import UploadOut
+
+logger = logging.getLogger("uploads")
 
 router = APIRouter()
 
@@ -32,12 +37,24 @@ async def upload_image(
     ensure_configured()
 
     try:
-        result = cloudinary.uploader.upload(
-            contents,
-            folder=settings.CLOUDINARY_FOLDER,
-            resource_type="image",
+        # `cloudinary.uploader.upload` é síncrono/bloqueante (chamada de rede
+        # sem await) — rodar direto aqui trava o event loop inteiro (webhook
+        # do WhatsApp, WebSocket, outras requisições) até o Cloudinary
+        # responder. `run_in_executor` tira isso da thread principal.
+        loop = asyncio.get_running_loop()
+        result = await loop.run_in_executor(
+            None,
+            lambda: cloudinary.uploader.upload(
+                contents,
+                folder=settings.CLOUDINARY_FOLDER,
+                resource_type="image",
+            ),
         )
-    except Exception:
+    except Exception as exc:
+        # Sem logar o erro real, um 502 do Cloudinary (credencial errada,
+        # cota estourada, formato recusado) e um timeout de rede ficavam
+        # indistinguíveis nos logs — sempre a mesma mensagem genérica.
+        logger.exception("Falha ao enviar imagem para o Cloudinary: %s", exc)
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="Falha ao enviar a imagem para o armazenamento externo",
