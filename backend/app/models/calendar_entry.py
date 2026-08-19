@@ -1,8 +1,9 @@
 # backend/app/models/calendar_entry.py
 from datetime import date as date_type, datetime, timezone
-from sqlalchemy import String, Integer, Date, DateTime, ForeignKey, Text, JSON
+from sqlalchemy import String, Integer, Date, DateTime, ForeignKey, Text
 from sqlalchemy.orm import Mapped, mapped_column
 from app.core.database import Base
+from app.core.types import JSONText
 
 
 class CalendarEntry(Base):
@@ -22,7 +23,7 @@ class CalendarEntry(Base):
     # Lista de URLs (Cloudinary) do material bruto que o social sobe pro
     # designer usar na arte (fotos, prints, etc.) — diferente de
     # reference_image, que é só inspiração/referência visual.
-    material_files: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
+    material_files: Mapped[list] = mapped_column(JSONText, default=list, nullable=False)
     # URL (Cloudinary) da arte finalizada que o designer entrega via o
     # drawer da demanda vinculada — preenchido só depois que a demanda de
     # arte é concluída, não no planejamento da postagem.

@@ -1,8 +1,9 @@
 # backend/app/models/demand.py
 from datetime import date as date_type, datetime, timezone
-from sqlalchemy import String, Integer, Date, DateTime, ForeignKey, Text, Boolean, JSON
+from sqlalchemy import String, Integer, Date, DateTime, ForeignKey, Text, Boolean
 from sqlalchemy.orm import Mapped, mapped_column
 from app.core.database import Base
+from app.core.types import JSONText
 
 
 class Demand(Base):
@@ -50,7 +51,7 @@ class Demand(Base):
 
     # Lista de {id, text, done} — igual em espírito ao User.permissions:
     # substitui o array inteiro a cada PATCH, sem endpoint próprio.
-    checklist: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
+    checklist: Mapped[list] = mapped_column(JSONText, default=list, nullable=False)
 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(
