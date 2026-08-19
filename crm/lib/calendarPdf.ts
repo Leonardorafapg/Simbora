@@ -75,13 +75,13 @@ export async function exportCalendarToPdf(
   }
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(9.75); // 15 * 0.65 — fonte 35% menor, pedido explícito
+  doc.setFontSize(11.21); // 15 * 0.7475 — 35% menor, depois +15% sobre isso
   doc.setTextColor(20, 20, 20);
   doc.text("CRONOGRAMA DE POSTAGEM", pageWidth / 2, y, { align: "center" });
   y += 20;
 
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(7.15); // 11 * 0.65
+  doc.setFontSize(8.22); // 11 * 0.7475
   doc.setTextColor(90, 90, 90);
   doc.text(`${clientName}, ${monthLabel.toUpperCase()}`, pageWidth / 2, y, { align: "center" });
   y += 26;
@@ -90,7 +90,7 @@ export async function exportCalendarToPdf(
 
   if (ordenados.length === 0) {
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.15); // 11 * 0.65
+    doc.setFontSize(8.22); // 11 * 0.7475
     doc.setTextColor(120, 120, 120);
     doc.text("Nenhuma postagem planejada neste mês.", PAGE_MARGIN, y);
     doc.save(`cronograma-${slugify(clientName)}-${slugify(monthLabel)}.pdf`);
@@ -106,7 +106,7 @@ export async function exportCalendarToPdf(
     doc.rect(colX.execucao, y, colWidths.execucao, HEADER_ROW_HEIGHT);
 
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(6.5); // 10 * 0.65
+    doc.setFontSize(7.48); // 10 * 0.7475
     doc.setTextColor(0, 0, 0);
     doc.text("Data", colX.data + CELL_PADDING, y + HEADER_ROW_HEIGHT / 2 + 3);
     doc.text("Descrição", colX.descricao + CELL_PADDING, y + HEADER_ROW_HEIGHT / 2 + 3);
@@ -127,7 +127,7 @@ export async function exportCalendarToPdf(
 
   for (const entry of ordenados) {
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(5.85); // 9 * 0.65
+    doc.setFontSize(6.73); // 9 * 0.7475
 
     const dataLines: string[] = doc.splitTextToSize(
       formatDateHeader(entry.scheduled_date),
@@ -151,7 +151,7 @@ export async function exportCalendarToPdf(
     doc.rect(colX.execucao, rowTop, colWidths.execucao, rowHeight);
 
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(5.85); // 9 * 0.65
+    doc.setFontSize(6.73); // 9 * 0.7475
     doc.setTextColor(0, 0, 0);
     dataLines.forEach((line: string, i: number) => {
       doc.text(line, colX.data + CELL_PADDING, rowTop + CELL_PADDING + LINE_HEIGHT * (i + 1) - 3);

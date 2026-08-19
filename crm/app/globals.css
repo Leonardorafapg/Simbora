@@ -187,21 +187,22 @@ body {
   [data-print-area] button {
     display: none !important;
   }
-  /* Fonte 35% menor que a tela — pedido explícito pra caber mais conteúdo
-     por página no relatório impresso/PDF. Reescreve cada classe de texto do
-     Tailwind usada em CalendarReport.tsx (rem sempre resolve contra o root,
-     não o container, então "font-size: 65%" no [data-print-area] sozinho
-     não afetaria essas classes). */
+  /* Fonte 35% menor que a tela, depois +15% em cima disso (fator final
+     0.7475) — pedido explícito pra caber mais conteúdo por página no
+     relatório impresso/PDF. Reescreve cada classe de texto do Tailwind
+     usada em CalendarReport.tsx (rem sempre resolve contra o root, não o
+     container, então um "font-size: %" no [data-print-area] sozinho não
+     afetaria essas classes). */
   [data-print-area] h3 {
-    font-size: 10.4px !important;
+    font-size: 11.96px !important;
   }
   [data-print-area] .text-sm {
-    font-size: 9.1px !important;
+    font-size: 10.47px !important;
   }
   [data-print-area] .text-xs {
-    font-size: 7.8px !important;
+    font-size: 8.97px !important;
   }
   [data-print-area] .text-\[11px\] {
-    font-size: 7.15px !important;
+    font-size: 8.22px !important;
   }
 }
