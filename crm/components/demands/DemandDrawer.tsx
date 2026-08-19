@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { X } from "lucide-react";
 import type { ChecklistItem, Demand, DemandStatus, DemandUpdateInput } from "@/types/demand";
 import { DEMAND_STATUSES, DEMAND_STATUS_LABELS } from "@/types/demand";
 import type { Client } from "@/types/client";
@@ -89,10 +90,6 @@ function DemandDrawerContent({
 
   return (
     <>
-      <button type="button" onClick={onBack} className="text-sm text-white/60 hover:text-white flex items-center gap-1 mb-6">
-        ‹ Voltar
-      </button>
-
       <div className="flex items-start justify-between gap-4 mb-6">
         <div className="flex-1 min-w-0">
           {canEdit ? (
@@ -106,6 +103,14 @@ function DemandDrawerContent({
           )}
           {demand.calendar_entry_id && <p className="text-xs text-white/40 mt-1">Nascida de uma postagem do calendário.</p>}
         </div>
+        <button
+          type="button"
+          onClick={onBack}
+          className="shrink-0 rounded-full p-1.5 text-white/50 hover:text-white hover:bg-white/10 transition-colors"
+          aria-label="Fechar"
+        >
+          <X className="h-5 w-5" />
+        </button>
       </div>
 
       {canEdit && actions.length > 0 && (
@@ -217,19 +222,18 @@ function DemandDrawerContent({
 }
 
 /**
- * Painel que cobre a área de conteúdo da página (não a navegação),
- * deslizando sobre o kanban/tabela — mesmo padrão do drawer de funcionário.
+ * Modal centralizado por cima da tela (como o card do Trello), não um
+ * painel lateral — mesmo padrão dos outros modais do app (overlay
+ * escurecido + card centralizado), só que mais largo pra caber anexos e
+ * entrega lado a lado.
  */
 export default function DemandDrawer({ demand, onClose, ...rest }: Props) {
+  if (!demand) return null;
+
   return (
-    <div
-      aria-hidden={!demand}
-      className={`absolute inset-0 z-40 transition-transform duration-300 ease-out ${
-        demand ? "translate-x-0" : "translate-x-full pointer-events-none"
-      }`}
-    >
-      <div className="glass-modal h-full w-full rounded-2xl p-6 overflow-y-auto">
-        {demand && <DemandDrawerContent key={demand.id} demand={demand} onBack={onClose} {...rest} />}
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6">
+      <div className="glass-modal w-full max-w-4xl rounded-2xl p-6 max-h-[90vh] overflow-y-auto">
+        <DemandDrawerContent key={demand.id} demand={demand} onBack={onClose} {...rest} />
       </div>
     </div>
   );
