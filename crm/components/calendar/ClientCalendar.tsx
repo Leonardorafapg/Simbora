@@ -18,13 +18,24 @@ type Props = {
   canCreate: boolean;
   canEdit: boolean;
   canDelete: boolean;
+  /** Mês/ano são controlados por quem renderiza (ex.: ClientDetail usa pra filtrar "demandas do mês" pelo mesmo período mostrado aqui). */
+  year: number;
+  month: number;
+  onChangeMonth: (year: number, month: number) => void;
 };
 
 /** Calendário de postagens de um único cliente — vive dentro do drawer de detalhe. */
-export default function ClientCalendar({ clientId, clientName, canCreate, canEdit, canDelete }: Props) {
+export default function ClientCalendar({
+  clientId,
+  clientName,
+  canCreate,
+  canEdit,
+  canDelete,
+  year,
+  month,
+  onChangeMonth,
+}: Props) {
   const today = new Date();
-  const [year, setYear] = useState(today.getFullYear());
-  const [month, setMonth] = useState(today.getMonth() + 1);
   const [view, setView] = useState<"calendario" | "relatorio">("calendario");
   const [dialogDate, setDialogDate] = useState(today.toISOString().slice(0, 10));
   const [dialogEntry, setDialogEntry] = useState<CalendarEntry | null>(null);
@@ -109,10 +120,7 @@ export default function ClientCalendar({ clientId, clientName, canCreate, canEdi
           canEdit={canEdit && !locked}
           onCreateDate={openCreateDialog}
           onEditEntry={openEditDialog}
-          onChangeMonth={(y, m) => {
-            setYear(y);
-            setMonth(m);
-          }}
+          onChangeMonth={onChangeMonth}
           onOpenReport={() => setView("relatorio")}
         />
       ) : (

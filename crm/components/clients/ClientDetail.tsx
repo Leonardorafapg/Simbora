@@ -9,6 +9,7 @@ import Avatar from "@/components/ui/Avatar";
 import ClientCalendar from "@/components/calendar/ClientCalendar";
 import DemandProgressCard from "@/components/demands/DemandProgressCard";
 import { useDemands } from "@/hooks/useDemands";
+import { MONTH_LABELS } from "@/types/calendar";
 
 type CalendarPermissions = {
   canCreate: boolean;
@@ -39,6 +40,13 @@ export default function ClientDetail({
   onUpdate,
   onRequestDelete,
 }: Props) {
+  // Mês/ano do calendário — controlado aqui (não dentro de ClientCalendar)
+  // porque "Demandas do cliente" precisa filtrar pelo mesmo período que o
+  // calendário está mostrando, não pelo total histórico.
+  const today = new Date();
+  const [calendarYear, setCalendarYear] = useState(today.getFullYear());
+  const [calendarMonth, setCalendarMonth] = useState(today.getMonth() + 1);
+
   // Montado com `key={client.id}` pelo drawer, então o estado inicial já
   // reflete o cliente selecionado — sem useEffect de sincronização.
   const [editing, setEditing] = useState(false);
@@ -97,9 +105,21 @@ export default function ClientDetail({
   const nameOf = (id: number | null) =>
     teamMembers.find((m) => m.id === id)?.full_name ?? "—";
 
-  // Sem filtro de status: precisamos de todas pra contar concluídas vs. total.
-  const { demands } = useDemands(useMemo(() => ({ client_id: client.id }), [client.id]));
+  // Só as demandas com prazo dentro do mês que o calendário ao lado está
+  // mostrando — não o histórico inteiro do cliente. Sem filtro de status:
+  // precisamos de todas pra contar concluídas vs. total.
+  const monthStart = `${calendarYear}-${String(calendarMonth).padStart(2, "0")}-01`;
+  const lastDay = new Date(calendarYear, calendarMonth, 0).getDate();
+  const monthEnd = `${calendarYear}-${String(calendarMonth).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+
+  const { demands } = useDemands(
+    useMemo(
+      () => ({ client_id: client.id, date_from: monthStart, date_to: monthEnd }),
+      [client.id, monthStart, monthEnd],
+    ),
+  );
   const completedDemands = useMemo(() => demands.filter((d) => d.status === "concluida").length, [demands]);
+  const demandsLabel = `Demandas do cliente · ${MONTH_LABELS[calendarMonth - 1]}`;
 
   return (
     <>
@@ -240,7 +260,7 @@ export default function ClientDetail({
           </div>
 
           {canViewDemands && (
-            <DemandProgressCard label="Demandas do cliente" total={demands.length} completed={completedDemands} />
+            <DemandProgressCard label={demandsLabel} total={demands.length} completed={completedDemands} />
           )}
 
           {error && <p className="text-sm text-danger max-w-md">{error}</p>}
@@ -297,6 +317,12 @@ export default function ClientDetail({
             canCreate={calendarPermissions.canCreate}
             canEdit={calendarPermissions.canEdit}
             canDelete={calendarPermissions.canDelete}
+            year={calendarYear}
+            month={calendarMonth}
+            onChangeMonth={(y, m) => {
+              setCalendarYear(y);
+              setCalendarMonth(m);
+            }}
           />
         </div>
       </div>
