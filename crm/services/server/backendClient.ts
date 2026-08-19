@@ -55,6 +55,23 @@ export async function backendFetch(path: string, init: RequestInit = {}) {
 }
 
 /**
+ * Igual `backendFetch`, mas para `multipart/form-data` (upload de arquivo).
+ * Sem `Content-Type` fixo de propósito — o fetch precisa gerar sozinho o
+ * boundary do multipart a partir do FormData; forçar o header quebra o parse
+ * no backend.
+ */
+export async function backendFetchMultipart(path: string, formData: FormData) {
+  const cookieStore = await cookies();
+  const token = cookieStore.get(AUTH_COOKIE)?.value;
+
+  return safeFetch(buildUrl(path), {
+    method: "POST",
+    body: formData,
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+}
+
+/**
  * Extrai a mensagem de erro do FastAPI. O campo `detail` vem como string em
  * erros de negócio (HTTPException) e como lista em erros de validação do
  * Pydantic (422) — sem tratar os dois, a UI mostraria "[object Object]".

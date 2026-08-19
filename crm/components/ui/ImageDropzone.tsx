@@ -2,10 +2,12 @@
 
 import { useRef, useState } from "react";
 import { X } from "lucide-react";
+import { uploadImage } from "@/services/client/uploadsApi";
 
 type Props = {
+  /** URL da imagem já enviada ao Cloudinary — não é mais base64. */
   value: string | null;
-  onChange: (dataUri: string | null) => void;
+  onChange: (url: string | null) => void;
 };
 
 const MAX_SIZE_MB = 5;
@@ -14,9 +16,10 @@ export default function ImageDropzone({ value, onChange }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState(false);
 
-  function handleFile(file: File | undefined | null) {
+  async function handleFile(file: File | undefined | null) {
     setError(null);
     if (!file) return;
 
@@ -29,10 +32,15 @@ export default function ImageDropzone({ value, onChange }: Props) {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => onChange(reader.result as string);
-    reader.onerror = () => setError("Não foi possível ler a imagem.");
-    reader.readAsDataURL(file);
+    setUploading(true);
+    try {
+      const url = await uploadImage(file);
+      onChange(url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Não foi possível enviar a imagem.");
+    } finally {
+      setUploading(false);
+    }
   }
 
   if (value) {
@@ -43,7 +51,7 @@ export default function ImageDropzone({ value, onChange }: Props) {
           onClick={() => setPreview(true)}
           className="block w-full rounded-lg overflow-hidden border border-white/10"
         >
-          {/* eslint-disable-next-line @next/next/no-img-element -- data URI, sem loader configurado */}
+          {/* eslint-disable-next-line @next/next/no-img-element -- URL externa (Cloudinary), sem loader configurado */}
           <img src={value} alt="Referência" className="w-full max-h-40 object-cover" />
         </button>
         <div className="flex items-center gap-3">
@@ -72,7 +80,7 @@ export default function ImageDropzone({ value, onChange }: Props) {
             >
               <X className="h-6 w-6" />
             </button>
-            {/* eslint-disable-next-line @next/next/no-img-element -- data URI, sem loader configurado */}
+            {/* eslint-disable-next-line @next/next/no-img-element -- URL externa (Cloudinary), sem loader configurado */}
             <img src={value} alt="Referência" className="max-w-full max-h-full rounded-lg" />
           </div>
         )}
@@ -85,27 +93,33 @@ export default function ImageDropzone({ value, onChange }: Props) {
       <div
         role="button"
         tabIndex={0}
-        onClick={() => inputRef.current?.click()}
-        onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && inputRef.current?.click()}
+        aria-disabled={uploading}
+        onClick={() => !uploading && inputRef.current?.click()}
+        onKeyDown={(e) => !uploading && (e.key === "Enter" || e.key === " ") && inputRef.current?.click()}
         onDragOver={(e) => {
           e.preventDefault();
-          setDragOver(true);
+          if (!uploading) setDragOver(true);
         }}
         onDragLeave={() => setDragOver(false)}
         onDrop={(e) => {
           e.preventDefault();
           setDragOver(false);
-          handleFile(e.dataTransfer.files[0]);
+          if (!uploading) handleFile(e.dataTransfer.files[0]);
         }}
-        className={`rounded-lg border border-dashed px-3 py-6 text-center text-xs cursor-pointer transition-colors ${
-          dragOver ? "border-cyan bg-cyan/5 text-cyan" : "border-white/15 text-white/40 hover:border-white/25"
+        className={`rounded-lg border border-dashed px-3 py-6 text-center text-xs transition-colors ${
+          uploading
+            ? "border-white/10 text-white/30 cursor-wait"
+            : dragOver
+              ? "border-cyan bg-cyan/5 text-cyan cursor-pointer"
+              : "border-white/15 text-white/40 hover:border-white/25 cursor-pointer"
         }`}
       >
-        Arraste uma imagem aqui ou clique para selecionar
+        {uploading ? "Enviando imagem..." : "Arraste uma imagem aqui ou clique para selecionar"}
         <input
           ref={inputRef}
           type="file"
           accept="image/*"
+          disabled={uploading}
           className="hidden"
           onChange={(e) => handleFile(e.target.files?.[0])}
         />
