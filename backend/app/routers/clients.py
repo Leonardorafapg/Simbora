@@ -1,5 +1,6 @@
 # backend/app/routers/clients.py
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -73,4 +74,16 @@ async def delete_client(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cliente não encontrado")
 
     db.delete(client)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        # Cliente com postagens no calendário (client_id NOT NULL lá) ou
+        # demandas vinculadas não pode ser apagado — a FK barra no banco e
+        # sem esse catch virava 500 cru. Orientação: desativar em vez de
+        # apagar, sem perder o histórico de calendário/produção do cliente.
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Esse cliente tem postagens ou demandas vinculadas e não pode ser removido. "
+            "Marque-o como inativo em vez de excluir, se quiser tirá-lo da lista.",
+        )
