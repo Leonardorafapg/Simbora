@@ -97,14 +97,16 @@ class CalendarEntryOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class DeliverableUpdate(BaseModel):
+class DemandAssetsUpdate(BaseModel):
     """
-    Só a arte finalizada + legenda — o que o designer entrega via o drawer
-    da demanda. Schema separado de CalendarEntryUpdate de propósito: quem
-    tem `demand.edit` não necessariamente tem `calendar.edit` (não deve
-    poder mexer em data/tema/cliente do planejamento, só entregar o
-    resultado).
+    Só os campos de imagem/legenda da postagem — o que dá pra editar via o
+    drawer da demanda (anexos + entrega). Schema separado de
+    CalendarEntryUpdate de propósito: quem tem `demand.edit` não
+    necessariamente tem `calendar.edit` (não deve poder mexer em
+    data/tema/cliente do planejamento, só nos anexos e no que entrega).
     """
 
+    reference_image: str | None = None
+    material_files: list[str] | None = None
     final_image: str | None = None
     caption: str | None = None

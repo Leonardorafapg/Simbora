@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { fetchDemandCalendarEntry, updateDemandDeliverable } from "@/services/client/demandApi";
-import type { CalendarEntry, DeliverableInput } from "@/types/calendar";
+import { fetchDemandCalendarEntry, updateDemandAssets } from "@/services/client/demandApi";
+import type { CalendarEntry, DemandAssetsInput } from "@/types/calendar";
 
 /** Busca a postagem vinculada a uma demanda só quando ela tem `calendar_entry_id`. */
 export function useDemandCalendarEntry(demandId: number, hasCalendarEntry: boolean) {
@@ -40,11 +40,11 @@ export function useDemandCalendarEntry(demandId: number, hasCalendarEntry: boole
     };
   }, [demandId, hasCalendarEntry]);
 
-  async function saveDeliverable(input: DeliverableInput) {
-    const updated = await updateDemandDeliverable(demandId, input);
+  async function saveAssets(input: DemandAssetsInput) {
+    const updated = await updateDemandAssets(demandId, input);
     setEntry(updated);
     return updated;
   }
 
-  return { entry, loading, error, saveDeliverable };
+  return { entry, loading, error, saveAssets };
 }

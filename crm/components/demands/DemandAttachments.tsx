@@ -2,26 +2,44 @@
 
 import { useState } from "react";
 import { Paperclip, X } from "lucide-react";
-import type { CalendarEntry } from "@/types/calendar";
+import type { CalendarEntry, DemandAssetsInput } from "@/types/calendar";
+import ImageDropzone from "@/components/ui/ImageDropzone";
+import MultiImageDropzone from "@/components/ui/MultiImageDropzone";
 
 type Props = {
   entry: CalendarEntry | null;
   loading: boolean;
   error: string | null;
+  canEdit: boolean;
+  onSave: (input: DemandAssetsInput) => Promise<CalendarEntry>;
 };
 
 /**
- * Painel só-leitura com o que o social enviou ao planejar a postagem —
- * referência + material bruto — pro designer usar como insumo. Nunca
- * escreve nada: quem grava é o social, lá no planejamento do calendário.
+ * Referência + material que o social enviou ao planejar a postagem — o
+ * designer usa como insumo pra arte. Editável direto por aqui (arrastar e
+ * soltar) quando `canEdit`, sem precisar voltar pro planejamento do
+ * calendário: cada solto já salva sozinho, sem botão "salvar" separado —
+ * é o mesmo comportamento de anexo do Trello.
  */
-export default function DemandAttachments({ entry, loading, error }: Props) {
+export default function DemandAttachments({ entry, loading, error, canEdit, onSave }: Props) {
   const [preview, setPreview] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
-  const files = entry ? [...(entry.reference_image ? [entry.reference_image] : []), ...entry.material_files] : [];
+  async function handleSave(input: DemandAssetsInput) {
+    setSaveError(null);
+    try {
+      await onSave(input);
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : "Erro ao salvar.");
+    }
+  }
+
+  const readOnlyFiles = entry
+    ? [...(entry.reference_image ? [entry.reference_image] : []), ...entry.material_files]
+    : [];
 
   return (
-    <div className="glass-card rounded-2xl p-4 space-y-3">
+    <div className="glass-card rounded-2xl p-4 space-y-4">
       <div className="flex items-center gap-2 text-sm font-semibold text-white">
         <Paperclip className="h-4 w-4 text-white/40" />
         Anexos
@@ -30,28 +48,53 @@ export default function DemandAttachments({ entry, loading, error }: Props) {
       {loading && <p className="text-xs text-white/40">Carregando...</p>}
       {error && <p className="text-xs text-danger">{error}</p>}
 
-      {!loading && !error && files.length === 0 && (
-        <p className="text-xs text-white/40">O social ainda não enviou referência ou material.</p>
+      {!loading && !error && !canEdit && (
+        <>
+          {readOnlyFiles.length === 0 && (
+            <p className="text-xs text-white/40">O social ainda não enviou referência ou material.</p>
+          )}
+          {readOnlyFiles.length > 0 && (
+            <div className="grid grid-cols-2 gap-2">
+              {readOnlyFiles.map((url) => (
+                <button
+                  key={url}
+                  type="button"
+                  onClick={() => setPreview(url)}
+                  className="rounded-lg overflow-hidden border border-white/10 h-24"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element -- URL externa (Cloudinary), sem loader configurado */}
+                  <img
+                    src={url}
+                    alt={url === entry?.reference_image ? "Referência" : "Material"}
+                    className="w-full h-full object-cover"
+                  />
+                </button>
+              ))}
+            </div>
+          )}
+        </>
       )}
 
-      {!loading && files.length > 0 && (
-        <div className="grid grid-cols-2 gap-2">
-          {files.map((url, index) => (
-            <button
-              key={url}
-              type="button"
-              onClick={() => setPreview(url)}
-              className="rounded-lg overflow-hidden border border-white/10 h-24"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element -- URL externa (Cloudinary), sem loader configurado */}
-              <img
-                src={url}
-                alt={index === 0 && entry?.reference_image === url ? "Referência" : "Material"}
-                className="w-full h-full object-cover"
-              />
-            </button>
-          ))}
-        </div>
+      {!loading && !error && canEdit && (
+        <>
+          <div>
+            <p className="text-xs text-white/50 mb-1.5">Referência (post principal)</p>
+            <ImageDropzone
+              value={entry?.reference_image ?? null}
+              onChange={(url) => handleSave({ reference_image: url })}
+            />
+          </div>
+
+          <div>
+            <p className="text-xs text-white/50 mb-1.5">Material</p>
+            <MultiImageDropzone
+              value={entry?.material_files ?? []}
+              onChange={(urls) => handleSave({ material_files: urls })}
+            />
+          </div>
+
+          {saveError && <p className="text-xs text-danger">{saveError}</p>}
+        </>
       )}
 
       {preview && (

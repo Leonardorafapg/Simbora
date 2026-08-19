@@ -10,7 +10,7 @@ from app.models.calendar_entry import CalendarEntry
 from app.models.client import Client
 from app.models.demand import Demand
 from app.models.user import User
-from app.schemas.calendar_entry import CalendarEntryOut, DeliverableUpdate
+from app.schemas.calendar_entry import CalendarEntryOut, DemandAssetsUpdate
 from app.schemas.demand import DemandCreate, DemandOut, DemandUpdate
 
 router = APIRouter()
@@ -141,14 +141,17 @@ async def get_demand_calendar_entry(
     return entry
 
 
-@router.patch("/demands/{demand_id}/deliverable", response_model=CalendarEntryOut)
-async def update_demand_deliverable(
+@router.patch("/demands/{demand_id}/calendar-entry", response_model=CalendarEntryOut)
+async def update_demand_calendar_entry_assets(
     demand_id: int,
-    payload: DeliverableUpdate,
+    payload: DemandAssetsUpdate,
     db: Session = Depends(get_db),
     _: User = Depends(require_permission("demand.edit")),
 ):
-    """Arte final + legenda que o designer entrega — grava na postagem vinculada."""
+    """
+    Anexos (referência + material, adicionados direto do drawer da
+    demanda) e entrega (arte final + legenda) — grava na postagem vinculada.
+    """
     _, entry = _get_linked_calendar_entry(db, demand_id)
 
     for field, value in payload.model_dump(exclude_unset=True).items():

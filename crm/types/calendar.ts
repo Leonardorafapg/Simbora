@@ -46,8 +46,10 @@ export type CalendarEntryUpdateInput = Partial<{
   material_notes: string | null;
 }>;
 
-/** O que o designer entrega via o drawer da demanda — nunca o resto do planejamento. */
-export type DeliverableInput = Partial<{
+/** Anexos + entrega editáveis via o drawer da demanda — nunca o resto do planejamento. */
+export type DemandAssetsInput = Partial<{
+  reference_image: string | null;
+  material_files: string[];
   final_image: string | null;
   caption: string | null;
 }>;

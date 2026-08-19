@@ -56,7 +56,7 @@ function DemandDrawerContent({
   const [error, setError] = useState<string | null>(null);
 
   const hasCalendarEntry = demand.calendar_entry_id !== null;
-  const { entry, loading: entryLoading, error: entryError, saveDeliverable } = useDemandCalendarEntry(
+  const { entry, loading: entryLoading, error: entryError, saveAssets } = useDemandCalendarEntry(
     demand.id,
     hasCalendarEntry,
   );
@@ -213,8 +213,8 @@ function DemandDrawerContent({
 
       {hasCalendarEntry && (
         <div className="grid lg:grid-cols-2 gap-4">
-          <DemandAttachments entry={entry} loading={entryLoading} error={entryError} />
-          <DemandDeliverable entry={entry} loading={entryLoading} error={entryError} canEdit={canEdit} onSave={saveDeliverable} />
+          <DemandAttachments entry={entry} loading={entryLoading} error={entryError} canEdit={canEdit} onSave={saveAssets} />
+          <DemandDeliverable entry={entry} loading={entryLoading} error={entryError} canEdit={canEdit} onSave={saveAssets} />
         </div>
       )}
     </>

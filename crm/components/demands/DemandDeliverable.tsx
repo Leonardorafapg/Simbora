@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ImagePlus } from "lucide-react";
-import type { CalendarEntry, DeliverableInput } from "@/types/calendar";
+import type { CalendarEntry, DemandAssetsInput } from "@/types/calendar";
 import ImageDropzone from "@/components/ui/ImageDropzone";
 
 type Props = {
@@ -10,7 +10,7 @@ type Props = {
   loading: boolean;
   error: string | null;
   canEdit: boolean;
-  onSave: (input: DeliverableInput) => Promise<CalendarEntry>;
+  onSave: (input: DemandAssetsInput) => Promise<CalendarEntry>;
 };
 
 /** Onde o designer entrega a arte final + legenda dessa demanda. */

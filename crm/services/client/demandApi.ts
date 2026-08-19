@@ -1,5 +1,5 @@
 import type { Demand, DemandCreateInput, DemandFilters, DemandUpdateInput } from "@/types/demand";
-import type { CalendarEntry, DeliverableInput } from "@/types/calendar";
+import type { CalendarEntry, DemandAssetsInput } from "@/types/calendar";
 
 async function parseErrorMessage(res: Response, fallback: string) {
   const data = await res.json().catch(() => ({}));
@@ -55,13 +55,13 @@ export async function fetchDemandCalendarEntry(id: number): Promise<CalendarEntr
   return res.json();
 }
 
-/** Arte final + legenda que o designer entrega. */
-export async function updateDemandDeliverable(id: number, input: DeliverableInput): Promise<CalendarEntry> {
-  const res = await fetch(`/api/demands/${id}/deliverable`, {
+/** Anexos (referência/material) e entrega (imagem final/legenda), editáveis do drawer da demanda. */
+export async function updateDemandAssets(id: number, input: DemandAssetsInput): Promise<CalendarEntry> {
+  const res = await fetch(`/api/demands/${id}/calendar-entry`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),
   });
-  if (!res.ok) throw new Error(await parseErrorMessage(res, "Não foi possível salvar a entrega."));
+  if (!res.ok) throw new Error(await parseErrorMessage(res, "Não foi possível salvar."));
   return res.json();
 }
