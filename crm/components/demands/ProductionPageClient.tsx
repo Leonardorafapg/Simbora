@@ -11,6 +11,7 @@ import DemandFilters from "./DemandFilters";
 import DemandTable from "./DemandTable";
 import DemandKanban from "./DemandKanban";
 import DemandDialog from "./DemandDialog";
+import DemandDrawer from "./DemandDrawer";
 
 type Props = {
   canCreate: boolean;
@@ -113,15 +114,15 @@ export default function ProductionPageClient({ canCreate, canEdit, canDelete }: 
         onUpdate={update}
       />
 
-      <DemandDialog
-        open={selected !== null}
-        onClose={() => setSelected(null)}
+      <DemandDrawer
         demand={selected}
+        onClose={() => setSelected(null)}
         clients={clients}
         teamMembers={teamMembers}
+        canEdit={canEdit}
         canDelete={canDelete}
-        onCreate={create}
         onUpdate={update}
+        onChangeStatus={handleQuickStatusChange}
         onRequestDelete={requestDelete}
       />
 

@@ -5,14 +5,16 @@ type Props = {
   value: number | null | undefined;
   onChange: (value: number | null) => void;
   placeholder?: string;
+  disabled?: boolean;
 };
 
-export default function ClientSelect({ options, value, onChange, placeholder = "Nenhum" }: Props) {
+export default function ClientSelect({ options, value, onChange, placeholder = "Nenhum", disabled }: Props) {
   return (
     <select
       value={value ?? ""}
+      disabled={disabled}
       onChange={(e) => onChange(e.target.value ? Number(e.target.value) : null)}
-      className="glass-input rounded-lg px-3 py-2 text-sm outline-none w-full"
+      className="glass-input rounded-lg px-3 py-2 text-sm outline-none w-full disabled:opacity-60"
     >
       <option value="">{placeholder}</option>
       {options.map((option) => (

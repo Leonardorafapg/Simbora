@@ -66,5 +66,7 @@ def run_light_migrations():
         add_column_if_missing(conn, "users", "permissions", "permissions TEXT DEFAULT '[]'")
         add_column_if_missing(conn, "calendar_entries", "reference_image", "reference_image TEXT")
         add_column_if_missing(conn, "calendar_entries", "material_notes", "material_notes TEXT")
+        add_column_if_missing(conn, "calendar_entries", "material_files", "material_files TEXT DEFAULT '[]'")
+        add_column_if_missing(conn, "calendar_entries", "final_image", "final_image TEXT")
         add_column_if_missing(conn, "demands", "checklist", "checklist TEXT DEFAULT '[]'")
         add_column_if_missing(conn, "demands", "has_material", "has_material BOOLEAN DEFAULT 0")

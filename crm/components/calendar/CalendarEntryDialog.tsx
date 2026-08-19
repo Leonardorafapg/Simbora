@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { CalendarEntry, CalendarEntryCreateInput, CalendarEntryUpdateInput } from "@/types/calendar";
 import Field from "@/components/ui/Field";
 import ImageDropzone from "@/components/ui/ImageDropzone";
+import MultiImageDropzone from "@/components/ui/MultiImageDropzone";
 
 type Props = {
   open: boolean;
@@ -25,6 +26,7 @@ function buildForm(entry: CalendarEntry | null | undefined, clientId: number, de
     theme: entry?.theme ?? "",
     execution_notes: entry?.execution_notes ?? "",
     reference_image: entry?.reference_image ?? null,
+    material_files: entry?.material_files ?? [],
   };
 }
 
@@ -123,6 +125,13 @@ export default function CalendarEntryDialog({
             <ImageDropzone
               value={form.reference_image}
               onChange={(value) => update("reference_image", value)}
+            />
+          </Field>
+
+          <Field label="Material a ser usado (opcional)">
+            <MultiImageDropzone
+              value={form.material_files}
+              onChange={(urls) => update("material_files", urls)}
             />
           </Field>
 

@@ -1,4 +1,5 @@
 import type { Demand, DemandCreateInput, DemandFilters, DemandUpdateInput } from "@/types/demand";
+import type { CalendarEntry, DeliverableInput } from "@/types/calendar";
 
 async function parseErrorMessage(res: Response, fallback: string) {
   const data = await res.json().catch(() => ({}));
@@ -45,4 +46,22 @@ export async function updateDemand(id: number, input: DemandUpdateInput): Promis
 export async function deleteDemand(id: number): Promise<void> {
   const res = await fetch(`/api/demands/${id}`, { method: "DELETE" });
   if (!res.ok) throw new Error(await parseErrorMessage(res, "Não foi possível remover a demanda."));
+}
+
+/** Anexos (referência + material) da postagem que originou essa demanda. */
+export async function fetchDemandCalendarEntry(id: number): Promise<CalendarEntry> {
+  const res = await fetch(`/api/demands/${id}/calendar-entry`);
+  if (!res.ok) throw new Error(await parseErrorMessage(res, "Não foi possível carregar os anexos."));
+  return res.json();
+}
+
+/** Arte final + legenda que o designer entrega. */
+export async function updateDemandDeliverable(id: number, input: DeliverableInput): Promise<CalendarEntry> {
+  const res = await fetch(`/api/demands/${id}/deliverable`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res, "Não foi possível salvar a entrega."));
+  return res.json();
 }

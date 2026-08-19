@@ -30,6 +30,7 @@ class CalendarEntryCreate(BaseModel):
     format: str = ""
     reference_link: str | None = None
     reference_image: str | None = None
+    material_files: list[str] = []
     caption: str | None = None
     material_notes: str | None = None
     status: str = "nao_iniciado"
@@ -57,6 +58,7 @@ class CalendarEntryUpdate(BaseModel):
     execution_notes: str | None = None
     reference_link: str | None = None
     reference_image: str | None = None
+    material_files: list[str] | None = None
     caption: str | None = None
     material_notes: str | None = None
     status: str | None = None
@@ -85,9 +87,24 @@ class CalendarEntryOut(BaseModel):
     execution_notes: str | None
     reference_link: str | None
     reference_image: str | None
+    material_files: list[str]
+    final_image: str | None
     caption: str | None
     material_notes: str | None
     status: str
     created_by: int
 
     model_config = {"from_attributes": True}
+
+
+class DeliverableUpdate(BaseModel):
+    """
+    Só a arte finalizada + legenda — o que o designer entrega via o drawer
+    da demanda. Schema separado de CalendarEntryUpdate de propósito: quem
+    tem `demand.edit` não necessariamente tem `calendar.edit` (não deve
+    poder mexer em data/tema/cliente do planejamento, só entregar o
+    resultado).
+    """
+
+    final_image: str | None = None
+    caption: str | None = None

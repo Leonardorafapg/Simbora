@@ -6,9 +6,11 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.deps import require_permission
+from app.models.calendar_entry import CalendarEntry
 from app.models.client import Client
 from app.models.demand import Demand
 from app.models.user import User
+from app.schemas.calendar_entry import CalendarEntryOut, DeliverableUpdate
 from app.schemas.demand import DemandCreate, DemandOut, DemandUpdate
 
 router = APIRouter()
@@ -104,6 +106,57 @@ async def update_demand(
     db.commit()
     db.refresh(demand)
     return demand
+
+
+def _get_linked_calendar_entry(db: Session, demand_id: int) -> tuple[Demand, CalendarEntry]:
+    demand = db.get(Demand, demand_id)
+    if demand is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Demanda não encontrada")
+    if demand.calendar_entry_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Essa demanda não nasceu de uma postagem do calendário",
+        )
+
+    entry = db.get(CalendarEntry, demand.calendar_entry_id)
+    if entry is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Postagem vinculada não encontrada")
+
+    return demand, entry
+
+
+@router.get("/demands/{demand_id}/calendar-entry", response_model=CalendarEntryOut)
+async def get_demand_calendar_entry(
+    demand_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_permission("demand.view")),
+):
+    """
+    Referência + material que o social subiu ao planejar a postagem — pro
+    designer usar como anexo ao trabalhar a demanda. Gate é `demand.view`,
+    não `calendar.view`: quem pode ver a demanda tem que poder ver o que
+    precisa pra executá-la, mesmo sem acesso geral ao calendário.
+    """
+    _, entry = _get_linked_calendar_entry(db, demand_id)
+    return entry
+
+
+@router.patch("/demands/{demand_id}/deliverable", response_model=CalendarEntryOut)
+async def update_demand_deliverable(
+    demand_id: int,
+    payload: DeliverableUpdate,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_permission("demand.edit")),
+):
+    """Arte final + legenda que o designer entrega — grava na postagem vinculada."""
+    _, entry = _get_linked_calendar_entry(db, demand_id)
+
+    for field, value in payload.model_dump(exclude_unset=True).items():
+        setattr(entry, field, value)
+
+    db.commit()
+    db.refresh(entry)
+    return entry
 
 
 @router.delete("/demands/{demand_id}", status_code=204)
