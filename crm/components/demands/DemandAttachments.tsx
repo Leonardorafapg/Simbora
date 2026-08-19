@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Paperclip, X } from "lucide-react";
 import type { CalendarEntry, DemandAssetsInput } from "@/types/calendar";
 import ImageDropzone from "@/components/ui/ImageDropzone";
@@ -23,14 +23,19 @@ type Props = {
  */
 export default function DemandAttachments({ entry, loading, error, canEdit, onSave }: Props) {
   const [preview, setPreview] = useState<string | null>(null);
-  const [saveError, setSaveError] = useState<string | null>(null);
+
+  // Sem UI de erro de propósito: o upload em si (ImageDropzone/MultiImageDropzone)
+  // já mostra a falha inline quando acontece — isso aqui é só o carregamento
+  // do estado atual, que não deve travar nem assustar quem só quer soltar um arquivo.
+  useEffect(() => {
+    if (error) console.error("[DemandAttachments] falha ao carregar anexos:", error);
+  }, [error]);
 
   async function handleSave(input: DemandAssetsInput) {
-    setSaveError(null);
     try {
       await onSave(input);
     } catch (err) {
-      setSaveError(err instanceof Error ? err.message : "Erro ao salvar.");
+      console.error("[DemandAttachments] falha ao salvar:", err);
     }
   }
 
@@ -46,11 +51,6 @@ export default function DemandAttachments({ entry, loading, error, canEdit, onSa
       </div>
 
       {loading && <p className="text-xs text-white/40">Carregando...</p>}
-      {error && (
-        <p className="text-xs text-danger">
-          {canEdit ? `${error} (dá pra adicionar mesmo assim)` : error}
-        </p>
-      )}
 
       {!loading && !error && !canEdit && (
         <>
@@ -96,8 +96,6 @@ export default function DemandAttachments({ entry, loading, error, canEdit, onSa
               onChange={(urls) => handleSave({ material_files: urls })}
             />
           </div>
-
-          {saveError && <p className="text-xs text-danger">{saveError}</p>}
         </>
       )}
 

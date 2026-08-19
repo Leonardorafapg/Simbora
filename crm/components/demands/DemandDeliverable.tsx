@@ -19,7 +19,6 @@ export default function DemandDeliverable({ entry, loading, error, canEdit, onSa
   const [caption, setCaption] = useState("");
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
 
   // Sincroniza com o que veio do servidor só enquanto não há edição local
   // pendente — evita sobrescrever o que a pessoa está digitando.
@@ -31,14 +30,19 @@ export default function DemandDeliverable({ entry, loading, error, canEdit, onSa
     }
   }, [entry, dirty]);
 
+  // Sem UI de erro de propósito — só loga; a falha de carregamento não deve
+  // travar nem assustar quem só quer entregar a arte.
+  useEffect(() => {
+    if (error) console.error("[DemandDeliverable] falha ao carregar:", error);
+  }, [error]);
+
   async function handleSave() {
     setSaving(true);
-    setSaveError(null);
     try {
       await onSave({ final_image: finalImage, caption });
       setDirty(false);
     } catch (err) {
-      setSaveError(err instanceof Error ? err.message : "Erro ao salvar.");
+      console.error("[DemandDeliverable] falha ao salvar:", err);
     } finally {
       setSaving(false);
     }
@@ -57,11 +61,6 @@ export default function DemandDeliverable({ entry, loading, error, canEdit, onSa
       </div>
 
       {loading && <p className="text-xs text-white/40">Carregando...</p>}
-      {error && (
-        <p className="text-xs text-danger">
-          {canEdit ? `${error} (dá pra entregar mesmo assim)` : error}
-        </p>
-      )}
 
       {canShowForm && (
         <>
@@ -99,8 +98,6 @@ export default function DemandDeliverable({ entry, loading, error, canEdit, onSa
               <p className="text-sm text-white/80 whitespace-pre-wrap">{caption || "Sem legenda ainda."}</p>
             )}
           </div>
-
-          {saveError && <p className="text-xs text-danger">{saveError}</p>}
 
           {canEdit && (
             <button
