@@ -82,6 +82,14 @@ def _generate_demands_for_period(db: Session, client_id: int, year: int, month: 
                 due_date=entry.scheduled_date - timedelta(days=DEMAND_LEAD_DAYS),
             )
         )
+        # Flush por demanda (não só no commit do fim) — sem isso, o SQLAlchemy
+        # agrupa todas num INSERT em lote (executemany) quando finaliza um mês
+        # com várias postagens de uma vez. Esse modo em lote gera um cast
+        # explícito `::TEXT` pro parâmetro de `checklist`, e quebra porque a
+        # coluna no Postgres é `json` nativo (criada assim antes do JSONText
+        # existir) — Postgres recusa converter TEXT pra json nesse caminho,
+        # mesmo aceitando de boa num INSERT de uma linha só.
+        db.flush()
 
 
 @router.get("/calendar-periods", response_model=CalendarPeriodOut)
