@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { LogOut, MessageCircle, Search } from "lucide-react";
+import { ArrowLeft, LogOut, MessageCircle, Search } from "lucide-react";
 import { disconnect, getChats, getMessages } from "@/services/client/whatsappApi";
 import { useWhatsAppSocket } from "@/hooks/useWhatsAppSocket";
 import type { WhatsAppChat, WhatsAppMessage } from "@/types/whatsapp";
@@ -118,7 +118,12 @@ export default function WhatsAppChatLayout({ onDisconnected }: Props) {
 
   return (
     <div className="flex flex-1 min-h-0">
-      <div className="w-80 shrink-0 border-r border-white/10 flex flex-col min-h-0">
+      {/* No mobile é lista OU conversa, nunca as duas colunas ao mesmo tempo — no desktop (md+) ambas ficam visíveis lado a lado. */}
+      <div
+        className={`w-full md:w-80 shrink-0 border-r border-white/10 flex-col min-h-0 ${
+          selectedChat ? "hidden md:flex" : "flex"
+        }`}
+      >
         <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
           <p className="text-sm font-semibold text-white">Conversas</p>
           <button
@@ -157,15 +162,25 @@ export default function WhatsAppChatLayout({ onDisconnected }: Props) {
       </div>
 
       {selectedChat ? (
-        <WhatsAppChatWindow
-          chat={selectedChat}
-          messages={messages}
-          loading={messagesLoading}
-          typingPresence={typingByJid[selectedChat.remote_jid] ?? null}
-          onMessageSent={handleMessageSent}
-        />
+        <div className={`flex-1 min-w-0 flex-col ${selectedChat ? "flex" : "hidden md:flex"}`}>
+          <button
+            type="button"
+            onClick={() => setSelectedChat(null)}
+            className="flex md:hidden items-center gap-1.5 px-4 py-2 text-xs text-white/60 hover:text-white border-b border-white/10"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Conversas
+          </button>
+          <WhatsAppChatWindow
+            chat={selectedChat}
+            messages={messages}
+            loading={messagesLoading}
+            typingPresence={typingByJid[selectedChat.remote_jid] ?? null}
+            onMessageSent={handleMessageSent}
+          />
+        </div>
       ) : (
-        <div className="flex flex-1 items-center justify-center text-white/30 flex-col gap-2">
+        <div className="hidden md:flex flex-1 items-center justify-center text-white/30 flex-col gap-2">
           <MessageCircle className="h-10 w-10" />
           <p className="text-sm">Selecione uma conversa para começar</p>
         </div>

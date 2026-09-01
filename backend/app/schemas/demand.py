@@ -1,5 +1,5 @@
 # backend/app/schemas/demand.py
-from datetime import date
+from datetime import date, datetime
 
 from pydantic import BaseModel, field_validator
 
@@ -27,8 +27,10 @@ class ChecklistItem(BaseModel):
 
 class DemandCreate(BaseModel):
     client_id: int | None = None
+    calendar_entry_id: int | None = None
     title: str
     notes: str | None = None
+    requester_id: int | None = None
     assignee_id: int | None = None
     is_art: bool = False
     status: str = "pendente"
@@ -51,6 +53,7 @@ class DemandUpdate(BaseModel):
     client_id: int | None = None
     title: str | None = None
     notes: str | None = None
+    requester_id: int | None = None
     assignee_id: int | None = None
     status: str | None = None
     due_date: date | None = None
@@ -81,5 +84,7 @@ class DemandOut(BaseModel):
     due_date: date | None
     has_material: bool
     checklist: list[ChecklistItem]
+    completed_at: datetime | None
+    created_at: datetime
 
     model_config = {"from_attributes": True}

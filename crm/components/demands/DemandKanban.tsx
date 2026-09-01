@@ -32,18 +32,20 @@ export default function DemandKanban({ demands, clients, teamMembers, canEdit, o
 
   return (
     <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-start">
+      {/* Mobile: colunas lado a lado com scroll horizontal e snap (uma por vez); a partir de sm vira grid normal. */}
+      <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-5 sm:overflow-visible sm:pb-0 items-start">
         {DEMAND_STATUSES.map((status) => (
-          <KanbanColumn
-            key={status}
-            status={status}
-            demands={demands.filter((d) => d.status === status)}
-            clients={clients}
-            teamMembers={teamMembers}
-            canEdit={canEdit}
-            onSelect={onSelect}
-            onChangeStatus={onChangeStatus}
-          />
+          <div key={status} className="w-[85vw] shrink-0 snap-start sm:w-auto sm:shrink">
+            <KanbanColumn
+              status={status}
+              demands={demands.filter((d) => d.status === status)}
+              clients={clients}
+              teamMembers={teamMembers}
+              canEdit={canEdit}
+              onSelect={onSelect}
+              onChangeStatus={onChangeStatus}
+            />
+          </div>
         ))}
       </div>
     </DndContext>

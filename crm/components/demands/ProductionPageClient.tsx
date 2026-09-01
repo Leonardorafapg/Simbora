@@ -17,9 +17,10 @@ type Props = {
   canCreate: boolean;
   canEdit: boolean;
   canDelete: boolean;
+  currentUserId?: number | null;
 };
 
-export default function ProductionPageClient({ canCreate, canEdit, canDelete }: Props) {
+export default function ProductionPageClient({ canCreate, canEdit, canDelete, currentUserId }: Props) {
   const [filters, setFilters] = useState<Filters>({ status: "pendente" });
   const [view, setView] = useState<"tabela" | "kanban">("kanban");
   const [selected, setSelected] = useState<Demand | null>(null);
@@ -110,6 +111,7 @@ export default function ProductionPageClient({ canCreate, canEdit, canDelete }: 
         onClose={() => setAddOpen(false)}
         clients={clients}
         teamMembers={teamMembers}
+        currentUserId={currentUserId}
         onCreate={create}
         onUpdate={update}
       />

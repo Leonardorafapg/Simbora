@@ -43,6 +43,12 @@ class Demand(Base):
 
     due_date: Mapped[date_type | None] = mapped_column(Date, nullable=True, index=True)
 
+    # Setado automaticamente (routers/demands.py) quando status vira
+    # "concluida", e limpo se ela sair desse status — permite calcular
+    # "concluída no prazo" (completed_at <= due_date) e tempo médio real de
+    # conclusão, coisa que created_at/due_date sozinhos não davam.
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
     # "Já tem material?" — sim/não simples, não confundir com o
     # CalendarEntry.material_notes (esse é markdown livre da postagem de
     # origem; este aqui é uma checagem prática pro designer que vai executar

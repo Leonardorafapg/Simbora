@@ -10,6 +10,7 @@ export default async function ProductionPage() {
       canCreate={hasPermission(session, "demand.create")}
       canEdit={hasPermission(session, "demand.edit")}
       canDelete={hasPermission(session, "demand.delete")}
+      currentUserId={session ? Number(session.sub) : null}
     />
   );
 }

@@ -31,6 +31,7 @@ function buildForm(demand: Demand) {
   return {
     title: demand.title,
     client_id: demand.client_id,
+    requester_id: demand.requester_id,
     assignee_id: demand.assignee_id,
     status: demand.status,
     due_date: demand.due_date ?? "",
@@ -72,6 +73,7 @@ function DemandDrawerContent({
       await onUpdate(demand.id, {
         title: form.title,
         client_id: form.client_id,
+        requester_id: form.requester_id,
         assignee_id: form.assignee_id,
         status: form.status,
         due_date: form.due_date || null,
@@ -134,6 +136,14 @@ function DemandDrawerContent({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Cliente">
             <ClientSelect options={clients} value={form.client_id} onChange={(v) => update("client_id", v)} disabled={!canEdit} />
+          </Field>
+          <Field label="Solicitante">
+            <UserSelect
+              options={teamMembers}
+              value={form.requester_id}
+              onChange={(v) => update("requester_id", v ?? form.requester_id)}
+              disabled={!canEdit}
+            />
           </Field>
           <Field label="Responsável">
             <UserSelect options={teamMembers} value={form.assignee_id} onChange={(v) => update("assignee_id", v)} disabled={!canEdit} />

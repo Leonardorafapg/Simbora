@@ -1,5 +1,5 @@
 # backend/app/routers/demands.py
-from datetime import date
+from datetime import date, datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
@@ -71,9 +71,24 @@ async def create_demand(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cliente inválido")
     if payload.assignee_id is not None and db.get(User, payload.assignee_id) is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Responsável inválido")
+    if payload.requester_id is not None and db.get(User, payload.requester_id) is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Solicitante inválido")
+    if payload.calendar_entry_id is not None:
+        if db.get(CalendarEntry, payload.calendar_entry_id) is None:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Postagem inválida")
+        already_linked = (
+            db.query(Demand).filter(Demand.calendar_entry_id == payload.calendar_entry_id).first()
+        )
+        if already_linked is not None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Essa postagem já tem uma demanda vinculada"
+            )
     _ensure_status_matches_kind(payload.is_art, payload.status)
 
-    demand = Demand(**payload.model_dump(), requester_id=current_user.id)
+    data = payload.model_dump()
+    requester_id = data.pop("requester_id") or current_user.id
+    completed_at = datetime.now(timezone.utc) if data["status"] == "concluida" else None
+    demand = Demand(**data, requester_id=requester_id, completed_at=completed_at)
     db.add(demand)
     db.commit()
     db.refresh(demand)
@@ -97,8 +112,15 @@ async def update_demand(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cliente inválido")
     if "assignee_id" in data and data["assignee_id"] is not None and db.get(User, data["assignee_id"]) is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Responsável inválido")
+    if "requester_id" in data:
+        if data["requester_id"] is None or db.get(User, data["requester_id"]) is None:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Solicitante inválido")
     if "status" in data:
         _ensure_status_matches_kind(demand.is_art, data["status"])
+        # Marca/limpa o timestamp de conclusão junto com a mudança de status,
+        # em vez de deixar o client mandar isso — evita completed_at
+        # divergente do status (ex: voltar pra "em_andamento" sem "desconcluir").
+        data["completed_at"] = datetime.now(timezone.utc) if data["status"] == "concluida" else None
 
     for field, value in data.items():
         setattr(demand, field, value)

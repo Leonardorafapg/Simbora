@@ -37,12 +37,17 @@ export type Demand = {
   /** "Já tem material?" — já existe imagem/vídeo pronto, ou precisa captar do zero. */
   has_material: boolean;
   checklist: ChecklistItem[];
+  /** Setado pelo backend quando status vira "concluida"; null se nunca foi concluída ou saiu desse status. */
+  completed_at: string | null;
+  created_at: string;
 };
 
 export type DemandCreateInput = {
   client_id?: number | null;
+  calendar_entry_id?: number | null;
   title: string;
   notes?: string;
+  requester_id?: number | null;
   assignee_id?: number | null;
   is_art?: boolean;
   status?: DemandStatus;
@@ -55,6 +60,7 @@ export type DemandUpdateInput = Partial<{
   client_id: number | null;
   title: string;
   notes: string;
+  requester_id: number;
   assignee_id: number | null;
   status: DemandStatus;
   due_date: string | null;
@@ -101,7 +107,21 @@ function formatDuration(ms: number) {
   return `${h}h ${pad(m)}min`;
 }
 
-/** Situação em tempo real da demanda — sem completed_at, "concluída" não distingue se foi no prazo. */
+/** Concluída no prazo = tem prazo, foi concluída, e a conclusão aconteceu até o fim do dia do prazo. */
+export function isDemandCompletedOnTime(demand: Demand): boolean | null {
+  if (demand.status !== "concluida" || !demand.completed_at) return null;
+  if (!demand.due_date) return null;
+  return demand.completed_at.slice(0, 10) <= demand.due_date;
+}
+
+/** Tempo entre criação e conclusão, em horas — null se ainda não foi concluída. */
+export function demandCompletionHours(demand: Demand): number | null {
+  if (demand.status !== "concluida" || !demand.completed_at) return null;
+  const ms = new Date(demand.completed_at).getTime() - new Date(demand.created_at).getTime();
+  return ms / 3_600_000;
+}
+
+/** Situação em tempo real da demanda. */
 export function getDemandSituacao(demand: Demand, now = new Date()): { specific: string; general: SituacaoGeral } {
   if (demand.status === "concluida") {
     return { specific: "Concluída", general: "Concluída" };
