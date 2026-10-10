@@ -143,3 +143,89 @@ class UserDirectoryEntry(BaseModel):
     is_active: bool
 
     model_config = {"from_attributes": True}
+
+
+def _clean_name(value: str) -> str:
+    value = value.strip()
+    if not value:
+        raise ValueError("Nome é obrigatório")
+    return value
+
+
+def _clean_cargo(value: str) -> str:
+    value = value.strip()
+    if not value:
+        raise ValueError("Cargo é obrigatório")
+    return value
+
+
+class TeamMemberCreate(BaseModel):
+    """Cadastro de membro SEM senha (ver routers/team.py)."""
+
+    model_config = {"extra": "forbid"}
+
+    full_name: str
+    cpf: str
+    birth_date: date
+    email: EmailStr
+    cargo: str
+    photo_url: str | None = None
+    permissions: list[str] = []
+
+    @field_validator("full_name")
+    @classmethod
+    def validate_full_name(cls, value: str) -> str:
+        return _clean_name(value)
+
+    @field_validator("cpf")
+    @classmethod
+    def validate_cpf(cls, value: str) -> str:
+        return _clean_cpf(value)
+
+    @field_validator("cargo")
+    @classmethod
+    def validate_cargo(cls, value: str) -> str:
+        return _clean_cargo(value)
+
+    @field_validator("permissions")
+    @classmethod
+    def validate_permissions(cls, value: list[str]) -> list[str]:
+        return _clean_permissions(value)
+
+
+class TeamMemberUpdate(BaseModel):
+    """
+    Edição de membro. `extra=forbid` de propósito: tentar mandar `is_admin`
+    ou `password` aqui dá 422 em vez de ser ignorado em silêncio.
+    """
+
+    model_config = {"extra": "forbid"}
+
+    full_name: str | None = None
+    cpf: str | None = None
+    birth_date: date | None = None
+    email: EmailStr | None = None
+    cargo: str | None = None
+    photo_url: str | None = None
+    is_active: bool | None = None
+    permissions: list[str] | None = None
+
+    @field_validator("full_name")
+    @classmethod
+    def validate_full_name(cls, value: str | None) -> str | None:
+        return _clean_name(value) if value is not None else None
+
+    @field_validator("cpf")
+    @classmethod
+    def validate_cpf(cls, value: str | None) -> str | None:
+        return _clean_cpf(value) if value is not None else None
+
+    @field_validator("cargo")
+    @classmethod
+    def validate_cargo(cls, value: str | None) -> str | None:
+        return _clean_cargo(value) if value is not None else None
+
+    @field_validator("permissions")
+    @classmethod
+    def validate_permissions(cls, value: list[str] | None) -> list[str] | None:
+        return _clean_permissions(value) if value is not None else None

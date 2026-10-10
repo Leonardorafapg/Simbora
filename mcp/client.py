@@ -117,7 +117,9 @@ class BackendClient:
             detail = "; ".join(parts)
 
         if resp.status_code == 403:
-            return f"Sem permissão para essa ação (a conta de serviço do MCP não tem a permissão necessária). {detail or ''}".strip()
+            if detail and detail != "Permissão insuficiente":
+                return f"Não permitido: {detail}"  # regra de negócio do backend, mensagem já é clara
+            return "Sem permissão para essa ação: a conta de serviço do MCP não tem a permissão necessária."
         if resp.status_code == 404:
             return f"Não encontrado: {detail or 'recurso inexistente'}"
         return f"O backend recusou (HTTP {resp.status_code}): {detail or 'erro sem detalhe'}"

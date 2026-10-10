@@ -16,6 +16,7 @@ import functools
 import json
 import logging
 import os
+import re
 import sys
 import time
 import unicodedata
@@ -80,8 +81,12 @@ async def health(_request) -> JSONResponse:
 # --------------------------------------------------------------------------- #
 # Infra das tools: auditoria + anotações
 # --------------------------------------------------------------------------- #
+_CPF_RE = re.compile(r"\d{3}\.?\d{3}\.?\d{3}-?\d{2}")
+
+
 def _short(value: Any) -> Any:
     text = json.dumps(value, ensure_ascii=False, default=str)
+    text = _CPF_RE.sub("***CPF***", text)  # CPF não vai pro log
     return text if len(text) <= 300 else text[:300] + "…"
 
 
@@ -761,6 +766,198 @@ async def update_client(
     before = next((c for c in clients if c["id"] == client_id), {})
     after = await api.patch(f"/clients/{client_id}", body)
     return {"id": client_id, "mudancas": _diff(before, after)}
+
+
+# --------------------------------------------------------------------------- #
+# Equipe — cadastro e edição de perfil (NUNCA senha: ver backend/routers/team.py)
+# --------------------------------------------------------------------------- #
+NEXT_STEP = (
+    "A conta foi criada SEM senha utilizável. Para a pessoa conseguir entrar, um administrador define a senha "
+    "no painel: Equipe → abrir o membro → Alterar senha."
+)
+_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
+class TeamMemberIn(BaseModel):
+    full_name: Annotated[str, Field(description="Nome completo")]
+    cpf: Annotated[str, Field(description="CPF, com ou sem pontuação (11 dígitos)")]
+    birth_date: Annotated[str, Field(description="Nascimento AAAA-MM-DD (ou DD/MM/AAAA)")]
+    email: str
+    cargo: Annotated[str, Field(description="Cargo (texto livre), ex.: Designer, Social Media")]
+    permissions: Annotated[list[str], Field(description="Chaves de permissão; veja list_permissions")] = []
+    photo_url: str | None = None
+
+
+def _member_body(m: TeamMemberIn) -> dict[str, Any]:
+    return {
+        "full_name": m.full_name,
+        "cpf": m.cpf,
+        "birth_date": _iso_date(m.birth_date, "birth_date"),
+        "email": m.email,
+        "cargo": m.cargo,
+        "permissions": m.permissions,
+        "photo_url": m.photo_url,
+    }
+
+
+def _public_member(user: dict) -> dict:
+    return {
+        "id": user["id"],
+        "nome": user["full_name"],
+        "cargo": user["cargo"],
+        "email": user["email"],
+        "cpf": user["cpf"],
+        "nascimento": user["birth_date"],
+        "ativo": user["is_active"],
+        "administrador": user["is_admin"],
+        "permissoes": user["permissions"],
+    }
+
+
+async def _member_id(ref: int | str) -> int:
+    members = await api.get("/team/members")
+    return await _resolve_named(members, ref, "full_name", "membro da equipe")
+
+
+@read_tool
+async def list_team_members() -> list[dict]:
+    """Lista a equipe com dados completos (nome, cargo, email, CPF, nascimento, ativo, permissões)."""
+    return [_public_member(u) for u in await api.get("/team/members")]
+
+
+@read_tool
+async def list_permissions() -> list[dict]:
+    """Catálogo de permissões válidas (chave + descrição) para usar ao cadastrar/editar membros."""
+    return await api.get("/team/permissions")
+
+
+@write_tool
+async def create_team_member(member: TeamMemberIn) -> dict:
+    """
+    Cadastra um membro da equipe (perfil + permissões). Nunca cria administrador e NÃO recebe senha:
+    depois um admin define a senha no painel (Equipe → membro → Alterar senha).
+    """
+    created = await api.post("/team/members", _member_body(member))
+    return {"membro": _public_member(created), "proximo_passo": NEXT_STEP}
+
+
+@write_tool
+async def create_team_members(
+    members: Annotated[list[TeamMemberIn], Field(description="Membros a cadastrar (máx. 50)")],
+    dry_run: Annotated[bool, Field(description="true = só valida e mostra a prévia, não grava")] = True,
+) -> dict:
+    """
+    Cadastra vários membros de uma vez. Por padrão roda em prévia (dry_run=true): valida formato, permissões
+    e duplicidade de email/CPF, sem gravar. Com dry_run=false grava um por um e informa o resultado de cada.
+    Não recebe senha — um admin define cada senha no painel depois.
+    """
+    if not members:
+        raise ToolError("Envie ao menos um membro.")
+    if len(members) > 50:
+        raise ToolError("Máximo de 50 membros por chamada.")
+
+    catalog = {p["key"] for p in await api.get("/team/permissions")}
+    existing = await api.get("/team/members")
+    seen_emails = {u["email"].lower() for u in existing}
+    seen_cpfs = {u["cpf"] for u in existing}
+
+    problems: list[str] = []
+    bodies: list[dict[str, Any]] = []
+    for index, member in enumerate(members, start=1):
+        label = f"#{index} {member.full_name}"
+        try:
+            body = _member_body(member)
+        except ToolError as exc:
+            problems.append(f"{label}: {exc}")
+            continue
+        cpf_digits = re.sub(r"\D", "", member.cpf)
+        if len(cpf_digits) != 11:
+            problems.append(f"{label}: CPF deve ter 11 dígitos")
+        if not _EMAIL_RE.match(member.email.strip()):
+            problems.append(f"{label}: email inválido")
+        unknown = sorted(set(member.permissions) - catalog)
+        if unknown:
+            problems.append(f"{label}: permissões inválidas: {', '.join(unknown)}")
+        if member.email.strip().lower() in seen_emails:
+            problems.append(f"{label}: email já cadastrado ({member.email})")
+        if cpf_digits in seen_cpfs:
+            problems.append(f"{label}: CPF já cadastrado")
+        seen_emails.add(member.email.strip().lower())
+        seen_cpfs.add(cpf_digits)
+        bodies.append(body)
+
+    preview = [{"nome": b["full_name"], "cargo": b["cargo"], "email": b["email"], "permissoes": b["permissions"]} for b in bodies]
+    if problems:
+        return {"dry_run": dry_run, "validado": False, "problemas": problems, "gravado": False}
+    if dry_run:
+        return {"dry_run": True, "validado": True, "quantidade": len(bodies), "previa": preview, "gravado": False}
+
+    results = []
+    for body in bodies:
+        try:
+            created = await api.post("/team/members", body)
+            results.append({"nome": body["full_name"], "ok": True, "id": created["id"]})
+        except ToolError as exc:
+            results.append({"nome": body["full_name"], "ok": False, "erro": str(exc)})
+    return {
+        "dry_run": False,
+        "gravado": True,
+        "criados": sum(1 for r in results if r["ok"]),
+        "falhas": sum(1 for r in results if not r["ok"]),
+        "resultados": results,
+        "proximo_passo": NEXT_STEP,
+    }
+
+
+@write_tool
+async def update_team_member(
+    member: Annotated[int | str, Field(description="Membro (id ou nome)")],
+    full_name: str | None = None,
+    cpf: str | None = None,
+    birth_date: Annotated[str | None, Field(description="AAAA-MM-DD (ou DD/MM/AAAA)")] = None,
+    email: str | None = None,
+    cargo: str | None = None,
+    photo_url: str | None = None,
+    is_active: Annotated[bool | None, Field(description="false desativa o acesso (preferível a apagar)")] = None,
+    permissions: Annotated[list[str] | None, Field(description="Lista COMPLETA (substitui as atuais)")] = None,
+    add_permissions: Annotated[list[str] | None, Field(description="Permissões a acrescentar")] = None,
+    remove_permissions: Annotated[list[str] | None, Field(description="Permissões a retirar")] = None,
+) -> dict:
+    """
+    Edita o perfil de um membro. Só os campos informados mudam. Não altera senha nem administrador
+    (isso é no painel) e não edita administradores. Retorna o que mudou (de → para).
+    """
+    if permissions is not None and (add_permissions or remove_permissions):
+        raise ToolError("Use 'permissions' (lista completa) OU add/remove_permissions, não os dois.")
+
+    member_id = await _member_id(member)
+    members = await api.get("/team/members")
+    before = next(u for u in members if u["id"] == member_id)
+
+    body: dict[str, Any] = {
+        k: v
+        for k, v in {
+            "full_name": full_name,
+            "cpf": cpf,
+            "email": email,
+            "cargo": cargo,
+            "photo_url": photo_url,
+            "is_active": is_active,
+        }.items()
+        if v is not None
+    }
+    if birth_date is not None:
+        body["birth_date"] = _iso_date(birth_date, "birth_date")
+    if permissions is not None:
+        body["permissions"] = permissions
+    elif add_permissions or remove_permissions:
+        current = set(before.get("permissions") or [])
+        body["permissions"] = sorted((current | set(add_permissions or [])) - set(remove_permissions or []))
+    if not body:
+        raise ToolError("Nada para alterar: informe ao menos um campo.")
+
+    after = await api.patch(f"/team/members/{member_id}", body)
+    return {"id": member_id, "mudancas": _diff(before, after), "membro": _public_member(after)}
 
 
 if __name__ == "__main__":

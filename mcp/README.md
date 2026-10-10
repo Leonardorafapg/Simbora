@@ -18,8 +18,8 @@ URL do conector: `https://<domínio>/<MCP_PATH_SECRET>/mcp` — trate a URL inte
 ## Permissões mínimas da conta de serviço
 
 `client.view`, `client.create`, `client.edit`, `calendar.view`, `calendar.create`, `calendar.edit`,
-`demand.view`, `demand.create`, `demand.edit`. Para habilitar as tools de apagar:
-`calendar.delete` e `demand.delete`.
+`demand.view`, `demand.create`, `demand.edit`. Para gestão de equipe: `team.view`, `team.create`,
+`team.edit`. Para habilitar as tools de apagar: `calendar.delete` e `demand.delete`.
 
 ## Rodar local
 
@@ -38,6 +38,11 @@ Escrita: `create_demand`, `update_demand`, `assign_demand`, `set_demand_status`,
 `update_demand_checklist`, `update_demand_assets`, `create_calendar_entry`,
 `update_calendar_entry`, `import_calendar` (prévia por padrão), `upload_image_from_url`,
 `create_client`, `update_client`.
+
+Equipe (perfil, nunca senha): `list_team_members`, `list_permissions`, `create_team_member`,
+`create_team_members` (lote, prévia por padrão), `update_team_member`. A conta nasce sem senha utilizável;
+um admin define a senha no painel (Equipe → membro → Alterar senha). Nunca cria/edita administrador,
+não concede permissão que a conta de serviço não tem e não edita a si mesma.
 
 Exigem `confirm=true`: `delete_demand`, `delete_calendar_entry`, e `set_calendar_period_status`
 ao finalizar (trava o mês e gera uma demanda por postagem).
