@@ -44,7 +44,8 @@ Equipe (perfil, nunca senha): `list_team_members`, `list_permissions`, `create_t
 um admin define a senha no painel (Equipe → membro → Alterar senha). Nunca cria/edita administrador,
 não concede permissão que a conta de serviço não tem e não edita a si mesma.
 
-Exigem `confirm=true`: `delete_demand`, `delete_calendar_entry`, e `set_calendar_period_status`
+Exigem `confirm=true`: `delete_demand`, `delete_calendar_entry`, `delete_client` (recusa se o cliente
+tiver postagens ou demandas; exige a permissão `client.delete`), e `set_calendar_period_status`
 ao finalizar (trava o mês e gera uma demanda por postagem).
 
 Cada chamada gera uma linha de log JSON (`"audit": "mcp_tool"`) com tool, argumentos, resultado e tempo.

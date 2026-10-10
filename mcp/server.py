@@ -768,6 +768,39 @@ async def update_client(
     return {"id": client_id, "mudancas": _diff(before, after)}
 
 
+@danger_tool
+async def delete_client(
+    client: Annotated[int | str, Field(description="Cliente (id ou nome)")],
+    confirm: Annotated[bool, Field(description="Precisa ser true para apagar")] = False,
+) -> dict:
+    """
+    APAGA um cliente definitivamente. Recusa se o cliente tiver postagens no calendário ou demandas
+    (informa quantas) — nesse caso apague/mova esses itens antes, ou desative o cliente com
+    update_client(is_active=false), que preserva o histórico. Peça confirmação ao usuário antes.
+    """
+    client_id = await _client_id(client)
+    clients = await api.get("/clients")
+    target = next(c for c in clients if c["id"] == client_id)
+
+    entries = await api.get("/calendar-entries", client_id=client_id)
+    demands = await api.get("/demands", client_id=client_id)
+    if entries or demands:
+        raise ToolError(
+            f"Não dá para apagar '{target['name']}' (id {client_id}): tem {len(entries)} postagem(ns) no calendário "
+            f"e {len(demands)} demanda(s). Apague esses itens antes, ou desative o cliente com "
+            "update_client(is_active=false) para manter o histórico."
+        )
+
+    if not confirm:
+        raise ToolError(
+            f"Confirmação necessária para apagar o cliente '{target['name']}' (id {client_id}), que não tem "
+            "postagens nem demandas. Chame de novo com confirm=true depois de confirmar com o usuário."
+        )
+
+    await api.delete(f"/clients/{client_id}")
+    return {"deleted": True, "cliente": target}
+
+
 # --------------------------------------------------------------------------- #
 # Equipe — cadastro e edição de perfil (NUNCA senha: ver backend/routers/team.py)
 # --------------------------------------------------------------------------- #
