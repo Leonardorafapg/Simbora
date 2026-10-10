@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.deps import require_permission
+from app.models.calendar_period import CalendarPeriod
 from app.models.client import Client
 from app.models.user import User
 from app.schemas.client import ClientCreate, ClientOut, ClientUpdate
@@ -72,6 +73,12 @@ async def delete_client(
     client = db.get(Client, client_id)
     if client is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cliente não encontrado")
+
+    # O status mensal do cronograma (CalendarPeriod) é metadado do cliente: sem
+    # isso, quem já finalizou/reprovou algum mês nunca conseguia apagar o
+    # cliente, mesmo sem nenhuma postagem ou demanda. Se houver postagens ou
+    # demandas, o IntegrityError abaixo dá rollback e os períodos voltam.
+    db.query(CalendarPeriod).filter(CalendarPeriod.client_id == client_id).delete()
 
     db.delete(client)
     try:
