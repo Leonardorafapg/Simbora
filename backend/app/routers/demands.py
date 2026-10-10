@@ -40,6 +40,8 @@ async def list_demands(
     status_filter: str | None = Query(default=None, alias="status"),
     date_from: date | None = Query(default=None),
     date_to: date | None = Query(default=None),
+    limit: int | None = Query(default=None, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
     _: User = Depends(require_permission("demand.view")),
 ):
@@ -58,7 +60,27 @@ async def list_demands(
     if date_to is not None:
         query = query.filter(Demand.due_date <= date_to)
 
-    return query.order_by(Demand.due_date.is_(None), Demand.due_date).all()
+    # Ordenação estável (id como desempate) pra paginação não repetir/pular
+    # linhas entre páginas. Sem `limit` devolve tudo, como sempre foi — o CRM
+    # depende disso.
+    query = query.order_by(Demand.due_date.is_(None), Demand.due_date, Demand.id)
+    if offset:
+        query = query.offset(offset)
+    if limit is not None:
+        query = query.limit(limit)
+    return query.all()
+
+
+@router.get("/demands/{demand_id}", response_model=DemandOut)
+async def get_demand(
+    demand_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_permission("demand.view")),
+):
+    demand = db.get(Demand, demand_id)
+    if demand is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Demanda não encontrada")
+    return demand
 
 
 @router.post("/demands", response_model=DemandOut, status_code=201)

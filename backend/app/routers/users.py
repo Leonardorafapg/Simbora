@@ -4,11 +4,11 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.deps import require_admin
+from app.core.deps import get_current_user, require_admin
 from app.core.permissions import PERMISSIONS
 from app.core.security import hash_password
 from app.models.user import User
-from app.schemas.user import PermissionCatalogEntry, UserCreate, UserOut, UserUpdate
+from app.schemas.user import PermissionCatalogEntry, UserCreate, UserDirectoryEntry, UserOut, UserUpdate
 
 router = APIRouter()
 
@@ -16,6 +16,18 @@ router = APIRouter()
 @router.get("/permissions", response_model=list[PermissionCatalogEntry])
 async def list_permissions(_: User = Depends(require_admin)):
     return [{"key": key, "label": label} for key, label in PERMISSIONS.items()]
+
+
+@router.get("/users/directory", response_model=list[UserDirectoryEntry])
+async def users_directory(
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_user),
+):
+    """
+    Diretório enxuto da equipe pra quem precisa só resolver "quem é o
+    fulano" (atribuir demanda, filtrar por responsável) sem ser admin.
+    """
+    return db.query(User).order_by(User.full_name).all()
 
 
 @router.get("/users", response_model=list[UserOut])

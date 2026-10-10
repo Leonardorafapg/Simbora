@@ -9,7 +9,7 @@ from app.core.cloudinary_client import ensure_configured, is_configured
 from app.core.config import settings
 from app.core.deps import get_current_user
 from app.models.user import User
-from app.schemas.upload import UploadOut
+from app.schemas.upload import UploadFromUrl, UploadOut
 
 logger = logging.getLogger("uploads")
 
@@ -58,6 +58,44 @@ async def upload_image(
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="Falha ao enviar a imagem para o armazenamento externo",
+        )
+
+    return UploadOut(url=result["secure_url"])
+
+
+@router.post("/uploads/from-url", response_model=UploadOut)
+async def upload_image_from_url(
+    payload: UploadFromUrl,
+    _: User = Depends(get_current_user),
+):
+    """
+    Sobe uma imagem a partir de uma URL pública — quem busca o arquivo é o
+    Cloudinary (não este servidor), então não dá pra usar isso pra alcançar
+    a rede interna. Serve a automações (MCP) que não têm o arquivo em mãos.
+    """
+    if not is_configured():
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Armazenamento de imagens não configurado (credenciais do Cloudinary ausentes)",
+        )
+
+    ensure_configured()
+
+    try:
+        loop = asyncio.get_running_loop()
+        result = await loop.run_in_executor(
+            None,
+            lambda: cloudinary.uploader.upload(
+                payload.url,
+                folder=settings.CLOUDINARY_FOLDER,
+                resource_type="image",
+            ),
+        )
+    except Exception as exc:
+        logger.exception("Falha ao enviar imagem (por URL) para o Cloudinary: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Falha ao buscar/enviar a imagem. Confira se a URL é pública e aponta para uma imagem.",
         )
 
     return UploadOut(url=result["secure_url"])

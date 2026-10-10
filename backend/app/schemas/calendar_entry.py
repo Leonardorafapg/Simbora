@@ -97,6 +97,26 @@ class CalendarEntryOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class CalendarEntryBulkCreate(BaseModel):
+    entries: list[CalendarEntryCreate]
+    dry_run: bool = False
+
+    @field_validator("entries")
+    @classmethod
+    def validate_entries(cls, value: list[CalendarEntryCreate]) -> list[CalendarEntryCreate]:
+        if not value:
+            raise ValueError("Envie ao menos uma postagem")
+        if len(value) > 200:
+            raise ValueError("Máximo de 200 postagens por chamada")
+        return value
+
+
+class CalendarEntryBulkResult(BaseModel):
+    dry_run: bool
+    count: int
+    entries: list[CalendarEntryOut]
+
+
 class DemandAssetsUpdate(BaseModel):
     """
     Só os campos de imagem/legenda da postagem — o que dá pra editar via o

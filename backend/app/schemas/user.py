@@ -102,3 +102,14 @@ class UserOut(BaseModel):
 class PermissionCatalogEntry(BaseModel):
     key: str
     label: str
+
+
+class UserDirectoryEntry(BaseModel):
+    """Só o necessário pra atribuir/identificar — sem CPF, email ou permissões."""
+
+    id: int
+    full_name: str
+    cargo: str
+    is_active: bool
+
+    model_config = {"from_attributes": True}
