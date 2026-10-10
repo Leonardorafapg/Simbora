@@ -9,6 +9,7 @@ import Field from "@/components/ui/Field";
 import Switch from "@/components/ui/Switch";
 import ImageDropzone from "@/components/ui/ImageDropzone";
 import DemandProgressCard from "@/components/demands/DemandProgressCard";
+import ChangePasswordForm from "./ChangePasswordForm";
 import { useDemands } from "@/hooks/useDemands";
 
 type Props = {
@@ -224,6 +225,8 @@ export default function TeamMemberDetail({
         )}
 
         {error && <p className="text-sm text-danger max-w-md">{error}</p>}
+
+        {canManage && !editing && <ChangePasswordForm memberId={member.id} memberName={member.full_name} />}
 
         {canManage && (
           <div className="flex items-center gap-3 pt-2 max-w-md">

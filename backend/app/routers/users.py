@@ -8,7 +8,14 @@ from app.core.deps import get_current_user, require_admin
 from app.core.permissions import PERMISSIONS
 from app.core.security import hash_password
 from app.models.user import User
-from app.schemas.user import PermissionCatalogEntry, UserCreate, UserDirectoryEntry, UserOut, UserUpdate
+from app.schemas.user import (
+    PasswordChange,
+    PermissionCatalogEntry,
+    UserCreate,
+    UserDirectoryEntry,
+    UserOut,
+    UserUpdate,
+)
 
 router = APIRouter()
 
@@ -105,6 +112,22 @@ async def update_user(
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email ou CPF já cadastrado")
     db.refresh(user)
     return user
+
+
+@router.put("/users/{user_id}/password", status_code=204)
+async def change_user_password(
+    user_id: int,
+    payload: PasswordChange,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    """Troca a senha de um membro. Só administradores — a senha nova nunca é devolvida."""
+    user = db.get(User, user_id)
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuário não encontrado")
+
+    user.password_hash = hash_password(payload.password)
+    db.commit()
 
 
 @router.delete("/users/{user_id}", status_code=204)

@@ -14,6 +14,25 @@ def _clean_cpf(value: str) -> str:
     return digits
 
 
+def _check_password(value: str) -> str:
+    # O teto de 72 bytes é do bcrypt — acima disso ele estoura (500) em vez de
+    # truncar. O piso é baixo de propósito: senha provisória, trocada depois.
+    if len(value) < 4:
+        raise ValueError("A senha precisa ter ao menos 4 caracteres")
+    if len(value.encode("utf-8")) > 72:
+        raise ValueError("A senha pode ter no máximo 72 caracteres")
+    return value
+
+
+class PasswordChange(BaseModel):
+    password: str
+
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, value: str) -> str:
+        return _check_password(value)
+
+
 def _clean_permissions(value: list[str]) -> list[str]:
     unknown = set(value) - PERMISSIONS.keys()
     if unknown:
@@ -36,6 +55,11 @@ class UserCreate(BaseModel):
     @classmethod
     def validate_cpf(cls, value: str) -> str:
         return _clean_cpf(value)
+
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, value: str) -> str:
+        return _check_password(value)
 
     @field_validator("cargo")
     @classmethod
@@ -67,6 +91,12 @@ class UserUpdate(BaseModel):
     @classmethod
     def validate_cpf(cls, value: str | None) -> str | None:
         return _clean_cpf(value) if value is not None else None
+
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, value: str | None) -> str | None:
+        # Vazio = "não alterar senha" (o router ignora); só valida quando veio algo.
+        return _check_password(value) if value else value
 
     @field_validator("cargo")
     @classmethod

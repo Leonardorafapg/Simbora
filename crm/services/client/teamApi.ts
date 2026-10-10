@@ -35,3 +35,12 @@ export async function deleteTeamMember(id: number): Promise<void> {
   const res = await fetch(`/api/team/${id}`, { method: "DELETE" });
   if (!res.ok) throw new Error(await parseErrorMessage(res, "Não foi possível remover o membro."));
 }
+
+export async function changeTeamMemberPassword(id: number, password: string): Promise<void> {
+  const res = await fetch(`/api/team/${id}/password`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ password }),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res, "Não foi possível alterar a senha."));
+}
