@@ -34,7 +34,8 @@ def _ensure_period_editable(db: Session, client_id: int, entry_date: date) -> No
 
 
 # Campos de planejamento: travados quando o cronograma do mês está finalizado.
-# Status, arte final e legenda (fluxo de produção) continuam editáveis.
+# Status, arte final, legenda e o nome da publicação (título) continuam
+# editáveis — a Produção precisa nomear postagens de cronogramas finalizados.
 PLANNING_FIELDS = (
     "client_id",
     "scheduled_date",
@@ -147,13 +148,20 @@ async def bulk_create_calendar_entries(
 @router.post("/calendar-entries", response_model=CalendarEntryOut, status_code=201)
 async def create_calendar_entry(
     payload: CalendarEntryCreate,
+    from_production: bool = Query(
+        default=False,
+        description="Demanda criada pelo quadro de Produção: aceita mês já finalizado",
+    ),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_permission("calendar.create")),
 ):
     if db.get(Client, payload.client_id) is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cliente inválido")
 
-    _ensure_period_editable(db, payload.client_id, payload.scheduled_date)
+    # Cronograma finalizado trava o planejamento, mas o quadro de Produção
+    # pode abrir demandas novas nele.
+    if not from_production:
+        _ensure_period_editable(db, payload.client_id, payload.scheduled_date)
 
     entry = CalendarEntry(**payload.model_dump(), created_by=current_user.id)
     db.add(entry)

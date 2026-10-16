@@ -9,8 +9,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null);
+  const fromProduction = request.nextUrl.searchParams.get("from_production") === "true";
 
-  const res = await backendFetch("/calendar-entries", {
+  const res = await backendFetch(`/calendar-entries${fromProduction ? "?from_production=true" : ""}`, {
     method: "POST",
     body: JSON.stringify(body),
   });

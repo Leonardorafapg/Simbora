@@ -48,7 +48,9 @@ export default function WhatsAppPage() {
   }
 
   return (
-    <div className="flex flex-col flex-1 min-h-0">
+    // overflow-hidden: o <main> do AppShell rola a página inteira; aqui quem
+    // rola é a lista e as mensagens, nunca a tela do WhatsApp toda.
+    <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
       {connected ? (
         <WhatsAppChatLayout onDisconnected={() => setConnected(false)} />
       ) : (

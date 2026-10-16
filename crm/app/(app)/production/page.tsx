@@ -17,6 +17,7 @@ export default async function ProductionPage() {
   return (
     <ProductionBoard
       canEdit={hasPermission(session, "calendar.edit")}
+      canCreate={hasPermission(session, "calendar.create")}
       canDelete={hasPermission(session, "calendar.delete")}
     />
   );

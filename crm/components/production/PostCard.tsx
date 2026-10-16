@@ -34,7 +34,7 @@ export default function PostCard({ entry, client, canEdit, onSelect }: Props) {
         className={canEdit ? "cursor-grab active:cursor-grabbing" : ""}
       >
         <button type="button" onClick={() => onSelect(entry)} className="text-left w-full">
-          <p className="text-sm text-white line-clamp-2">{entry.theme}</p>
+          <p className="text-sm text-white line-clamp-2">{entry.title || entry.theme}</p>
           {client && <p className="text-xs text-cyan truncate mt-0.5">{client.name}</p>}
           <span
             className={`inline-block mt-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold ${

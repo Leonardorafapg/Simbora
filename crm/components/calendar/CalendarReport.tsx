@@ -89,8 +89,8 @@ export default function CalendarReport({ clientName, monthLabel, entries, onClos
             <thead>
               <tr className="bg-white/5 text-left text-[11px] uppercase tracking-wider text-white/40">
                 <th className="px-3 py-2 font-medium w-[160px]">Data</th>
+                <th className="px-3 py-2 font-medium">Título</th>
                 <th className="px-3 py-2 font-medium">Descrição</th>
-                <th className="px-3 py-2 font-medium">Execução</th>
               </tr>
             </thead>
             <tbody>
@@ -99,8 +99,8 @@ export default function CalendarReport({ clientName, monthLabel, entries, onClos
                   <td className="px-3 py-2 align-top text-white/70 whitespace-nowrap">
                     {formatDateCell(entry.scheduled_date)}
                   </td>
-                  <td className="px-3 py-2 align-top text-white">{entry.theme}</td>
-                  <td className="px-3 py-2 align-top text-white/70">{entry.execution_notes}</td>
+                  <td className="px-3 py-2 align-top text-white">{entry.title}</td>
+                  <td className="px-3 py-2 align-top text-white/70">{entry.theme}</td>
                 </tr>
               ))}
             </tbody>

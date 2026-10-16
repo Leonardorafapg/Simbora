@@ -38,8 +38,8 @@ export function useCalendarEntries(clientId: number | undefined, month: string, 
     };
   }, [clientId, month, periodStatus]);
 
-  async function create(input: CalendarEntryCreateInput) {
-    const entry = await createCalendarEntry(input);
+  async function create(input: CalendarEntryCreateInput, options?: { fromProduction?: boolean }) {
+    const entry = await createCalendarEntry(input, options);
     setEntries((prev) => [...prev, entry].sort((a, b) => a.scheduled_date.localeCompare(b.scheduled_date)));
     return entry;
   }

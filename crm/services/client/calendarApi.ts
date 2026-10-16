@@ -16,8 +16,11 @@ export async function fetchCalendarEntries(params: { clientId?: number; month?: 
   return res.json();
 }
 
-export async function createCalendarEntry(input: CalendarEntryCreateInput): Promise<CalendarEntry> {
-  const res = await fetch("/api/calendar", {
+export async function createCalendarEntry(
+  input: CalendarEntryCreateInput,
+  options?: { fromProduction?: boolean },
+): Promise<CalendarEntry> {
+  const res = await fetch(`/api/calendar${options?.fromProduction ? "?from_production=true" : ""}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),

@@ -20,11 +20,18 @@ def _non_empty(value: str, field_label: str) -> str:
     return value
 
 
+def _clean_title(value: str | None) -> str | None:
+    value = value.strip() if value is not None else None
+    return value or None
+
+
 class CalendarEntryCreate(BaseModel):
     client_id: int
     scheduled_date: date
+    title: str | None = None
     theme: str
-    execution_notes: str
+    # Campo "Execução" saiu da UI/relatório; mantido opcional por compatibilidade.
+    execution_notes: str = ""
     # "Formato" saiu da UI — Execução assumiu esse lugar. Campo mantido no
     # banco (não é mais preenchido nem exibido) para não exigir migração
     # destrutiva; sempre recebe string vazia por baixo dos panos.
@@ -37,15 +44,15 @@ class CalendarEntryCreate(BaseModel):
     material_notes: str | None = None
     status: str = "producao"
 
+    @field_validator("title")
+    @classmethod
+    def validate_title(cls, value: str | None) -> str | None:
+        return _clean_title(value)
+
     @field_validator("theme")
     @classmethod
     def validate_theme(cls, value: str) -> str:
         return _non_empty(value, "Descrição")
-
-    @field_validator("execution_notes")
-    @classmethod
-    def validate_execution_notes(cls, value: str) -> str:
-        return _non_empty(value, "Execução")
 
     @field_validator("status")
     @classmethod
@@ -56,6 +63,7 @@ class CalendarEntryCreate(BaseModel):
 class CalendarEntryUpdate(BaseModel):
     client_id: int | None = None
     scheduled_date: date | None = None
+    title: str | None = None
     theme: str | None = None
     execution_notes: str | None = None
     reference_link: str | None = None
@@ -66,15 +74,15 @@ class CalendarEntryUpdate(BaseModel):
     material_notes: str | None = None
     status: str | None = None
 
+    @field_validator("title")
+    @classmethod
+    def validate_title(cls, value: str | None) -> str | None:
+        return _clean_title(value)
+
     @field_validator("theme")
     @classmethod
     def validate_theme(cls, value: str | None) -> str | None:
         return _non_empty(value, "Descrição") if value is not None else None
-
-    @field_validator("execution_notes")
-    @classmethod
-    def validate_execution_notes(cls, value: str | None) -> str | None:
-        return _non_empty(value, "Execução") if value is not None else None
 
     @field_validator("status")
     @classmethod
@@ -86,6 +94,7 @@ class CalendarEntryOut(BaseModel):
     id: int
     client_id: int
     scheduled_date: date
+    title: str | None
     theme: str
     execution_notes: str | None
     reference_link: str | None

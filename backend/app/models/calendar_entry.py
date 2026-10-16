@@ -12,6 +12,8 @@ class CalendarEntry(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     client_id: Mapped[int] = mapped_column(ForeignKey("clients.id"), nullable=False, index=True)
     scheduled_date: Mapped[date_type] = mapped_column(Date, nullable=False, index=True)
+    # Nome da publicação (opcional: postagens antigas não têm; cai no theme).
+    title: Mapped[str | None] = mapped_column(String(200), nullable=True)
     theme: Mapped[str] = mapped_column(Text, nullable=False)
     format: Mapped[str] = mapped_column(String(30), nullable=False)
     execution_notes: Mapped[str | None] = mapped_column(Text, nullable=True)

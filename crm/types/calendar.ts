@@ -24,6 +24,8 @@ export type CalendarEntry = {
   id: number;
   client_id: number;
   scheduled_date: string;
+  /** Nome da publicação — opcional em postagens antigas (cai no theme). */
+  title: string | null;
   theme: string;
   execution_notes: string | null;
   reference_link: string | null;
@@ -43,8 +45,9 @@ export type CalendarEntry = {
 export type CalendarEntryCreateInput = {
   client_id: number;
   scheduled_date: string;
+  title?: string | null;
   theme: string;
-  execution_notes: string;
+  execution_notes?: string;
   reference_link?: string;
   reference_image?: string | null;
   material_files?: string[];
@@ -57,6 +60,7 @@ export type CalendarEntryCreateInput = {
 export type CalendarEntryUpdateInput = Partial<{
   client_id: number;
   scheduled_date: string;
+  title: string | null;
   theme: string;
   execution_notes: string;
   reference_link: string;

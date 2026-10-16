@@ -51,13 +51,13 @@ export async function exportCalendarToPdf(
   const remaining = tableWidth - COL_WIDTHS.data;
   const colX = {
     data: PAGE_MARGIN,
-    descricao: PAGE_MARGIN + COL_WIDTHS.data,
-    execucao: PAGE_MARGIN + COL_WIDTHS.data + remaining / 2,
+    titulo: PAGE_MARGIN + COL_WIDTHS.data,
+    descricao: PAGE_MARGIN + COL_WIDTHS.data + remaining / 2,
   };
   const colWidths = {
     data: COL_WIDTHS.data,
+    titulo: remaining / 2,
     descricao: remaining / 2,
-    execucao: remaining / 2,
   };
 
   let y = PAGE_MARGIN;
@@ -102,15 +102,15 @@ export async function exportCalendarToPdf(
     doc.rect(PAGE_MARGIN, y, tableWidth, HEADER_ROW_HEIGHT, "F");
     doc.setDrawColor(200, 200, 200);
     doc.rect(colX.data, y, colWidths.data, HEADER_ROW_HEIGHT);
+    doc.rect(colX.titulo, y, colWidths.titulo, HEADER_ROW_HEIGHT);
     doc.rect(colX.descricao, y, colWidths.descricao, HEADER_ROW_HEIGHT);
-    doc.rect(colX.execucao, y, colWidths.execucao, HEADER_ROW_HEIGHT);
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(7.10); // 10 * 0.710125
     doc.setTextColor(0, 0, 0);
     doc.text("Data", colX.data + CELL_PADDING, y + HEADER_ROW_HEIGHT / 2 + 3);
+    doc.text("Título", colX.titulo + CELL_PADDING, y + HEADER_ROW_HEIGHT / 2 + 3);
     doc.text("Descrição", colX.descricao + CELL_PADDING, y + HEADER_ROW_HEIGHT / 2 + 3);
-    doc.text("Execução", colX.execucao + CELL_PADDING, y + HEADER_ROW_HEIGHT / 2 + 3);
 
     y += HEADER_ROW_HEIGHT;
   }
@@ -133,12 +133,9 @@ export async function exportCalendarToPdf(
       formatDateHeader(entry.scheduled_date),
       colWidths.data - CELL_PADDING * 2,
     );
+    const tituloLines: string[] = doc.splitTextToSize(entry.title || "", colWidths.titulo - CELL_PADDING * 2);
     const descricaoLines: string[] = doc.splitTextToSize(entry.theme, colWidths.descricao - CELL_PADDING * 2);
-    const execucaoLines: string[] = doc.splitTextToSize(
-      entry.execution_notes || "",
-      colWidths.execucao - CELL_PADDING * 2,
-    );
-    const lineCount = Math.max(dataLines.length, descricaoLines.length, execucaoLines.length, 1);
+    const lineCount = Math.max(dataLines.length, tituloLines.length, descricaoLines.length, 1);
     const rowHeight = Math.max(lineCount * LINE_HEIGHT + CELL_PADDING * 2, HEADER_ROW_HEIGHT);
 
     ensureSpace(rowHeight);
@@ -147,8 +144,8 @@ export async function exportCalendarToPdf(
 
     doc.setDrawColor(220, 220, 220);
     doc.rect(colX.data, rowTop, colWidths.data, rowHeight);
+    doc.rect(colX.titulo, rowTop, colWidths.titulo, rowHeight);
     doc.rect(colX.descricao, rowTop, colWidths.descricao, rowHeight);
-    doc.rect(colX.execucao, rowTop, colWidths.execucao, rowHeight);
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(6.39); // 9 * 0.710125
@@ -157,12 +154,12 @@ export async function exportCalendarToPdf(
       doc.text(line, colX.data + CELL_PADDING, rowTop + CELL_PADDING + LINE_HEIGHT * (i + 1) - 3);
     });
 
-    descricaoLines.forEach((line: string, i: number) => {
-      doc.text(line, colX.descricao + CELL_PADDING, rowTop + CELL_PADDING + LINE_HEIGHT * (i + 1) - 3);
+    tituloLines.forEach((line: string, i: number) => {
+      doc.text(line, colX.titulo + CELL_PADDING, rowTop + CELL_PADDING + LINE_HEIGHT * (i + 1) - 3);
     });
 
-    execucaoLines.forEach((line: string, i: number) => {
-      doc.text(line, colX.execucao + CELL_PADDING, rowTop + CELL_PADDING + LINE_HEIGHT * (i + 1) - 3);
+    descricaoLines.forEach((line: string, i: number) => {
+      doc.text(line, colX.descricao + CELL_PADDING, rowTop + CELL_PADDING + LINE_HEIGHT * (i + 1) - 3);
     });
 
     y = rowTop + rowHeight;

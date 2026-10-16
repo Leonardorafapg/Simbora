@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { Plus } from "lucide-react";
 import { DndContext, type DragEndEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { useCalendarEntries } from "@/hooks/useCalendarEntries";
 import { useClients } from "@/hooks/useClients";
-import type { CalendarEntry, CalendarEntryStatus } from "@/types/calendar";
+import type { CalendarEntry, CalendarEntryCreateInput, CalendarEntryStatus } from "@/types/calendar";
 import { CALENDAR_ENTRY_STATUSES } from "@/types/calendar";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import CalendarEntryDialog from "@/components/calendar/CalendarEntryDialog";
@@ -12,6 +13,7 @@ import KanbanColumn from "./KanbanColumn";
 
 type Props = {
   canEdit: boolean;
+  canCreate: boolean;
   canDelete: boolean;
 };
 
@@ -24,10 +26,11 @@ function currentMonth() {
  * Quadro de produção: cada postagem do calendário é um card, arrastado entre os quadros.
  * Só entram postagens de cronogramas finalizados (aprovados) — o resto ainda está em planejamento.
  */
-export default function ProductionBoard({ canEdit, canDelete }: Props) {
+export default function ProductionBoard({ canEdit, canCreate, canDelete }: Props) {
   const [clientId, setClientId] = useState<number | undefined>(undefined);
   const [month, setMonth] = useState(currentMonth());
   const [selected, setSelected] = useState<CalendarEntry | null>(null);
+  const [creating, setCreating] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<CalendarEntry | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -55,6 +58,15 @@ export default function ProductionBoard({ canEdit, canDelete }: Props) {
     }
   }
 
+  // Demanda nova nasce no quadro mesmo com o cronograma do mês já finalizado.
+  // Ajusta os filtros pra ela não sumir da tela depois de criada.
+  async function handleCreate(input: CalendarEntryCreateInput) {
+    const entry = await create(input, { fromProduction: true });
+    if (month && entry.scheduled_date.slice(0, 7) !== month) setMonth(entry.scheduled_date.slice(0, 7));
+    if (clientId && clientId !== entry.client_id) setClientId(entry.client_id);
+    return entry;
+  }
+
   async function handleConfirmDelete() {
     if (!pendingDelete) return;
     setDeleting(true);
@@ -71,7 +83,20 @@ export default function ProductionBoard({ canEdit, canDelete }: Props) {
 
   return (
     <div className="relative h-full p-6 sm:p-8 space-y-4">
-      <h1 className="text-2xl font-semibold text-white">Produção</h1>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-2xl font-semibold text-white">Produção</h1>
+        {canCreate && (
+          <button
+            type="button"
+            onClick={() => setCreating(true)}
+            disabled={clients.length === 0}
+            className="flex items-center gap-2 rounded-lg bg-cyan px-4 py-2 text-sm font-semibold text-black transition hover:bg-cyan-dark disabled:opacity-60"
+          >
+            <Plus className="h-4 w-4" />
+            Nova demanda
+          </button>
+        )}
+      </div>
 
       <div className="flex items-center gap-2 flex-wrap">
         <select
@@ -119,6 +144,18 @@ export default function ProductionBoard({ canEdit, canDelete }: Props) {
           ))}
         </div>
       </DndContext>
+
+      {creating && (
+        <CalendarEntryDialog
+          open
+          onClose={() => setCreating(false)}
+          clientId={clientId ?? clients[0].id}
+          clients={clients}
+          defaultDate={`${month || currentMonth()}-${month ? "01" : String(new Date().getDate()).padStart(2, "0")}`}
+          onCreate={handleCreate}
+          onUpdate={update}
+        />
+      )}
 
       {selected && (
         <CalendarEntryDialog

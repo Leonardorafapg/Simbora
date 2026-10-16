@@ -69,6 +69,7 @@ def run_light_migrations():
         add_column_if_missing(conn, "calendar_entries", "material_notes", "material_notes TEXT")
         add_column_if_missing(conn, "calendar_entries", "material_files", "material_files TEXT DEFAULT '[]'")
         add_column_if_missing(conn, "calendar_entries", "final_image", "final_image TEXT")
+        add_column_if_missing(conn, "calendar_entries", "title", "title VARCHAR(200)")
         # Status antigos da postagem -> quadros novos (idempotente: depois da
         # primeira rodada não sobra linha com os valores antigos).
         if inspector.has_table("calendar_entries"):

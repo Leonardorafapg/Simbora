@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { AUTH_COOKIE } from "@/services/server/session";
-import { backendFetchPublic } from "@/services/server/backendClient";
+import { backendFetchPublic, extractErrorMessage } from "@/services/server/backendClient";
 import type { BackendLoginResponse } from "@/types/auth";
 
 export async function POST(request: NextRequest) {
@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
   const data = await res.json().catch(() => null);
 
   if (!res.ok) {
-    return NextResponse.json({ message: data?.detail ?? "Falha no login" }, { status: res.status });
+    return NextResponse.json({ message: extractErrorMessage(data, "Falha no login") }, { status: res.status });
   }
 
   const { access_token, expires_in } = data as BackendLoginResponse;
