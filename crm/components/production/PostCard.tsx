@@ -2,6 +2,7 @@ import { useDraggable } from "@dnd-kit/core";
 import type { CalendarEntry } from "@/types/calendar";
 import type { Client } from "@/types/client";
 import { formatDate } from "@/lib/format";
+import { DEADLINE_CLASSES, DEADLINE_LABELS, deadlineInfo, formatDeadline } from "@/lib/deadline";
 import { tagChipClass } from "@/lib/tagColors";
 
 type Props = {
@@ -22,7 +23,7 @@ export default function PostCard({ entry, client, canEdit, onSelect }: Props) {
     ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`, zIndex: 20 }
     : undefined;
 
-  const overdue = entry.status !== "finalizados" && entry.scheduled_date < new Date().toISOString().slice(0, 10);
+  const deadline = deadlineInfo(entry);
 
   return (
     <div
@@ -50,13 +51,25 @@ export default function PostCard({ entry, client, canEdit, onSelect }: Props) {
           )}
           <p className="text-sm text-white line-clamp-2">{entry.title || entry.theme}</p>
           {client && <p className="text-xs text-cyan truncate mt-0.5">{client.name}</p>}
-          <span
-            className={`inline-block mt-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-              overdue ? "bg-danger/15 text-danger" : "bg-white/10 text-white/60"
-            }`}
-          >
-            {formatDate(entry.scheduled_date)}
-          </span>
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+            <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-semibold text-white/60">
+              Post {formatDate(entry.scheduled_date)}
+            </span>
+            <span
+              className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${DEADLINE_CLASSES[deadline.state]}`}
+              title={`Entregar até ${formatDeadline(deadline.deadline)}`}
+            >
+              {deadline.state === "atrasado"
+                ? `Atrasado ${deadline.daysLate}d`
+                : deadline.state === "entregue_atrasado"
+                  ? `Entregue +${deadline.daysLate}d`
+                  : deadline.state === "entregue_no_prazo"
+                    ? "Entregue"
+                    : deadline.state === "no_prazo"
+                      ? `Entregar até ${formatDeadline(deadline.deadline)}`
+                      : DEADLINE_LABELS[deadline.state]}
+            </span>
+          </div>
         </button>
       </div>
     </div>

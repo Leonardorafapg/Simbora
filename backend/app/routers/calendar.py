@@ -1,5 +1,5 @@
 # backend/app/routers/calendar.py
-from datetime import date
+from datetime import date, datetime, timezone
 from calendar import monthrange
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -15,6 +15,7 @@ from app.models.client import Client
 from app.models.user import User
 from app.routers.calendar_periods import get_period_status
 from app.schemas.calendar_entry import (
+    DELIVERED_STATUSES,
     CalendarEntryBulkCreate,
     CalendarEntryBulkResult,
     CalendarEntryCreate,
@@ -196,6 +197,8 @@ async def create_calendar_entry(
 
     entry = CalendarEntry(**data, created_by=current_user.id)
     entry.tags = tags
+    if entry.status in DELIVERED_STATUSES:
+        entry.delivered_at = datetime.now(timezone.utc)
     db.add(entry)
     db.commit()
     db.refresh(entry)
@@ -234,6 +237,15 @@ async def update_calendar_entry(
     for key in ("requester_id", "assignee_id"):
         if data.get(key) is not None and db.get(User, data[key]) is None:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Usuário inválido")
+
+    # Controle de prazo: registra a 1ª entrega; voltar pra produção/andamento zera.
+    new_status = data.get("status")
+    if new_status is not None:
+        if new_status in DELIVERED_STATUSES:
+            if entry.delivered_at is None:
+                entry.delivered_at = datetime.now(timezone.utc)
+        else:
+            entry.delivered_at = None
 
     for field, value in data.items():
         setattr(entry, field, value)

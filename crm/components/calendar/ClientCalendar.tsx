@@ -11,6 +11,7 @@ import CalendarMonthView from "./CalendarMonthView";
 import CalendarEntryDialog from "./CalendarEntryDialog";
 import CalendarPeriodControl from "./CalendarPeriodControl";
 import CalendarReport from "./CalendarReport";
+import { todayLocalISO } from "@/lib/format";
 
 type Props = {
   clientId: number;
@@ -37,7 +38,7 @@ export default function ClientCalendar({
 }: Props) {
   const today = new Date();
   const [view, setView] = useState<"calendario" | "relatorio">("calendario");
-  const [dialogDate, setDialogDate] = useState(today.toISOString().slice(0, 10));
+  const [dialogDate, setDialogDate] = useState(todayLocalISO(today));
   const [dialogEntry, setDialogEntry] = useState<CalendarEntry | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<CalendarEntry | null>(null);

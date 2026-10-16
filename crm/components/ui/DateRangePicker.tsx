@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { todayLocalISO } from "@/lib/format";
 
 const WEEKDAYS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
 const MONTH_ABBR = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
@@ -78,7 +79,7 @@ function MonthCalendar({
   onSelectYear,
 }: MonthCalendarProps) {
   const cells = buildCells(year, month);
-  const todayISO = new Date().toISOString().slice(0, 10);
+  const todayISO = todayLocalISO();
   const rangeEnd = to ?? hoverEnd ?? undefined;
 
   return (

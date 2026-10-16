@@ -72,6 +72,16 @@ def run_light_migrations():
         add_column_if_missing(conn, "calendar_entries", "title", "title VARCHAR(200)")
         add_column_if_missing(conn, "calendar_entries", "requester_id", "requester_id INTEGER REFERENCES users(id)")
         add_column_if_missing(conn, "calendar_entries", "assignee_id", "assignee_id INTEGER REFERENCES users(id)")
+        if inspector.has_table("calendar_entries") and "delivered_at" not in {
+            col["name"] for col in inspector.get_columns("calendar_entries")
+        }:
+            conn.exec_driver_sql("ALTER TABLE calendar_entries ADD COLUMN delivered_at TIMESTAMP")
+            # Postagens que já estavam entregues: usa a última atualização como data de entrega.
+            conn.exec_driver_sql(
+                "UPDATE calendar_entries SET delivered_at = updated_at "
+                "WHERE status IN ('checagem_aprovacao', 'modificacoes', 'finalizados')"
+            )
+            conn.commit()
         # Status antigos da postagem -> quadros novos (idempotente: depois da
         # primeira rodada não sobra linha com os valores antigos).
         if inspector.has_table("calendar_entries"):

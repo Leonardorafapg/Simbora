@@ -39,6 +39,10 @@ class CalendarEntry(Base):
     # responsável (quem executa; padrão = designer do cliente).
     requester_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
     assignee_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
+    # Quando a postagem chegou pela primeira vez a um status de "entregue"
+    # (ver DELIVERED_STATUSES em schemas/calendar_entry.py); volta a None se
+    # ela retornar a produção/andamento. Base do controle de prazo.
+    delivered_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_by: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(

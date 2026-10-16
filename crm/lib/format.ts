@@ -14,3 +14,10 @@ export function getInitials(fullName: string) {
   const last = parts.length > 1 ? parts[parts.length - 1][0] : "";
   return (first + last).toUpperCase();
 }
+
+/** Data de hoje (AAAA-MM-DD) no fuso local — `toISOString()` usa UTC e vira o dia às 21h no Brasil. */
+export function todayLocalISO(date: Date = new Date()) {
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${date.getFullYear()}-${month}-${day}`;
+}

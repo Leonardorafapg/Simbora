@@ -45,6 +45,8 @@ export type CalendarEntry = {
   assignee_id: number | null;
   /** Etiquetas globais aplicadas à postagem. */
   tags: Tag[];
+  /** 1ª vez que chegou a um status de entregue (UTC, sem sufixo); base do controle de prazo. */
+  delivered_at: string | null;
   /** Markdown livre "já tem material?" — sem UI própria ainda, reservado pra uso futuro. */
   material_notes: string | null;
   created_by: number;

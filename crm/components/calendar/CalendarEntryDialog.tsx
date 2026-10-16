@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { AlignLeft, CalendarDays, ImagePlus, Paperclip, UserRound, Users, X } from "lucide-react";
+import { AlignLeft, CalendarDays, Clock, ImagePlus, Paperclip, UserRound, Users, X } from "lucide-react";
 import type { CalendarEntry, CalendarEntryCreateInput, CalendarEntryUpdateInput } from "@/types/calendar";
 import type { Client } from "@/types/client";
 import { useClients } from "@/hooks/useClients";
 import { useTeamMembers } from "@/hooks/useTeamMembers";
 import UserSelect from "@/components/ui/UserSelect";
 import TagPicker from "./TagPicker";
+import { DEADLINE_CLASSES, DEADLINE_LABELS, deadlineFor, deadlineInfo, formatDeadline } from "@/lib/deadline";
 import ImageDropzone from "@/components/ui/ImageDropzone";
 import MultiImageDropzone from "@/components/ui/MultiImageDropzone";
 
@@ -252,6 +253,28 @@ export default function CalendarEntryDialog({
                 onChange={(e) => update("scheduled_date", e.target.value)}
                 className="glass-input w-full rounded-lg px-3 py-2 text-sm outline-none"
               />
+            </section>
+
+            <section className="space-y-2">
+              <div className={labelCls}>
+                <Clock className="h-4 w-4 text-white/40" />
+                Prazo de entrega
+              </div>
+              {(() => {
+                const info = entry ? deadlineInfo({ ...entry, scheduled_date: form.scheduled_date }) : null;
+                return (
+                  <div className="flex flex-wrap items-center gap-2 text-sm text-white/80">
+                    <span>{formatDeadline(info?.deadline ?? deadlineFor(form.scheduled_date))}</span>
+                    {info && (
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${DEADLINE_CLASSES[info.state]}`}>
+                        {DEADLINE_LABELS[info.state]}
+                        {info.daysLate > 0 ? ` (${info.daysLate}d)` : ""}
+                      </span>
+                    )}
+                  </div>
+                );
+              })()}
+              <p className="text-xs text-white/40">Quinta-feira da semana anterior à data da postagem.</p>
             </section>
 
             {/* Sempre visível (inclusive ao criar): o post pronto e a legenda

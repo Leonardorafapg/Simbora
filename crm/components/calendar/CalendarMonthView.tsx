@@ -1,6 +1,7 @@
 import { ChevronLeft, ChevronRight, FileText } from "lucide-react";
 import type { CalendarEntry } from "@/types/calendar";
 import { MONTH_LABELS } from "@/types/calendar";
+import { todayLocalISO } from "@/lib/format";
 
 const WEEKDAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
@@ -42,7 +43,7 @@ export default function CalendarMonthView({
     entriesByDate.set(entry.scheduled_date, list);
   }
 
-  const todayISO = new Date().toISOString().slice(0, 10);
+  const todayISO = todayLocalISO();
 
   const cells: (number | null)[] = [
     ...Array.from({ length: startWeekday }, () => null),

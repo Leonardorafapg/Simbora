@@ -1,5 +1,5 @@
 # backend/app/schemas/calendar_entry.py
-from datetime import date
+from datetime import date, datetime
 
 from pydantic import BaseModel, field_validator
 
@@ -7,6 +7,11 @@ from app.schemas.tag import TagOut
 
 # Quadros do fluxo de produção, na ordem do kanban.
 CALENDAR_STATUSES = ["producao", "andamento", "modificacoes", "checagem_aprovacao", "finalizados"]
+
+
+# Status em que a postagem já foi entregue pela produção (em aprovação,
+# reprovada/em modificações, aprovada/publicada) — contam como "entregue" no controle de prazo.
+DELIVERED_STATUSES = {"checagem_aprovacao", "modificacoes", "finalizados"}
 
 
 def _validate_status(value: str) -> str:
@@ -116,6 +121,7 @@ class CalendarEntryOut(BaseModel):
     requester_id: int | None
     assignee_id: int | None
     tags: list[TagOut] = []
+    delivered_at: datetime | None = None
     created_by: int
 
     model_config = {"from_attributes": True}

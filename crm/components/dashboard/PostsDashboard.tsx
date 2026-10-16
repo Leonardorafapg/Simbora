@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { useCalendarEntries } from "@/hooks/useCalendarEntries";
 import { useClients } from "@/hooks/useClients";
 import { CALENDAR_ENTRY_STATUSES, CALENDAR_ENTRY_STATUS_LABELS } from "@/types/calendar";
+import { deadlineInfo } from "@/lib/deadline";
 
 function currentMonth() {
   const d = new Date();
@@ -17,13 +18,16 @@ export default function PostsDashboard() {
   const { clients } = useClients();
 
   const stats = useMemo(() => {
-    const today = new Date().toISOString().slice(0, 10);
     const byStatus = CALENDAR_ENTRY_STATUSES.map((status) => ({
       status,
       label: CALENDAR_ENTRY_STATUS_LABELS[status],
       count: entries.filter((e) => e.status === status).length,
     }));
-    const atrasadas = entries.filter((e) => e.scheduled_date < today && e.status !== "finalizados").length;
+    const infos = entries.map((e) => deadlineInfo(e).state);
+    const atrasadas = infos.filter((s) => s === "atrasado").length;
+    const vencendo = infos.filter((s) => s === "vence_hoje" || s === "vence_amanha").length;
+    const noPrazo = infos.filter((s) => s === "entregue_no_prazo").length;
+    const comAtraso = infos.filter((s) => s === "entregue_atrasado").length;
 
     const byClient = new Map<number, { total: number; concluidas: number }>();
     for (const e of entries) {
@@ -40,7 +44,7 @@ export default function PostsDashboard() {
       }))
       .sort((a, b) => b.total - a.total);
 
-    return { total: entries.length, atrasadas, byStatus, clientVolume };
+    return { total: entries.length, atrasadas, vencendo, noPrazo, comAtraso, byStatus, clientVolume };
   }, [entries, clients]);
 
   if (loading) return <p className="text-sm text-white/50">Carregando...</p>;
@@ -54,8 +58,20 @@ export default function PostsDashboard() {
           <p className="text-2xl font-semibold text-white">{stats.total}</p>
         </div>
         <div className="glass-card rounded-2xl p-4">
-          <p className="text-xs text-white/50">Atrasadas</p>
+          <p className="text-xs text-white/50">Entregas atrasadas</p>
           <p className="text-2xl font-semibold text-danger">{stats.atrasadas}</p>
+        </div>
+        <div className="glass-card rounded-2xl p-4">
+          <p className="text-xs text-white/50">Vencem hoje ou amanhã</p>
+          <p className="text-2xl font-semibold text-amber-400">{stats.vencendo}</p>
+        </div>
+        <div className="glass-card rounded-2xl p-4">
+          <p className="text-xs text-white/50">Entregues no prazo</p>
+          <p className="text-2xl font-semibold text-emerald-400">{stats.noPrazo}</p>
+        </div>
+        <div className="glass-card rounded-2xl p-4">
+          <p className="text-xs text-white/50">Entregues com atraso</p>
+          <p className="text-2xl font-semibold text-amber-400">{stats.comAtraso}</p>
         </div>
         {stats.byStatus
           .filter((s) => s.status === "finalizados" || s.status === "modificacoes")

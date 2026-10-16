@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Plus } from "lucide-react";
+import { deadlineInfo, urgencyRank } from "@/lib/deadline";
 import { DndContext, type DragEndEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { useCalendarEntries } from "@/hooks/useCalendarEntries";
 import { useClients } from "@/hooks/useClients";
@@ -30,6 +31,7 @@ function currentMonth() {
 export default function ProductionBoard({ canEdit, canCreate, canDelete }: Props) {
   const [clientId, setClientId] = useState<number | undefined>(undefined);
   const [assigneeId, setAssigneeId] = useState<number | undefined>(undefined);
+  const [deadlineFilter, setDeadlineFilter] = useState<"" | "atrasados" | "vencem">("");
   const [month, setMonth] = useState(currentMonth());
   const [selected, setSelected] = useState<CalendarEntry | null>(null);
   const [creating, setCreating] = useState(false);
@@ -40,6 +42,17 @@ export default function ProductionBoard({ canEdit, canCreate, canDelete }: Props
   const { entries, loading, error, create, update, remove } = useCalendarEntries(clientId, month, "finalizado", assigneeId);
   const { clients } = useClients();
   const { members } = useTeamMembers();
+
+  // Prazo: filtra e põe os mais urgentes no topo de cada coluna.
+  const visibleEntries = entries
+    .map((entry) => ({ entry, info: deadlineInfo(entry) }))
+    .filter(({ info }) => {
+      if (deadlineFilter === "atrasados") return info.state === "atrasado";
+      if (deadlineFilter === "vencem") return info.state === "vence_hoje" || info.state === "vence_amanha";
+      return true;
+    })
+    .sort((a, b) => urgencyRank(a.info) - urgencyRank(b.info) || a.entry.scheduled_date.localeCompare(b.entry.scheduled_date))
+    .map(({ entry }) => entry);
 
   // Distância mínima antes de considerar "arrastando" — sem isso, todo
   // clique no card (pra abrir o drawer) seria capturado como um drag.
@@ -128,6 +141,16 @@ export default function ProductionBoard({ canEdit, canCreate, canDelete }: Props
             </option>
           ))}
         </select>
+        <select
+          value={deadlineFilter}
+          onChange={(e) => setDeadlineFilter(e.target.value as "" | "atrasados" | "vencem")}
+          className="glass-input rounded-lg px-3 py-2 text-sm outline-none"
+          aria-label="Filtrar por prazo"
+        >
+          <option value="">Todos os prazos</option>
+          <option value="atrasados">Atrasados</option>
+          <option value="vencem">Vencem hoje ou amanhã</option>
+        </select>
         <input
           type="month"
           value={month}
@@ -152,7 +175,7 @@ export default function ProductionBoard({ canEdit, canCreate, canDelete }: Props
             <div key={status} className="w-[85vw] shrink-0 snap-start sm:w-auto sm:shrink">
               <KanbanColumn
                 status={status}
-                entries={entries.filter((e) => e.status === status)}
+                entries={visibleEntries.filter((e) => e.status === status)}
                 clients={clients}
                 canEdit={canEdit}
                 onSelect={setSelected}
