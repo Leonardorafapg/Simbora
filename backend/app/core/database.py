@@ -69,6 +69,18 @@ def run_light_migrations():
         add_column_if_missing(conn, "calendar_entries", "material_notes", "material_notes TEXT")
         add_column_if_missing(conn, "calendar_entries", "material_files", "material_files TEXT DEFAULT '[]'")
         add_column_if_missing(conn, "calendar_entries", "final_image", "final_image TEXT")
+        # Status antigos da postagem -> quadros novos (idempotente: depois da
+        # primeira rodada não sobra linha com os valores antigos).
+        if inspector.has_table("calendar_entries"):
+            for old, new in (
+                ("nao_iniciado", "producao"),
+                ("feito", "checagem_aprovacao"),
+                ("reprovado", "modificacoes"),
+                ("aprovado", "finalizados"),
+                ("concluido", "finalizados"),
+            ):
+                conn.exec_driver_sql(f"UPDATE calendar_entries SET status = '{new}' WHERE status = '{old}'")
+            conn.commit()
         add_column_if_missing(conn, "whatsapp_messages", "media_type", "media_type VARCHAR(20)")
         add_column_if_missing(conn, "whatsapp_messages", "media_mimetype", "media_mimetype VARCHAR(100)")
         add_column_if_missing(conn, "clients", "photo_url", "photo_url VARCHAR(500)")

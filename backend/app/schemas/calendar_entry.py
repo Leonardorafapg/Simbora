@@ -3,7 +3,8 @@ from datetime import date
 
 from pydantic import BaseModel, field_validator
 
-CALENDAR_STATUSES = ["nao_iniciado", "feito", "aprovado", "reprovado", "concluido"]
+# Quadros do fluxo de produção, na ordem do kanban.
+CALENDAR_STATUSES = ["producao", "andamento", "modificacoes", "checagem_aprovacao", "finalizados"]
 
 
 def _validate_status(value: str) -> str:
@@ -34,7 +35,7 @@ class CalendarEntryCreate(BaseModel):
     final_image: str | None = None
     caption: str | None = None
     material_notes: str | None = None
-    status: str = "nao_iniciado"
+    status: str = "producao"
 
     @field_validator("theme")
     @classmethod

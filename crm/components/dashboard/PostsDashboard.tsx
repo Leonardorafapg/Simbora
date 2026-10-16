@@ -23,13 +23,13 @@ export default function PostsDashboard() {
       label: CALENDAR_ENTRY_STATUS_LABELS[status],
       count: entries.filter((e) => e.status === status).length,
     }));
-    const atrasadas = entries.filter((e) => e.scheduled_date < today && e.status !== "concluido").length;
+    const atrasadas = entries.filter((e) => e.scheduled_date < today && e.status !== "finalizados").length;
 
     const byClient = new Map<number, { total: number; concluidas: number }>();
     for (const e of entries) {
       const cur = byClient.get(e.client_id) ?? { total: 0, concluidas: 0 };
       cur.total += 1;
-      if (e.status === "concluido") cur.concluidas += 1;
+      if (e.status === "finalizados") cur.concluidas += 1;
       byClient.set(e.client_id, cur);
     }
     const clientVolume = [...byClient.entries()]
@@ -58,7 +58,7 @@ export default function PostsDashboard() {
           <p className="text-2xl font-semibold text-danger">{stats.atrasadas}</p>
         </div>
         {stats.byStatus
-          .filter((s) => s.status === "concluido" || s.status === "reprovado")
+          .filter((s) => s.status === "finalizados" || s.status === "modificacoes")
           .map((s) => (
             <div key={s.status} className="glass-card rounded-2xl p-4">
               <p className="text-xs text-white/50">{s.label}</p>
@@ -84,7 +84,7 @@ export default function PostsDashboard() {
           <div key={c.clientId} className="flex items-center justify-between text-sm text-white/80">
             <span>{c.name}</span>
             <span>
-              {c.concluidas}/{c.total} concluídas
+              {c.concluidas}/{c.total} finalizadas
             </span>
           </div>
         ))}

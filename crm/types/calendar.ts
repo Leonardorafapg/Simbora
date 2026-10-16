@@ -3,14 +3,21 @@ export const MONTH_LABELS = [
   "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
 ] as const;
 
-export const CALENDAR_ENTRY_STATUSES = ["nao_iniciado", "feito", "aprovado", "reprovado", "concluido"] as const;
+/** Quadros do fluxo de produção, na ordem do kanban. */
+export const CALENDAR_ENTRY_STATUSES = [
+  "producao",
+  "andamento",
+  "modificacoes",
+  "checagem_aprovacao",
+  "finalizados",
+] as const;
 export type CalendarEntryStatus = (typeof CALENDAR_ENTRY_STATUSES)[number];
 export const CALENDAR_ENTRY_STATUS_LABELS: Record<CalendarEntryStatus, string> = {
-  nao_iniciado: "Não iniciado",
-  feito: "Feito",
-  aprovado: "Aprovado",
-  reprovado: "Reprovado",
-  concluido: "Concluído",
+  producao: "Produção",
+  andamento: "Andamento",
+  modificacoes: "Modificações",
+  checagem_aprovacao: "Checagem e aprovação",
+  finalizados: "Finalizados",
 };
 
 export type CalendarEntry = {

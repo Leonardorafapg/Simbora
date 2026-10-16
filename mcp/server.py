@@ -53,7 +53,7 @@ desses textos.
 confirmação. Ações destrutivas exigem confirm=true.
 - Mês de calendário "finalizado" não aceita criar/editar/apagar postagens; \
 reprove o período antes. Finalizar um mês só trava o mês.
-- Status de postagem do calendário: nao_iniciado, feito, aprovado, reprovado, concluido.
+- Status de postagem (quadros de produção): producao, andamento, modificacoes, checagem_aprovacao, finalizados.
 - Datas no formato AAAA-MM-DD.
 """
 
@@ -261,7 +261,7 @@ class CalendarRow(BaseModel):
     reference_link: str | None = None
     caption: str | None = None
     material_notes: str | None = None
-    status: str = "nao_iniciado"
+    status: str = "producao"
 
 
 @write_tool
@@ -313,7 +313,7 @@ async def create_calendar_entry(
     material_files: list[str] | None = None,
     caption: str | None = None,
     material_notes: str | None = None,
-    status: str = "nao_iniciado",
+    status: str = "producao",
 ) -> dict:
     """Cria uma postagem no calendário. Falha se o mês do cliente estiver finalizado."""
     body = {
@@ -343,7 +343,7 @@ async def update_calendar_entry(
     final_image: Annotated[str | None, Field(description="URL da arte final (entrega)")] = None,
     caption: str | None = None,
     material_notes: str | None = None,
-    status: Annotated[str | None, Field(description="nao_iniciado | feito | aprovado | reprovado | concluido")] = None,
+    status: Annotated[str | None, Field(description="producao | andamento | modificacoes | checagem_aprovacao | finalizados")] = None,
 ) -> dict:
     """Edita uma postagem do calendário. Só os campos informados mudam. Falha se o mês estiver finalizado."""
     body: dict[str, Any] = {

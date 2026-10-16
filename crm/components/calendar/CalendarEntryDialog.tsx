@@ -31,7 +31,7 @@ function buildForm(entry: CalendarEntry | null | undefined, clientId: number, de
     material_files: entry?.material_files ?? [],
     final_image: entry?.final_image ?? null,
     caption: entry?.caption ?? "",
-    status: (entry?.status ?? "nao_iniciado") as CalendarEntryStatus,
+    status: (entry?.status ?? "producao") as CalendarEntryStatus,
   };
 }
 
