@@ -39,7 +39,7 @@ def _key_fingerprint() -> str:
     return f"len={len(key)} termina_em='{key[-4:]}'"
 
 
-async def _request(method: str, path: str, **kwargs: Any) -> httpx.Response:
+async def _request(method: str, path: str, timeout: float = 30.0, **kwargs: Any) -> httpx.Response:
     url = f"{_base_url()}{path}"
     # Diagnóstico temporário de um bug de integração em produção — nunca loga
     # a apikey inteira, só instância/URL/status/fingerprint, pra achar a causa
@@ -52,7 +52,7 @@ async def _request(method: str, path: str, **kwargs: Any) -> httpx.Response:
         _key_fingerprint(),
     )
     try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=timeout) as client:
             response = await client.request(method, url, headers=_headers(), **kwargs)
     except httpx.RequestError as exc:
         logger.warning("Evolution API connection failed: %s %s -> %r", method, url, exc)
@@ -227,10 +227,13 @@ async def fetch_all_groups() -> list[dict[str, Any]]:
     produção: `subject`/`name` sempre vazios pra JID `@g.us`), só o endpoint
     de grupo mesmo tem. `getParticipants=false` porque só o nome importa aqui,
     e a lista de participantes deixaria a resposta bem mais pesada à toa.
+
+    Timeout maior que o padrão: a Evolution consulta o WhatsApp ao vivo aqui
+    (não o banco dela), e com muitos grupos passa fácil de 30s.
     """
     instance = _instance_name()
     response = await _request(
-        "GET", f"/group/fetchAllGroups/{instance}", params={"getParticipants": "false"}
+        "GET", f"/group/fetchAllGroups/{instance}", timeout=90.0, params={"getParticipants": "false"}
     )
     data = response.json()
     return data if isinstance(data, list) else data.get("groups", [])

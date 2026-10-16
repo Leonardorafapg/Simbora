@@ -1,6 +1,7 @@
 import asyncio
 import base64
 import logging
+import time
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, WebSocket, WebSocketDisconnect, status
 from sqlalchemy.orm import Session
@@ -25,6 +26,46 @@ from app.services import whatsapp_store
 logger = logging.getLogger("whatsapp_router")
 
 router = APIRouter()
+
+
+# Nome dos grupos (`subject`) em memória. `fetchAllGroups` consulta o WhatsApp
+# ao vivo e pode levar dezenas de segundos — por isso nunca roda dentro do
+# request da lista: a lista usa o cache e, se ele estiver velho, dispara uma
+# atualização em segundo plano (uma por vez). Na primeira carga o grupo pode
+# aparecer sem nome; na seguinte já vem certo.
+_GROUPS_TTL_SECONDS = 600
+_GROUPS_RETRY_SECONDS = 60
+_group_subjects: dict[str, str] = {}
+_groups_next_refresh = 0.0
+_groups_refresh_task: asyncio.Task | None = None
+
+
+async def _refresh_group_subjects() -> None:
+    global _groups_next_refresh
+    try:
+        subjects: dict[str, str] = {}
+        for group in await evolution_client.fetch_all_groups():
+            jid = group.get("id") or group.get("remoteJid") or ""
+            subject = group.get("subject")
+            if jid and subject:
+                subjects[jid] = subject
+        _group_subjects.clear()
+        _group_subjects.update(subjects)
+        _groups_next_refresh = time.monotonic() + _GROUPS_TTL_SECONDS
+    except Exception as exc:
+        # Falha esperada (timeout da Evolution) — mantém o cache antigo e tenta
+        # de novo daqui a pouco, sem traceback enorme no log.
+        detail = getattr(exc, "detail", None) or repr(exc)
+        logger.warning("Não foi possível buscar grupos na Evolution (mantendo cache): %s", detail)
+        _groups_next_refresh = time.monotonic() + _GROUPS_RETRY_SECONDS
+
+
+def _group_subjects_snapshot() -> dict[str, str]:
+    global _groups_refresh_task
+    refreshing = _groups_refresh_task is not None and not _groups_refresh_task.done()
+    if not refreshing and time.monotonic() >= _groups_next_refresh:
+        _groups_refresh_task = asyncio.create_task(_refresh_group_subjects())
+    return dict(_group_subjects)
 
 
 def _webhook_url() -> str | None:
@@ -197,15 +238,8 @@ async def list_chats(
     # Nome de verdade do grupo — `find_chats` não traz `subject` nessa versão
     # da Evolution (só o endpoint de grupo mesmo tem), por isso a versão
     # anterior caía pro JID cru sempre que o grupo vinha do banco.
-    group_subject_by_jid: dict[str, str] = {}
-    try:
-        for group in await evolution_client.fetch_all_groups():
-            jid = group.get("id") or group.get("remoteJid") or ""
-            subject = group.get("subject")
-            if jid and subject:
-                group_subject_by_jid[jid] = subject
-    except Exception:
-        logger.warning("Não foi possível buscar grupos na Evolution (seguindo sem nome de grupo atualizado).", exc_info=True)
+    # Vem do cache (ver `_group_subjects_snapshot`), nunca trava a lista.
+    group_subject_by_jid = _group_subjects_snapshot()
 
     def _contact_fallback_name(jid: str) -> str | None:
         contact = contact_by_jid.get(jid)
