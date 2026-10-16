@@ -5,7 +5,7 @@ import { X } from "lucide-react";
 import { uploadImage } from "@/services/client/uploadsApi";
 
 type Props = {
-  /** URL da imagem já enviada ao Cloudinary — não é mais base64. */
+  /** URL da imagem já enviada ao R2 — não é mais base64. */
   value: string | null;
   onChange: (url: string | null) => void;
 };
@@ -17,7 +17,7 @@ export default function ImageDropzone({ value, onChange }: Props) {
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState(false);
 
-  // Sem limite de tamanho de propósito — o backend/Cloudinary que dizem
+  // Sem limite de tamanho de propósito — o backend/R2 que dizem
   // a última palavra; se recusar, o erro aparece igual (catch abaixo).
   async function handleFile(file: File | undefined | null) {
     setError(null);
@@ -47,7 +47,7 @@ export default function ImageDropzone({ value, onChange }: Props) {
           onClick={() => setPreview(true)}
           className="block w-full rounded-lg overflow-hidden border border-white/10"
         >
-          {/* eslint-disable-next-line @next/next/no-img-element -- URL externa (Cloudinary), sem loader configurado */}
+          {/* eslint-disable-next-line @next/next/no-img-element -- URL externa (R2), sem loader configurado */}
           <img src={value} alt="Referência" className="w-full max-h-40 object-cover" />
         </button>
         <div className="flex items-center gap-3">
@@ -76,7 +76,7 @@ export default function ImageDropzone({ value, onChange }: Props) {
             >
               <X className="h-6 w-6" />
             </button>
-            {/* eslint-disable-next-line @next/next/no-img-element -- URL externa (Cloudinary), sem loader configurado */}
+            {/* eslint-disable-next-line @next/next/no-img-element -- URL externa (R2), sem loader configurado */}
             <img src={value} alt="Referência" className="max-w-full max-h-full rounded-lg" />
           </div>
         )}

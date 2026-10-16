@@ -3,14 +3,40 @@ async function parseErrorMessage(res: Response, fallback: string) {
   return data.message ?? fallback;
 }
 
-/** Envia a imagem pro Cloudinary (via backend) e devolve a URL definitiva. */
+interface PresignedUpload {
+  upload_url: string;
+  headers: Record<string, string>;
+  url: string;
+}
+
+/**
+ * Envia a imagem direto pro R2 por URL pré-assinada (o arquivo não passa pelo
+ * Next nem pelo backend) e devolve a URL pública definitiva.
+ */
 export async function uploadImage(file: File): Promise<string> {
-  const formData = new FormData();
-  formData.append("file", file);
+  const presignRes = await fetch("/api/uploads/presign", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ content_type: file.type, size: file.size }),
+  });
+  if (!presignRes.ok) {
+    throw new Error(await parseErrorMessage(presignRes, "Não foi possível enviar a imagem."));
+  }
 
-  const res = await fetch("/api/uploads", { method: "POST", body: formData });
-  if (!res.ok) throw new Error(await parseErrorMessage(res, "Não foi possível enviar a imagem."));
+  const presigned: PresignedUpload = await presignRes.json();
 
-  const data: { url: string } = await res.json();
-  return data.url;
+  let putRes: Response;
+  try {
+    putRes = await fetch(presigned.upload_url, {
+      method: "PUT",
+      headers: presigned.headers,
+      body: file,
+    });
+  } catch {
+    // Falha de rede ou CORS do bucket mal configurado — o browser não distingue.
+    throw new Error("Não foi possível enviar a imagem. Verifique sua conexão e tente novamente.");
+  }
+  if (!putRes.ok) throw new Error("O armazenamento recusou a imagem. Tente novamente.");
+
+  return presigned.url;
 }

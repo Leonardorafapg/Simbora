@@ -9,6 +9,6 @@ psycopg2-binary
 pyjwt
 bcrypt
 httpx
-cloudinary
+boto3
 python-multipart
 psycopg[binary]

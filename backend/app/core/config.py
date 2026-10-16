@@ -24,11 +24,18 @@ class Settings(BaseSettings):
     # sem isso a Evolution não tem pra onde mandar o webhook.
     PUBLIC_API_URL: str = ""
 
-    # Cloudinary — armazenamento externo de imagens (substitui base64 no banco).
-    CLOUDINARY_CLOUD_NAME: str = ""
-    CLOUDINARY_API_KEY: str = ""
-    CLOUDINARY_API_SECRET: str = ""
-    CLOUDINARY_FOLDER: str = "simbora-crm"
+    # Cloudflare R2 — armazenamento externo de imagens. O browser envia direto
+    # pro bucket por URL pré-assinada; o banco guarda só a URL pública.
+    R2_ACCOUNT_ID: str = ""
+    R2_ACCESS_KEY_ID: str = ""
+    R2_SECRET_ACCESS_KEY: str = ""
+    R2_BUCKET: str = ""
+    # Base pública do bucket (domínio customizado ou r2.dev), sem barra final.
+    R2_PUBLIC_BASE_URL: str = ""
+    R2_KEY_PREFIX: str = "simbora-crm"
+    R2_PRESIGN_EXPIRES_SECONDS: int = 300
+    # Teto de segurança contra abuso (a URL pré-assinada fixa o tamanho exato).
+    UPLOAD_MAX_BYTES: int = 50 * 1024 * 1024
 
     model_config = SettingsConfigDict(env_file=".env")
 

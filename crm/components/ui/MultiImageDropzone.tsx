@@ -5,7 +5,7 @@ import { X } from "lucide-react";
 import { uploadImage } from "@/services/client/uploadsApi";
 
 type Props = {
-  /** URLs já enviadas ao Cloudinary. */
+  /** URLs já enviadas ao R2. */
   value: string[];
   onChange: (urls: string[]) => void;
 };
@@ -17,7 +17,7 @@ export default function MultiImageDropzone({ value, onChange }: Props) {
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
 
-  // Sem limite de tamanho de propósito — o backend/Cloudinary que dizem
+  // Sem limite de tamanho de propósito — o backend/R2 que dizem
   // a última palavra; se recusar, o erro aparece igual (catch abaixo).
   async function handleFiles(fileList: FileList | null) {
     setError(null);
@@ -32,7 +32,7 @@ export default function MultiImageDropzone({ value, onChange }: Props) {
 
     setUploading(true);
     try {
-      // Sequencial, não paralelo: mantém o backend/Cloudinary sob controle
+      // Sequencial, não paralelo: mantém o backend/R2 sob controle
       // quando alguém solta 5-10 fotos de uma vez.
       const uploaded: string[] = [];
       for (const file of files) {
@@ -57,7 +57,7 @@ export default function MultiImageDropzone({ value, onChange }: Props) {
           {value.map((url, index) => (
             <div key={url} className="relative group rounded-lg overflow-hidden border border-white/10">
               <button type="button" onClick={() => setPreview(url)} className="block w-full h-20">
-                {/* eslint-disable-next-line @next/next/no-img-element -- URL externa (Cloudinary), sem loader configurado */}
+                {/* eslint-disable-next-line @next/next/no-img-element -- URL externa (R2), sem loader configurado */}
                 <img src={url} alt="Material" className="w-full h-full object-cover" />
               </button>
               <button
@@ -123,7 +123,7 @@ export default function MultiImageDropzone({ value, onChange }: Props) {
           >
             <X className="h-6 w-6" />
           </button>
-          {/* eslint-disable-next-line @next/next/no-img-element -- URL externa (Cloudinary), sem loader configurado */}
+          {/* eslint-disable-next-line @next/next/no-img-element -- URL externa (R2), sem loader configurado */}
           <img src={preview} alt="Material" className="max-w-full max-h-full rounded-lg" />
         </div>
       )}
