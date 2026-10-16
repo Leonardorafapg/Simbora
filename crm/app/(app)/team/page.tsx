@@ -1,5 +1,5 @@
 import { getSession } from "@/services/server/auth";
-import { canManageTeam, hasPermission } from "@/lib/permissions";
+import { canManageTeam } from "@/lib/permissions";
 import TeamPageClient from "@/components/team/TeamPageClient";
 
 export default async function TeamPage() {
@@ -8,7 +8,6 @@ export default async function TeamPage() {
   return (
     <TeamPageClient
       canManage={canManageTeam(session?.is_admin)}
-      canViewDemands={hasPermission(session, "demand.view")}
     />
   );
 }

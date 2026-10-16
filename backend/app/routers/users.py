@@ -32,7 +32,7 @@ async def users_directory(
 ):
     """
     Diretório enxuto da equipe pra quem precisa só resolver "quem é o
-    fulano" (atribuir demanda, filtrar por responsável) sem ser admin.
+    fulano" (atribuir postagem, filtrar por responsável) sem ser admin.
     """
     return db.query(User).order_by(User.full_name).all()
 

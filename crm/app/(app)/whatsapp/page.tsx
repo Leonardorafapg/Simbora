@@ -48,7 +48,7 @@ export default function WhatsAppPage() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)]">
+    <div className="flex flex-col flex-1 min-h-0">
       {connected ? (
         <WhatsAppChatLayout onDisconnected={() => setConnected(false)} />
       ) : (

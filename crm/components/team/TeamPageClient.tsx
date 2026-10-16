@@ -11,10 +11,9 @@ import NewTeamMemberDialog from "./NewTeamMemberDialog";
 
 type Props = {
   canManage: boolean;
-  canViewDemands: boolean;
 };
 
-export default function TeamPageClient({ canManage, canViewDemands }: Props) {
+export default function TeamPageClient({ canManage }: Props) {
   const { members, loading, error, create, update, remove } = useTeamMembers();
   const searchParams = useSearchParams();
 
@@ -79,7 +78,6 @@ export default function TeamPageClient({ canManage, canViewDemands }: Props) {
       <TeamMemberDrawer
         member={selected}
         canManage={canManage}
-        canViewDemands={canViewDemands}
         onClose={() => setSelectedId(null)}
         onUpdate={update}
         onRequestDelete={setPendingDelete}

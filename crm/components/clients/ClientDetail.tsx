@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import type { Client, ClientUpdateInput } from "@/types/client";
 import type { TeamMember } from "@/types/team";
 import Field from "@/components/ui/Field";
@@ -8,9 +8,6 @@ import UserSelect from "@/components/ui/UserSelect";
 import Avatar from "@/components/ui/Avatar";
 import ImageDropzone from "@/components/ui/ImageDropzone";
 import ClientCalendar from "@/components/calendar/ClientCalendar";
-import DemandProgressCard from "@/components/demands/DemandProgressCard";
-import { useDemands } from "@/hooks/useDemands";
-import { MONTH_LABELS } from "@/types/calendar";
 
 type CalendarPermissions = {
   canCreate: boolean;
@@ -22,7 +19,6 @@ type Props = {
   client: Client;
   canEdit: boolean;
   canDelete: boolean;
-  canViewDemands: boolean;
   teamMembers: TeamMember[];
   calendarPermissions: CalendarPermissions;
   onBack: () => void;
@@ -34,7 +30,6 @@ export default function ClientDetail({
   client,
   canEdit,
   canDelete,
-  canViewDemands,
   teamMembers,
   calendarPermissions,
   onBack,
@@ -107,22 +102,6 @@ export default function ClientDetail({
 
   const nameOf = (id: number | null) =>
     teamMembers.find((m) => m.id === id)?.full_name ?? "—";
-
-  // Só as demandas com prazo dentro do mês que o calendário ao lado está
-  // mostrando — não o histórico inteiro do cliente. Sem filtro de status:
-  // precisamos de todas pra contar concluídas vs. total.
-  const monthStart = `${calendarYear}-${String(calendarMonth).padStart(2, "0")}-01`;
-  const lastDay = new Date(calendarYear, calendarMonth, 0).getDate();
-  const monthEnd = `${calendarYear}-${String(calendarMonth).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
-
-  const { demands } = useDemands(
-    useMemo(
-      () => ({ client_id: client.id, date_from: monthStart, date_to: monthEnd }),
-      [client.id, monthStart, monthEnd],
-    ),
-  );
-  const completedDemands = useMemo(() => demands.filter((d) => d.status === "concluida").length, [demands]);
-  const demandsLabel = `Demandas do cliente · ${MONTH_LABELS[calendarMonth - 1]}`;
 
   return (
     <>
@@ -265,10 +244,6 @@ export default function ClientDetail({
               </>
             )}
           </div>
-
-          {canViewDemands && (
-            <DemandProgressCard label={demandsLabel} total={demands.length} completed={completedDemands} />
-          )}
 
           {error && <p className="text-sm text-danger max-w-md">{error}</p>}
 

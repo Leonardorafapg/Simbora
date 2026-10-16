@@ -8,7 +8,6 @@ type Props = {
   client: Client | null;
   canEdit: boolean;
   canDelete: boolean;
-  canViewDemands: boolean;
   teamMembers: TeamMember[];
   calendarPermissions: CalendarPermissions;
   onClose: () => void;
@@ -25,7 +24,6 @@ export default function ClientDrawer({
   client,
   canEdit,
   canDelete,
-  canViewDemands,
   teamMembers,
   calendarPermissions,
   onClose,
@@ -46,7 +44,6 @@ export default function ClientDrawer({
             client={client}
             canEdit={canEdit}
             canDelete={canDelete}
-            canViewDemands={canViewDemands}
             teamMembers={teamMembers}
             calendarPermissions={calendarPermissions}
             onBack={onClose}

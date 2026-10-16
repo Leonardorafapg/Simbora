@@ -37,16 +37,16 @@ export default function AppShell({ user, children }: Props) {
   }
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex h-screen w-screen overflow-hidden">
       <Sidebar
         mobileOpen={mobileNavOpen}
         onClose={() => setMobileNavOpen(false)}
         collapsed={collapsed}
         onToggleCollapsed={toggleCollapsed}
       />
-      <div className="flex-1 min-w-0 flex flex-col">
+      <div className="flex-1 min-w-0 min-h-0 flex flex-col">
         <Topbar user={user} onMenuClick={() => setMobileNavOpen(true)} />
-        <main className="flex-1 relative min-w-0">{children}</main>
+        <main className="flex-1 relative min-w-0 min-h-0 overflow-auto flex flex-col">{children}</main>
       </div>
     </div>
   );

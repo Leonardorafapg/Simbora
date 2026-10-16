@@ -16,7 +16,6 @@ type Props = {
   canCreate: boolean;
   canEdit: boolean;
   canDelete: boolean;
-  canViewDemands: boolean;
   calendarPermissions: CalendarPermissions;
 };
 
@@ -24,7 +23,6 @@ export default function ClientPageClient({
   canCreate,
   canEdit,
   canDelete,
-  canViewDemands,
   calendarPermissions,
 }: Props) {
   const { clients, loading, error, create, update, remove } = useClients();
@@ -93,7 +91,6 @@ export default function ClientPageClient({
         client={selected}
         canEdit={canEdit}
         canDelete={canDelete}
-        canViewDemands={canViewDemands}
         teamMembers={teamMembers}
         calendarPermissions={calendarPermissions}
         onClose={() => setSelectedId(null)}

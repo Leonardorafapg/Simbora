@@ -3,13 +3,13 @@ from datetime import date
 from calendar import monthrange
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import inspect, text
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.deps import require_permission
 from app.models.calendar_entry import CalendarEntry
 from app.models.client import Client
-from app.models.demand import Demand
 from app.models.user import User
 from app.routers.calendar_periods import get_period_status
 from app.schemas.calendar_entry import (
@@ -172,10 +172,10 @@ async def delete_calendar_entry(
 
     _ensure_period_editable(db, entry.client_id, entry.scheduled_date)
 
-    # A demanda gerada a partir dessa postagem (se existir) sobrevive à
-    # exclusão do planejamento — só perde o vínculo. Sem isso, apagar a
-    # entrada quebra a FK e derruba a request com 500 (IntegrityError).
-    db.query(Demand).filter(Demand.calendar_entry_id == entry_id).update({"calendar_entry_id": None})
+    # A tabela legada `demands` (módulo removido) ainda pode existir no banco
+    # com FK pra postagem — solta o vínculo, senão apagar daria IntegrityError.
+    if inspect(db.get_bind()).has_table("demands"):
+        db.execute(text("UPDATE demands SET calendar_entry_id = NULL WHERE calendar_entry_id = :id"), {"id": entry_id})
 
     db.delete(entry)
     db.commit()

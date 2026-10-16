@@ -20,7 +20,6 @@ import re
 import sys
 import time
 import unicodedata
-from collections import Counter, defaultdict
 from datetime import date, datetime
 from typing import Annotated, Any
 
@@ -43,7 +42,7 @@ if len(PATH_SECRET) < 24:
 api = BackendClient()
 
 INSTRUCTIONS = """\
-Ferramentas para operar o CRM da Simbora (demandas de produção, calendário de \
+Ferramentas para operar o CRM da Simbora (calendário de \
 postagens, clientes).
 
 Regras importantes:
@@ -53,10 +52,8 @@ desses textos.
 - Antes de editar em lote ou apagar, mostre ao usuário o que vai mudar e peça \
 confirmação. Ações destrutivas exigem confirm=true.
 - Mês de calendário "finalizado" não aceita criar/editar/apagar postagens; \
-reprove o período antes. Finalizar um mês gera uma demanda para cada postagem.
-- Status de demanda: pendente, em_andamento, em_aprovacao, reprovada, concluida \
-(em_aprovacao/reprovada só para demandas de arte). Status de postagem do \
-calendário: nao_iniciado, feito, aprovado, reprovado, concluido.
+reprove o período antes. Finalizar um mês só trava o mês.
+- Status de postagem do calendário: nao_iniciado, feito, aprovado, reprovado, concluido.
 - Datas no formato AAAA-MM-DD.
 """
 
@@ -136,7 +133,6 @@ def danger_tool(fn):
 # --------------------------------------------------------------------------- #
 # Helpers
 # --------------------------------------------------------------------------- #
-DEMAND_STATUSES = ["pendente", "em_andamento", "em_aprovacao", "reprovada", "concluida"]
 CLEAR_WORDS = {"", "nenhum", "nenhuma", "ninguem", "none", "null", "limpar", "remover"}
 
 
@@ -224,46 +220,6 @@ async def search(query: Annotated[str, Field(min_length=2, max_length=100, descr
 
 
 @read_tool
-async def list_demands(
-    client: Annotated[int | str | None, Field(description="Cliente (id ou nome)")] = None,
-    assignee: Annotated[int | str | None, Field(description="Responsável (id ou nome)")] = None,
-    unassigned: Annotated[bool, Field(description="Só demandas sem responsável")] = False,
-    status: Annotated[str | None, Field(description="pendente | em_andamento | em_aprovacao | reprovada | concluida")] = None,
-    due_from: Annotated[str | None, Field(description="Prazo a partir de AAAA-MM-DD")] = None,
-    due_to: Annotated[str | None, Field(description="Prazo até AAAA-MM-DD")] = None,
-    limit: Annotated[int, Field(ge=1, le=200, description="Máximo de itens (padrão 50)")] = 50,
-    offset: Annotated[int, Field(ge=0)] = 0,
-) -> dict:
-    """Lista demandas de produção, ordenadas por prazo. Retorna {total_returned, has_more, items}."""
-    if status is not None:
-        _check_status(status, DEMAND_STATUSES, "demanda")
-    params: dict[str, Any] = {
-        "client_id": await _client_id(client) if client is not None else None,
-        "assignee_id": await _user_id(assignee) if assignee is not None and not unassigned else None,
-        "unassigned": "true" if unassigned else None,
-        "status": status,
-        "date_from": _iso_date(due_from, "due_from") if due_from else None,
-        "date_to": _iso_date(due_to, "due_to") if due_to else None,
-        "limit": limit + 1,  # +1 para saber se tem mais
-        "offset": offset,
-    }
-    items = await api.get("/demands", **params)
-    return {"total_returned": min(len(items), limit), "has_more": len(items) > limit, "items": items[:limit]}
-
-
-@read_tool
-async def get_demand(demand_id: int) -> dict:
-    """Detalhe de uma demanda, incluindo checklist e (se nasceu do calendário) a postagem vinculada."""
-    demand = await api.get(f"/demands/{demand_id}")
-    if demand.get("calendar_entry_id") is not None:
-        try:
-            demand["calendar_entry"] = await api.get(f"/demands/{demand_id}/calendar-entry")
-        except ToolError:
-            demand["calendar_entry"] = None
-    return demand
-
-
-@read_tool
 async def list_calendar_entries(
     client: Annotated[int | str | None, Field(description="Cliente (id ou nome)")] = None,
     month: Annotated[str | None, Field(description="Mês AAAA-MM")] = None,
@@ -287,235 +243,12 @@ async def get_calendar_period(
     client: Annotated[int | str, Field(description="Cliente (id ou nome)")],
     month: Annotated[str, Field(description="Mês AAAA-MM")],
 ) -> dict:
-    """Status do cronograma do mês (em_andamento | finalizado | reprovado) e quantas postagens/demandas ele tem."""
+    """Status do cronograma do mês (em_andamento | finalizado | reprovado) e quantas postagens ele tem."""
     client_id = await _client_id(client)
     year, num = (int(x) for x in month.split("-"))
     period = await api.get("/calendar-periods", client_id=client_id, year=year, month=num)
     entries = await api.get("/calendar-entries", client_id=client_id, month=month)
     return {**period, "entries_count": len(entries)}
-
-
-@read_tool
-async def production_summary(
-    due_from: Annotated[str | None, Field(description="Prazo a partir de AAAA-MM-DD")] = None,
-    due_to: Annotated[str | None, Field(description="Prazo até AAAA-MM-DD")] = None,
-    client: Annotated[int | str | None, Field(description="Filtrar por cliente (id ou nome)")] = None,
-) -> dict:
-    """Resumo da produção: totais por status, atrasadas, concluídas no prazo, tempo médio e carga por responsável/cliente."""
-    params: dict[str, Any] = {
-        "date_from": _iso_date(due_from, "due_from") if due_from else None,
-        "date_to": _iso_date(due_to, "due_to") if due_to else None,
-        "client_id": await _client_id(client) if client is not None else None,
-    }
-    demands = await api.get("/demands", **params)
-    users = {u["id"]: u["full_name"] for u in await api.get("/users/directory")}
-    clients = {c["id"]: c["name"] for c in await api.get("/clients")}
-    today = date.today()
-
-    by_status = Counter(d["status"] for d in demands)
-    overdue = [
-        d for d in demands
-        if d["status"] != "concluida" and d["due_date"] and date.fromisoformat(d["due_date"]) < today
-    ]
-    done = [d for d in demands if d["status"] == "concluida" and d.get("completed_at")]
-    with_deadline = [d for d in done if d["due_date"]]
-    on_time = [
-        d for d in with_deadline
-        if datetime.fromisoformat(d["completed_at"]).date() <= date.fromisoformat(d["due_date"])
-    ]
-    durations = [
-        (datetime.fromisoformat(d["completed_at"]) - datetime.fromisoformat(d["created_at"])).total_seconds() / 86400
-        for d in done
-    ]
-
-    open_by_assignee: dict[str, int] = defaultdict(int)
-    by_client: dict[str, int] = defaultdict(int)
-    for d in demands:
-        if d["status"] != "concluida":
-            open_by_assignee[users.get(d["assignee_id"], "Sem responsável")] += 1
-        by_client[clients.get(d["client_id"], "Sem cliente")] += 1
-
-    return {
-        "total": len(demands),
-        "por_status": dict(by_status),
-        "atrasadas": len(overdue),
-        "atrasadas_ids": [d["id"] for d in overdue][:50],
-        "concluidas": len(done),
-        "concluidas_no_prazo": len(on_time),
-        "taxa_no_prazo": round(len(on_time) / len(with_deadline), 3) if with_deadline else None,
-        "tempo_medio_conclusao_dias": round(sum(durations) / len(durations), 1) if durations else None,
-        "abertas_por_responsavel": dict(sorted(open_by_assignee.items(), key=lambda kv: -kv[1])),
-        "demandas_por_cliente": dict(sorted(by_client.items(), key=lambda kv: -kv[1])),
-    }
-
-
-# --------------------------------------------------------------------------- #
-# Escrita — demandas
-# --------------------------------------------------------------------------- #
-class ChecklistItemIn(BaseModel):
-    text: str
-    done: bool = False
-
-
-@write_tool
-async def create_demand(
-    title: Annotated[str, Field(description="Título da demanda")],
-    client: Annotated[int | str | None, Field(description="Cliente (id ou nome); vazio = demanda genérica")] = None,
-    notes: str | None = None,
-    assignee: Annotated[int | str | None, Field(description="Responsável (id ou nome)")] = None,
-    requester: Annotated[int | str | None, Field(description="Solicitante (id ou nome); padrão = conta do MCP")] = None,
-    due_date: Annotated[str | None, Field(description="Prazo AAAA-MM-DD")] = None,
-    status: str = "pendente",
-    has_material: bool = False,
-    checklist: list[ChecklistItemIn] | None = None,
-) -> dict:
-    """Cria uma demanda de produção solta (não vinculada ao calendário)."""
-    _check_status(status, ["pendente", "em_andamento", "concluida"], "demanda genérica")
-    body: dict[str, Any] = {
-        "title": title,
-        "notes": notes,
-        "status": status,
-        "has_material": has_material,
-        "due_date": _iso_date(due_date, "due_date") if due_date else None,
-        "client_id": await _client_id(client) if client is not None else None,
-        "assignee_id": await _user_id(assignee) if assignee is not None else None,
-        "requester_id": await _user_id(requester) if requester is not None else None,
-        "checklist": [
-            {"id": f"mcp-{int(time.time() * 1000)}-{i}", "text": c.text, "done": c.done}
-            for i, c in enumerate(checklist or [])
-        ],
-    }
-    return await api.post("/demands", body)
-
-
-@write_tool
-async def update_demand(
-    demand_id: int,
-    title: str | None = None,
-    notes: Annotated[str | None, Field(description="Texto vazio limpa as notas")] = None,
-    client: Annotated[int | str | None, Field(description="Cliente (id ou nome)")] = None,
-    assignee: Annotated[int | str | None, Field(description="Responsável (id ou nome); 'nenhum' remove")] = None,
-    requester: Annotated[int | str | None, Field(description="Solicitante (id ou nome)")] = None,
-    status: Annotated[str | None, Field(description="pendente | em_andamento | em_aprovacao | reprovada | concluida")] = None,
-    due_date: Annotated[str | None, Field(description="AAAA-MM-DD; 'nenhum' remove o prazo")] = None,
-    has_material: bool | None = None,
-) -> dict:
-    """Edita campos de uma demanda. Só os campos informados mudam. Retorna o que mudou (de → para)."""
-    body: dict[str, Any] = {}
-    if title is not None:
-        body["title"] = title
-    if notes is not None:
-        body["notes"] = None if _is_clear(notes) and notes.strip() == "" else notes
-    if client is not None:
-        body["client_id"] = None if _is_clear(client) else await _client_id(client)
-    if assignee is not None:
-        body["assignee_id"] = None if _is_clear(assignee) else await _user_id(assignee)
-    if requester is not None:
-        body["requester_id"] = await _user_id(requester)
-    if status is not None:
-        body["status"] = _check_status(status, DEMAND_STATUSES, "demanda")
-    if due_date is not None:
-        body["due_date"] = None if _is_clear(due_date) else _iso_date(due_date, "due_date")
-    if has_material is not None:
-        body["has_material"] = has_material
-    if not body:
-        raise ToolError("Nada para alterar: informe ao menos um campo.")
-
-    before = await api.get(f"/demands/{demand_id}")
-    after = await api.patch(f"/demands/{demand_id}", body)
-    return {"id": demand_id, "mudancas": _diff(before, after), "demanda": after}
-
-
-@write_tool
-async def assign_demand(
-    demand_id: int,
-    assignee: Annotated[int | str, Field(description="Responsável (id ou nome); 'nenhum' remove")],
-) -> dict:
-    """Atribui (ou remove) o responsável de uma demanda."""
-    return await update_demand(demand_id=demand_id, assignee=assignee)
-
-
-@write_tool
-async def set_demand_status(demand_id: int, status: str) -> dict:
-    """Muda o status da demanda. 'concluida' marca a data de conclusão automaticamente; sair dela limpa."""
-    return await update_demand(demand_id=demand_id, status=status)
-
-
-@write_tool
-async def update_demand_checklist(
-    demand_id: int,
-    add: Annotated[list[str] | None, Field(description="Textos de itens novos")] = None,
-    toggle: Annotated[list[str] | None, Field(description="Textos (ou parte) de itens para alternar feito/não feito")] = None,
-    remove: Annotated[list[str] | None, Field(description="Textos (ou parte) de itens para remover")] = None,
-    set_done: Annotated[bool | None, Field(description="Com toggle: força feito=true/false em vez de alternar")] = None,
-) -> dict:
-    """Altera o checklist item a item (a API substitui o array inteiro; aqui lemos, alteramos e regravamos)."""
-    demand = await api.get(f"/demands/{demand_id}")
-    items: list[dict] = list(demand.get("checklist") or [])
-
-    def find(fragment: str) -> list[dict]:
-        needle = _norm(fragment)
-        return [i for i in items if needle in _norm(i["text"])]
-
-    for fragment in remove or []:
-        found = find(fragment)
-        if len(found) != 1:
-            raise ToolError(f"Remover '{fragment}': {len(found)} itens combinam (precisa ser exatamente 1).")
-        items = [i for i in items if i["id"] != found[0]["id"]]
-
-    for fragment in toggle or []:
-        found = find(fragment)
-        if len(found) != 1:
-            raise ToolError(f"Alternar '{fragment}': {len(found)} itens combinam (precisa ser exatamente 1).")
-        found[0]["done"] = (not found[0]["done"]) if set_done is None else set_done
-
-    for index, text in enumerate(add or []):
-        items.append({"id": f"mcp-{int(time.time() * 1000)}-{index}", "text": text, "done": False})
-
-    after = await api.patch(f"/demands/{demand_id}", {"checklist": items})
-    return {"id": demand_id, "checklist": after["checklist"]}
-
-
-@write_tool
-async def update_demand_assets(
-    demand_id: int,
-    reference_image: Annotated[str | None, Field(description="URL da imagem de referência")] = None,
-    material_files: Annotated[list[str] | None, Field(description="Lista COMPLETA de URLs do material (substitui)")] = None,
-    final_image: Annotated[str | None, Field(description="URL da arte final entregue")] = None,
-    caption: Annotated[str | None, Field(description="Legenda final")] = None,
-) -> dict:
-    """Atualiza anexos e entrega da postagem vinculada à demanda (referência, material, arte final, legenda)."""
-    body = {
-        k: v
-        for k, v in {
-            "reference_image": reference_image,
-            "material_files": material_files,
-            "final_image": final_image,
-            "caption": caption,
-        }.items()
-        if v is not None
-    }
-    if not body:
-        raise ToolError("Nada para alterar: informe ao menos um campo.")
-    before = await api.get(f"/demands/{demand_id}/calendar-entry")
-    after = await api.patch(f"/demands/{demand_id}/calendar-entry", body)
-    return {"demand_id": demand_id, "mudancas": _diff(before, after)}
-
-
-@danger_tool
-async def delete_demand(
-    demand_id: int,
-    confirm: Annotated[bool, Field(description="Precisa ser true para apagar")] = False,
-) -> dict:
-    """APAGA uma demanda definitivamente. Mostre ao usuário qual demanda e peça confirmação antes."""
-    demand = await api.get(f"/demands/{demand_id}")
-    if not confirm:
-        raise ToolError(
-            f"Confirmação necessária para apagar a demanda #{demand_id} ('{demand['title']}'). "
-            "Chame de novo com confirm=true depois de confirmar com o usuário."
-        )
-    await api.delete(f"/demands/{demand_id}")
-    return {"deleted": True, "demanda": demand}
 
 
 # --------------------------------------------------------------------------- #
@@ -607,6 +340,7 @@ async def update_calendar_entry(
     reference_link: str | None = None,
     reference_image: str | None = None,
     material_files: Annotated[list[str] | None, Field(description="Lista COMPLETA (substitui)")] = None,
+    final_image: Annotated[str | None, Field(description="URL da arte final (entrega)")] = None,
     caption: str | None = None,
     material_notes: str | None = None,
     status: Annotated[str | None, Field(description="nao_iniciado | feito | aprovado | reprovado | concluido")] = None,
@@ -620,6 +354,7 @@ async def update_calendar_entry(
             "reference_link": reference_link,
             "reference_image": reference_image,
             "material_files": material_files,
+            "final_image": final_image,
             "caption": caption,
             "material_notes": material_notes,
             "status": status,
@@ -641,7 +376,7 @@ async def delete_calendar_entry(
     entry_id: int,
     confirm: Annotated[bool, Field(description="Precisa ser true para apagar")] = False,
 ) -> dict:
-    """APAGA uma postagem do calendário (a demanda vinculada, se houver, só perde o vínculo)."""
+    """APAGA uma postagem do calendário."""
     entry = await api.get(f"/calendar-entries/{entry_id}")
     if not confirm:
         raise ToolError(
@@ -660,8 +395,7 @@ async def set_calendar_period_status(
     confirm: Annotated[bool, Field(description="Obrigatório para 'finalizado'")] = False,
 ) -> dict:
     """
-    Muda o status do cronograma do mês. FINALIZAR trava o mês e GERA uma demanda de arte para cada
-    postagem (prazo = data − 2 dias). Reprovar reabre para edição.
+    Muda o status do cronograma do mês. FINALIZAR trava o mês (nenhuma postagem pode ser criada/editada/apagada). Reprovar reabre para edição.
     """
     if status not in ("em_andamento", "finalizado", "reprovado"):
         raise ToolError("Status inválido. Use: em_andamento, finalizado ou reprovado.")
@@ -671,7 +405,7 @@ async def set_calendar_period_status(
     if status == "finalizado" and not confirm:
         entries = await api.get("/calendar-entries", client_id=client_id, month=month)
         raise ToolError(
-            f"Confirmação necessária: finalizar {month} vai travar o mês e gerar até {len(entries)} demanda(s). "
+            f"Confirmação necessária: finalizar {month} vai travar o mês com {len(entries)} postagem(ns). "
             "Chame de novo com confirm=true depois de confirmar com o usuário."
         )
 
@@ -679,11 +413,7 @@ async def set_calendar_period_status(
     after = await api.put(
         "/calendar-periods", {"client_id": client_id, "year": year, "month": num, "status": status}
     )
-    generated = None
-    if status == "finalizado":
-        demands = await api.get("/demands", client_id=client_id)
-        generated = len([d for d in demands if d.get("calendar_entry_id") is not None])
-    return {"antes": before["status"], "depois": after["status"], "demandas_vinculadas_ao_calendario": generated}
+    return {"antes": before["status"], "depois": after["status"]}
 
 
 @write_tool
@@ -774,8 +504,7 @@ async def delete_client(
     confirm: Annotated[bool, Field(description="Precisa ser true para apagar")] = False,
 ) -> dict:
     """
-    APAGA um cliente definitivamente. Recusa se o cliente tiver postagens no calendário ou demandas
-    (informa quantas) — nesse caso apague/mova esses itens antes, ou desative o cliente com
+    APAGA um cliente definitivamente. Recusa se o cliente tiver postagens no calendário (informa quantas) — nesse caso apague/mova esses itens antes, ou desative o cliente com
     update_client(is_active=false), que preserva o histórico. Peça confirmação ao usuário antes.
     """
     client_id = await _client_id(client)
@@ -783,18 +512,17 @@ async def delete_client(
     target = next(c for c in clients if c["id"] == client_id)
 
     entries = await api.get("/calendar-entries", client_id=client_id)
-    demands = await api.get("/demands", client_id=client_id)
-    if entries or demands:
+    if entries:
         raise ToolError(
-            f"Não dá para apagar '{target['name']}' (id {client_id}): tem {len(entries)} postagem(ns) no calendário "
-            f"e {len(demands)} demanda(s). Apague esses itens antes, ou desative o cliente com "
+            f"Não dá para apagar '{target['name']}' (id {client_id}): tem {len(entries)} postagem(ns) no calendário. "
+            f"Apague esses itens antes, ou desative o cliente com "
             "update_client(is_active=false) para manter o histórico."
         )
 
     if not confirm:
         raise ToolError(
             f"Confirmação necessária para apagar o cliente '{target['name']}' (id {client_id}), que não tem "
-            "postagens nem demandas. Chame de novo com confirm=true depois de confirmar com o usuário."
+            "postagens. Chame de novo com confirm=true depois de confirmar com o usuário."
         )
 
     await api.delete(f"/clients/{client_id}")

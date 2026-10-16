@@ -31,6 +31,7 @@ class CalendarEntryCreate(BaseModel):
     reference_link: str | None = None
     reference_image: str | None = None
     material_files: list[str] = []
+    final_image: str | None = None
     caption: str | None = None
     material_notes: str | None = None
     status: str = "nao_iniciado"
@@ -59,6 +60,7 @@ class CalendarEntryUpdate(BaseModel):
     reference_link: str | None = None
     reference_image: str | None = None
     material_files: list[str] | None = None
+    final_image: str | None = None
     caption: str | None = None
     material_notes: str | None = None
     status: str | None = None
@@ -116,17 +118,3 @@ class CalendarEntryBulkResult(BaseModel):
     count: int
     entries: list[CalendarEntryOut]
 
-
-class DemandAssetsUpdate(BaseModel):
-    """
-    Só os campos de imagem/legenda da postagem — o que dá pra editar via o
-    drawer da demanda (anexos + entrega). Schema separado de
-    CalendarEntryUpdate de propósito: quem tem `demand.edit` não
-    necessariamente tem `calendar.edit` (não deve poder mexer em
-    data/tema/cliente do planejamento, só nos anexos e no que entrega).
-    """
-
-    reference_image: str | None = None
-    material_files: list[str] | None = None
-    final_image: str | None = None
-    caption: str | None = None

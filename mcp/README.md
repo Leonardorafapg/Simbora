@@ -18,8 +18,8 @@ URL do conector: `https://<domínio>/<MCP_PATH_SECRET>/mcp` — trate a URL inte
 ## Permissões mínimas da conta de serviço
 
 `client.view`, `client.create`, `client.edit`, `calendar.view`, `calendar.create`, `calendar.edit`,
-`demand.view`, `demand.create`, `demand.edit`. Para gestão de equipe: `team.view`, `team.create`,
-`team.edit`. Para habilitar as tools de apagar: `calendar.delete` e `demand.delete`.
+Para gestão de equipe: `team.view`, `team.create`,
+`team.edit`. Para habilitar as tools de apagar: `calendar.delete`.
 
 ## Rodar local
 
@@ -31,11 +31,10 @@ MCP_PATH_SECRET=<24+ chars> PORT=8100 python server.py
 
 ## Tools
 
-Leitura: `list_clients`, `list_team`, `search`, `list_demands`, `get_demand`,
-`list_calendar_entries`, `get_calendar_entry`, `get_calendar_period`, `production_summary`.
+Leitura: `list_clients`, `list_team`, `search`,
+`list_calendar_entries`, `get_calendar_entry`, `get_calendar_period`.
 
-Escrita: `create_demand`, `update_demand`, `assign_demand`, `set_demand_status`,
-`update_demand_checklist`, `update_demand_assets`, `create_calendar_entry`,
+Escrita: `create_calendar_entry`,
 `update_calendar_entry`, `import_calendar` (prévia por padrão), `upload_image_from_url`,
 `create_client`, `update_client`.
 
@@ -44,8 +43,8 @@ Equipe (perfil, nunca senha): `list_team_members`, `list_permissions`, `create_t
 um admin define a senha no painel (Equipe → membro → Alterar senha). Nunca cria/edita administrador,
 não concede permissão que a conta de serviço não tem e não edita a si mesma.
 
-Exigem `confirm=true`: `delete_demand`, `delete_calendar_entry`, `delete_client` (recusa se o cliente
-tiver postagens ou demandas; exige a permissão `client.delete`), e `set_calendar_period_status`
-ao finalizar (trava o mês e gera uma demanda por postagem).
+Exigem `confirm=true`: `delete_calendar_entry`, `delete_client` (recusa se o cliente
+tiver postagens; exige a permissão `client.delete`), e `set_calendar_period_status`
+ao finalizar (trava o mês).
 
 Cada chamada gera uma linha de log JSON (`"audit": "mcp_tool"`) com tool, argumentos, resultado e tempo.

@@ -16,17 +16,15 @@ class CalendarEntry(Base):
     format: Mapped[str] = mapped_column(String(30), nullable=False)
     execution_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     reference_link: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    # URL (Cloudinary) da imagem de referência que o social sobe ao planejar
+    # URL (R2) da imagem de referência que o social sobe ao planejar
     # a postagem — só aparece no drawer de detalhe, nunca em relatório/
     # impressão/PDF/calendário.
     reference_image: Mapped[str | None] = mapped_column(Text, nullable=True)
-    # Lista de URLs (Cloudinary) do material bruto que o social sobe pro
+    # Lista de URLs (R2) do material bruto que o social sobe pro
     # designer usar na arte (fotos, prints, etc.) — diferente de
     # reference_image, que é só inspiração/referência visual.
     material_files: Mapped[list] = mapped_column(JSONText, default=list, nullable=False)
-    # URL (Cloudinary) da arte finalizada que o designer entrega via o
-    # drawer da demanda vinculada — preenchido só depois que a demanda de
-    # arte é concluída, não no planejamento da postagem.
+    # URL (R2) da arte finalizada que o designer entrega pelo drawer da postagem.
     final_image: Mapped[str | None] = mapped_column(Text, nullable=True)
     caption: Mapped[str | None] = mapped_column(Text, nullable=True)
     # Markdown livre respondendo "já tem material?" — sem UI própria ainda,

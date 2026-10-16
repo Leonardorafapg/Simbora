@@ -85,7 +85,7 @@ async def delete_client(
         db.commit()
     except IntegrityError:
         # Cliente com postagens no calendário (client_id NOT NULL lá) ou
-        # demandas vinculadas não pode ser apagado — a FK barra no banco e
+        # vínculos legados não pode ser apagado — a FK barra no banco e
         # sem esse catch virava 500 cru. Orientação: desativar em vez de
         # apagar, sem perder o histórico de calendário/produção do cliente.
         db.rollback()

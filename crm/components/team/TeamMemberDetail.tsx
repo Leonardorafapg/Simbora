@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import type { TeamMember, TeamMemberUpdateInput } from "@/types/team";
 import { formatCpf, formatDate } from "@/lib/format";
 import { PERMISSIONS } from "@/lib/permissions";
@@ -8,14 +8,11 @@ import Avatar from "@/components/ui/Avatar";
 import Field from "@/components/ui/Field";
 import Switch from "@/components/ui/Switch";
 import ImageDropzone from "@/components/ui/ImageDropzone";
-import DemandProgressCard from "@/components/demands/DemandProgressCard";
 import ChangePasswordForm from "./ChangePasswordForm";
-import { useDemands } from "@/hooks/useDemands";
 
 type Props = {
   member: TeamMember;
   canManage: boolean;
-  canViewDemands: boolean;
   onBack: () => void;
   onUpdate: (id: number, input: TeamMemberUpdateInput) => Promise<TeamMember>;
   onRequestDelete: (member: TeamMember) => void;
@@ -24,14 +21,11 @@ type Props = {
 export default function TeamMemberDetail({
   member,
   canManage,
-  canViewDemands,
   onBack,
   onUpdate,
   onRequestDelete,
 }: Props) {
   // Sem filtro de status: precisamos de todas pra contar concluídas vs. total.
-  const { demands } = useDemands(useMemo(() => ({ assignee_id: member.id }), [member.id]));
-  const completedDemands = useMemo(() => demands.filter((d) => d.status === "concluida").length, [demands]);
   // Montado com `key={member.id}` pelo drawer, então o estado inicial já
   // reflete o membro selecionado — sem useEffect de sincronização.
   const [editing, setEditing] = useState(false);
@@ -217,12 +211,6 @@ export default function TeamMemberDetail({
             </div>
           )}
         </div>
-
-        {canViewDemands && (
-          <div className="max-w-md">
-            <DemandProgressCard label="Demandas do responsável" total={demands.length} completed={completedDemands} />
-          </div>
-        )}
 
         {error && <p className="text-sm text-danger max-w-md">{error}</p>}
 
