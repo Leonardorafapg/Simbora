@@ -20,7 +20,10 @@ function currentMonth() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
-/** Quadro de produção: cada postagem do calendário é um card, arrastado entre os quadros. */
+/**
+ * Quadro de produção: cada postagem do calendário é um card, arrastado entre os quadros.
+ * Só entram postagens de cronogramas finalizados (aprovados) — o resto ainda está em planejamento.
+ */
 export default function ProductionBoard({ canEdit, canDelete }: Props) {
   const [clientId, setClientId] = useState<number | undefined>(undefined);
   const [month, setMonth] = useState(currentMonth());
@@ -29,7 +32,7 @@ export default function ProductionBoard({ canEdit, canDelete }: Props) {
   const [deleting, setDeleting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  const { entries, loading, error, create, update, remove } = useCalendarEntries(clientId, month);
+  const { entries, loading, error, create, update, remove } = useCalendarEntries(clientId, month, "finalizado");
   const { clients } = useClients();
 
   // Distância mínima antes de considerar "arrastando" — sem isso, todo

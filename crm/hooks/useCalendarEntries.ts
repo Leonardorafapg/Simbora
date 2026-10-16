@@ -10,7 +10,8 @@ import {
 import type { CalendarEntry, CalendarEntryCreateInput, CalendarEntryUpdateInput } from "@/types/calendar";
 
 /** `month` no formato YYYY-MM. `clientId` undefined = todos os clientes. */
-export function useCalendarEntries(clientId: number | undefined, month: string) {
+/** `periodStatus` filtra por status do cronograma do mês do cliente (ex.: "finalizado"). */
+export function useCalendarEntries(clientId: number | undefined, month: string, periodStatus?: string) {
   const [entries, setEntries] = useState<CalendarEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -21,7 +22,7 @@ export function useCalendarEntries(clientId: number | undefined, month: string) 
     (async () => {
       setLoading(true);
       try {
-        const data = await fetchCalendarEntries({ clientId, month });
+        const data = await fetchCalendarEntries({ clientId, month, periodStatus });
         if (cancelled) return;
         setEntries(data);
         setError(null);
@@ -35,7 +36,7 @@ export function useCalendarEntries(clientId: number | undefined, month: string) 
     return () => {
       cancelled = true;
     };
-  }, [clientId, month]);
+  }, [clientId, month, periodStatus]);
 
   async function create(input: CalendarEntryCreateInput) {
     const entry = await createCalendarEntry(input);

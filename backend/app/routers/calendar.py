@@ -3,12 +3,13 @@ from datetime import date
 from calendar import monthrange
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import inspect, text
+from sqlalchemy import and_, exists, extract, inspect, text
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.deps import require_permission
 from app.models.calendar_entry import CalendarEntry
+from app.models.calendar_period import CalendarPeriod
 from app.models.client import Client
 from app.models.user import User
 from app.routers.calendar_periods import get_period_status
@@ -32,14 +33,41 @@ def _ensure_period_editable(db: Session, client_id: int, entry_date: date) -> No
         )
 
 
+# Campos de planejamento: travados quando o cronograma do mês está finalizado.
+# Status, arte final e legenda (fluxo de produção) continuam editáveis.
+PLANNING_FIELDS = (
+    "client_id",
+    "scheduled_date",
+    "theme",
+    "execution_notes",
+    "reference_link",
+    "reference_image",
+    "material_files",
+    "material_notes",
+)
+
+
 @router.get("/calendar-entries", response_model=list[CalendarEntryOut])
 async def list_calendar_entries(
     client_id: int | None = Query(default=None),
     month: str | None = Query(default=None, description="YYYY-MM"),
+    period_status: str | None = Query(default=None, description="Só postagens cujo mês do cliente está nesse status"),
     db: Session = Depends(get_db),
     _: User = Depends(require_permission("calendar.view")),
 ):
     query = db.query(CalendarEntry)
+
+    if period_status is not None:
+        query = query.filter(
+            exists().where(
+                and_(
+                    CalendarPeriod.client_id == CalendarEntry.client_id,
+                    CalendarPeriod.year == extract("year", CalendarEntry.scheduled_date),
+                    CalendarPeriod.month == extract("month", CalendarEntry.scheduled_date),
+                    CalendarPeriod.status == period_status,
+                )
+            )
+        )
 
     if client_id is not None:
         query = query.filter(CalendarEntry.client_id == client_id)
@@ -145,9 +173,16 @@ async def update_calendar_entry(
     if entry is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Entrada não encontrada")
 
-    _ensure_period_editable(db, entry.client_id, entry.scheduled_date)
-
     data = payload.model_dump(exclude_unset=True)
+
+    # Mês finalizado só aceita mudanças do fluxo de produção (status, arte
+    # final, legenda); o planejamento fica travado. Reenviar o mesmo valor
+    # de um campo de planejamento é aceito (o drawer manda o form inteiro).
+    if any(
+        field in data and data[field] != getattr(entry, field)
+        for field in PLANNING_FIELDS
+    ):
+        _ensure_period_editable(db, entry.client_id, entry.scheduled_date)
 
     if "client_id" in data and db.get(Client, data["client_id"]) is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cliente inválido")

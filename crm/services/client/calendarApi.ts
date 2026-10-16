@@ -5,10 +5,11 @@ async function parseErrorMessage(res: Response, fallback: string) {
   return data.message ?? fallback;
 }
 
-export async function fetchCalendarEntries(params: { clientId?: number; month?: string }): Promise<CalendarEntry[]> {
+export async function fetchCalendarEntries(params: { clientId?: number; month?: string; periodStatus?: string }): Promise<CalendarEntry[]> {
   const query = new URLSearchParams();
   if (params.clientId) query.set("client_id", String(params.clientId));
   if (params.month) query.set("month", params.month);
+  if (params.periodStatus) query.set("period_status", params.periodStatus);
 
   const res = await fetch(`/api/calendar?${query.toString()}`);
   if (!res.ok) throw new Error(await parseErrorMessage(res, "Não foi possível carregar o calendário."));
