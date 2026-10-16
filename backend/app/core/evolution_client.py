@@ -185,7 +185,14 @@ async def set_webhook(webhook_url: str) -> None:
                     "enabled": True,
                     "url": webhook_url,
                     "webhookByEvents": True,
-                    "events": ["MESSAGES_UPSERT", "MESSAGES_UPDATE", "CONNECTION_UPDATE", "PRESENCE_UPDATE"],
+                    "events": [
+                        "MESSAGES_UPSERT",
+                        "MESSAGES_UPDATE",
+                        "CONNECTION_UPDATE",
+                        "PRESENCE_UPDATE",
+                        "LABELS_ASSOCIATION",
+                        "LABELS_EDIT",
+                    ],
                     "headers": {"x-webhook-secret": settings.EVOLUTION_WEBHOOK_SECRET or ""},
                 }
             },
@@ -237,6 +244,15 @@ async def fetch_all_groups() -> list[dict[str, Any]]:
     )
     data = response.json()
     return data if isinstance(data, list) else data.get("groups", [])
+
+
+async def find_labels() -> list[dict[str, Any]]:
+    """Etiquetas do WhatsApp Business (id, name, color 0-19) — só o catálogo;
+    quem tem cada etiqueta chega pelo webhook LABELS_ASSOCIATION."""
+    instance = _instance_name()
+    response = await _request("GET", f"/label/findLabels/{instance}", timeout=15.0)
+    data = response.json()
+    return data if isinstance(data, list) else data.get("labels", [])
 
 
 async def find_contacts() -> list[dict[str, Any]]:

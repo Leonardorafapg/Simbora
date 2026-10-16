@@ -1,7 +1,9 @@
 import asyncio
 import base64
 import logging
+import re
 import time
+import unicodedata
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, WebSocket, WebSocketDisconnect, status
 from sqlalchemy.orm import Session
@@ -12,12 +14,14 @@ from app.core.database import get_db
 from app.core.deps import require_permission
 from app.core.security import decode_access_token
 from app.core.ws_manager import manager as ws_manager
+from app.models.client import Client
 from app.models.user import User
 from app.schemas.whatsapp import (
     QRCodeResponse,
     SendMessageInput,
     TypingInput,
     WhatsAppChat,
+    WhatsAppLabel,
     WhatsAppMessage,
     WhatsAppStatus,
 )
@@ -28,29 +32,31 @@ logger = logging.getLogger("whatsapp_router")
 router = APIRouter()
 
 
-# Nome dos grupos (`subject`) em memória. `fetchAllGroups` consulta o WhatsApp
-# ao vivo e pode levar dezenas de segundos — por isso nunca roda dentro do
-# request da lista: a lista usa o cache e, se ele estiver velho, dispara uma
-# atualização em segundo plano (uma por vez). Na primeira carga o grupo pode
-# aparecer sem nome; na seguinte já vem certo.
+# Dados completos dos grupos (tamanho, descrição, assunto) em memória.
+# `fetchAllGroups` consulta o WhatsApp ao vivo e leva até ~2 min com muitos
+# grupos — por isso nunca roda dentro do request da lista: a lista usa o cache
+# e, se ele estiver velho, dispara uma atualização em segundo plano (uma por
+# vez). O NOME do grupo não depende disso: vem do `findContacts`, que é rápido.
 _GROUPS_TTL_SECONDS = 600
 _GROUPS_RETRY_SECONDS = 60
-_group_subjects: dict[str, str] = {}
+_group_info: dict[str, dict] = {}
 _groups_next_refresh = 0.0
 _groups_refresh_task: asyncio.Task | None = None
+# Webhook registrado neste processo? Garante que instância já conectada antes
+# de um deploy passe a receber eventos novos (ex.: etiquetas) sem reconectar.
+_webhook_synced = False
 
 
-async def _refresh_group_subjects() -> None:
+async def _refresh_group_info() -> None:
     global _groups_next_refresh
     try:
-        subjects: dict[str, str] = {}
+        info: dict[str, dict] = {}
         for group in await evolution_client.fetch_all_groups():
             jid = group.get("id") or group.get("remoteJid") or ""
-            subject = group.get("subject")
-            if jid and subject:
-                subjects[jid] = subject
-        _group_subjects.clear()
-        _group_subjects.update(subjects)
+            if jid:
+                info[jid] = group
+        _group_info.clear()
+        _group_info.update(info)
         _groups_next_refresh = time.monotonic() + _GROUPS_TTL_SECONDS
     except Exception as exc:
         # Falha esperada (timeout da Evolution) — mantém o cache antigo e tenta
@@ -60,12 +66,69 @@ async def _refresh_group_subjects() -> None:
         _groups_next_refresh = time.monotonic() + _GROUPS_RETRY_SECONDS
 
 
-def _group_subjects_snapshot() -> dict[str, str]:
+def _group_info_snapshot() -> dict[str, dict]:
     global _groups_refresh_task
     refreshing = _groups_refresh_task is not None and not _groups_refresh_task.done()
     if not refreshing and time.monotonic() >= _groups_next_refresh:
-        _groups_refresh_task = asyncio.create_task(_refresh_group_subjects())
-    return dict(_group_subjects)
+        _groups_refresh_task = asyncio.create_task(_refresh_group_info())
+    return dict(_group_info)
+
+
+def _normalize(text: str) -> str:
+    text = unicodedata.normalize("NFKD", text)
+    text = "".join(ch for ch in text if not unicodedata.combining(ch))
+    return " ".join(re.sub(r"[^a-z0-9]+", " ", text.lower()).split())
+
+
+def _group_jid(value: str | None) -> str | None:
+    """`whatsapp_group_id` do cliente aceita o JID inteiro ou só o número."""
+    value = (value or "").strip()
+    if not value:
+        return None
+    return value if "@" in value else f"{value}@g.us"
+
+
+class _ClientMatcher:
+    """Liga conversa -> cliente do CRM. Primeiro pelo `whatsapp_group_id`
+    (vínculo explícito); sem isso, pelo nome do cliente aparecer no nome do
+    grupo (ex.: "MKT BANGALÔ NORDESTE" -> BANGALÔ NORDESTE), escolhendo o nome
+    mais longo pra "FERREIRO GRILL IMPERATRIZ" não cair em "FERREIRO GRILL"."""
+
+    def __init__(self, clients: list[Client]):
+        self.by_jid = {jid: c for c in clients if (jid := _group_jid(c.whatsapp_group_id))}
+        self.by_name = sorted(
+            ((_normalize(c.name), c) for c in clients if c.name and len(_normalize(c.name)) >= 4),
+            key=lambda item: len(item[0]),
+            reverse=True,
+        )
+
+    def match(self, jid: str, name: str | None) -> tuple[Client | None, bool]:
+        if jid in self.by_jid:
+            return self.by_jid[jid], True
+        if not jid.endswith("@g.us") or not name:
+            return None, False
+        haystack = f" {_normalize(name)} "
+        for needle, client in self.by_name:
+            if f" {needle} " in haystack:
+                return client, False
+        return None, False
+
+
+def _phone_from_jid(jid: str) -> str | None:
+    if not jid.endswith("@s.whatsapp.net"):
+        return None
+    number = jid.split("@", 1)[0]
+    # "0@s.whatsapp.net" e afins são contas de sistema, não telefone.
+    return f"+{number}" if number.isdigit() and len(number) >= 8 else None
+
+
+async def _safe(coro, what: str) -> list[dict]:
+    try:
+        return await coro
+    except Exception as exc:
+        detail = getattr(exc, "detail", None) or repr(exc)
+        logger.warning("Não foi possível buscar %s na Evolution (seguindo sem): %s", what, detail)
+        return []
 
 
 def _webhook_url() -> str | None:
@@ -172,7 +235,15 @@ def _map_message_from_evolution(raw: dict) -> WhatsAppMessage:
 async def get_status(
     _: User = Depends(require_permission("whatsapp.view")),
 ):
+    global _webhook_synced
     state = await evolution_client.get_connection_state()
+    if state == "open" and not _webhook_synced:
+        # Uma vez por processo (todo deploy): reaplica a lista de eventos do
+        # webhook sem precisar desconectar o WhatsApp.
+        webhook_url = _webhook_url()
+        if webhook_url:
+            await evolution_client.set_webhook(webhook_url)
+            _webhook_synced = True
     return WhatsAppStatus(connected=state == "open", state=state)
 
 
@@ -214,72 +285,91 @@ async def list_chats(
     db_chats = whatsapp_store.list_chats(db)
     db_by_jid = {c["remote_jid"]: c for c in db_chats}
 
+    # As três chamadas são independentes — em paralelo, não uma atrás da outra.
+    raw_chats, raw_contacts, raw_labels = await asyncio.gather(
+        _safe(evolution_client.find_chats(), "conversas"),
+        _safe(evolution_client.find_contacts(), "contatos"),
+        _safe(evolution_client.find_labels(), "etiquetas"),
+    )
+
     raw_by_jid: dict[str, dict] = {}
-    try:
-        for raw in await evolution_client.find_chats():
-            jid = raw.get("remoteJid") or raw.get("id") or ""
-            if jid:
-                raw_by_jid[jid] = raw
-    except Exception:
-        logger.warning("Não foi possível buscar conversas na Evolution (seguindo só com o banco).", exc_info=True)
+    for raw in raw_chats:
+        jid = raw.get("remoteJid") or raw.get("id") or ""
+        if jid:
+            raw_by_jid[jid] = raw
 
-    # Nome salvo na agenda — único jeito de nomear um contato individual que
-    # nunca mandou mensagem pra gente ainda (chat só existe porque enviamos
-    # primeiro), já que aí não há `sender_name` nenhum no banco pra usar.
+    # Nome salvo na agenda / nome do grupo. `findContacts` traz os grupos
+    # também (type "group", nome em `pushName`) e responde na hora — é a fonte
+    # principal de nome de grupo; `fetchAllGroups` (lento) só complementa.
     contact_by_jid: dict[str, dict] = {}
-    try:
-        for contact in await evolution_client.find_contacts():
-            jid = contact.get("remoteJid") or contact.get("id") or ""
-            if jid:
-                contact_by_jid[jid] = contact
-    except Exception:
-        logger.warning("Não foi possível buscar contatos na Evolution (seguindo sem nome da agenda).", exc_info=True)
+    for contact in raw_contacts:
+        jid = contact.get("remoteJid") or contact.get("id") or ""
+        if jid:
+            contact_by_jid[jid] = contact
 
-    # Nome de verdade do grupo — `find_chats` não traz `subject` nessa versão
-    # da Evolution (só o endpoint de grupo mesmo tem), por isso a versão
-    # anterior caía pro JID cru sempre que o grupo vinha do banco.
-    # Vem do cache (ver `_group_subjects_snapshot`), nunca trava a lista.
-    group_subject_by_jid = _group_subjects_snapshot()
+    label_by_id = {
+        str(label["id"]): WhatsAppLabel(
+            id=str(label["id"]), name=label.get("name") or "", color=int(label.get("color") or 0)
+        )
+        for label in raw_labels
+        if label.get("id") is not None
+    }
+    label_ids_by_jid = whatsapp_store.chat_label_ids(db)
+    group_info = _group_info_snapshot()
+    matcher = _ClientMatcher(db.query(Client).filter(Client.is_active.is_(True)).all())
 
-    def _contact_fallback_name(jid: str) -> str | None:
+    def _contact_name(jid: str) -> str | None:
         contact = contact_by_jid.get(jid)
         if not contact:
             return None
         return contact.get("pushName") or contact.get("name")
 
+    def _enrich(chat: WhatsAppChat) -> WhatsAppChat:
+        jid = chat.remote_jid
+        contact = contact_by_jid.get(jid) or {}
+        if chat.is_group:
+            info = group_info.get(jid) or {}
+            own_name = chat.name if chat.name and chat.name != jid else None
+            chat.name = info.get("subject") or _contact_name(jid) or own_name or jid
+            chat.group_size = info.get("size")
+            chat.group_description = info.get("desc")
+            chat.profile_pic_url = chat.profile_pic_url or info.get("pictureUrl") or contact.get("profilePicUrl")
+        else:
+            if not chat.name or chat.name == jid:
+                chat.name = _contact_name(jid) or jid
+            chat.phone = _phone_from_jid(jid)
+            if chat.name == jid and chat.phone:
+                chat.name = chat.phone
+            chat.profile_pic_url = chat.profile_pic_url or contact.get("profilePicUrl")
+        chat.labels = [label_by_id[i] for i in label_ids_by_jid.get(jid, []) if i in label_by_id]
+        client, linked = matcher.match(jid, chat.name)
+        if client:
+            chat.client_id, chat.client_name, chat.client_linked = client.id, client.name, linked
+        return chat
+
     result = []
     for jid, chat in db_by_jid.items():
         raw = raw_by_jid.pop(jid, {})
-        # Nome do grupo primeiro sempre que for grupo — `chat["name"]` do
-        # banco nunca vem preenchido pra grupo (whatsapp_store.list_chats já
-        # filtra isso), mas a ordem aqui garante o mesmo mesmo se isso mudar.
-        if chat["is_group"]:
-            name = group_subject_by_jid.get(jid) or _resolve_chat_name(raw, True, jid)
-        else:
-            name = chat["name"] or _contact_fallback_name(jid) or _resolve_chat_name(raw, False, jid)
         result.append(
-            WhatsAppChat(
-                remote_jid=jid,
-                name=name,
-                is_group=chat["is_group"],
-                last_message=chat["last_message"],
-                unread_count=chat["unread_count"],
-                profile_pic_url=raw.get("profilePicUrl") or raw.get("profile_pic_url"),
-                updated_at=str(chat["updated_at"]) if chat["updated_at"] else None,
+            _enrich(
+                WhatsAppChat(
+                    remote_jid=jid,
+                    # Grupo: o nome salvo no banco é de quem mandou, não do
+                    # grupo — _enrich resolve o nome certo.
+                    name=None if chat["is_group"] else chat["name"],
+                    is_group=chat["is_group"],
+                    last_message=chat["last_message"],
+                    unread_count=chat["unread_count"],
+                    profile_pic_url=raw.get("profilePicUrl") or raw.get("profile_pic_url"),
+                    updated_at=str(chat["updated_at"]) if chat["updated_at"] else None,
+                )
             )
         )
 
     # Sobrou na Evolution e não no banco: conversa que ainda não passou pelo
     # webhook nenhuma vez — mostra do jeito antigo (sem tempo real ainda).
-    for jid, raw in raw_by_jid.items():
-        chat = _map_chat_from_evolution(raw)
-        if chat.is_group:
-            chat.name = group_subject_by_jid.get(jid) or chat.name
-        elif chat.name == jid:
-            fallback = _contact_fallback_name(jid)
-            if fallback:
-                chat.name = fallback
-        result.append(chat)
+    for raw in raw_by_jid.values():
+        result.append(_enrich(_map_chat_from_evolution(raw)))
 
     def _sort_key(chat: WhatsAppChat) -> float:
         # `updated_at` mistura dois formatos (epoch do banco, ISO da Evolution

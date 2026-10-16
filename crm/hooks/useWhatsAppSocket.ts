@@ -6,6 +6,7 @@ import type { WhatsAppMessage } from "@/types/whatsapp";
 type Handlers = {
   onMessage?: (message: WhatsAppMessage) => void;
   onPresence?: (remoteJid: string, presence: string | null) => void;
+  onLabelsChanged?: () => void;
 };
 
 /** Conecta ao WS do WhatsApp só enquanto `enabled` (ex.: conectado ao WhatsApp
@@ -44,6 +45,7 @@ export function useWhatsAppSocket(enabled: boolean, handlers: Handlers) {
             const data = JSON.parse(event.data);
             if (data.type === "whatsapp_message") handlersRef.current.onMessage?.(data.message);
             if (data.type === "whatsapp_presence") handlersRef.current.onPresence?.(data.remote_jid, data.presence);
+            if (data.type === "whatsapp_labels_changed") handlersRef.current.onLabelsChanged?.();
           } catch {
             // mensagem que não é JSON válido (não deveria acontecer) — ignora.
           }

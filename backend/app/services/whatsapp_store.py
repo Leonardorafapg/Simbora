@@ -11,6 +11,7 @@ from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.models.whatsapp_chat_label import WhatsAppChatLabel
 from app.models.whatsapp_message import WhatsAppMessage
 
 
@@ -155,3 +156,34 @@ def list_chats(db: Session) -> list[dict[str, Any]]:
     ]
     chats.sort(key=lambda c: c["updated_at"], reverse=True)
     return chats
+
+
+def set_chat_label(db: Session, remote_jid: str, label_id: str, applied: bool) -> None:
+    """Aplica/remove uma etiqueta numa conversa (idempotente nos dois sentidos)."""
+    existing = (
+        db.query(WhatsAppChatLabel)
+        .filter(WhatsAppChatLabel.remote_jid == remote_jid, WhatsAppChatLabel.label_id == label_id)
+        .first()
+    )
+    if applied and not existing:
+        db.add(WhatsAppChatLabel(remote_jid=remote_jid, label_id=label_id))
+        try:
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+    elif not applied and existing:
+        db.delete(existing)
+        db.commit()
+
+
+def delete_label(db: Session, label_id: str) -> None:
+    """Etiqueta apagada no celular — some de todas as conversas."""
+    db.query(WhatsAppChatLabel).filter(WhatsAppChatLabel.label_id == label_id).delete()
+    db.commit()
+
+
+def chat_label_ids(db: Session) -> dict[str, list[str]]:
+    result: dict[str, list[str]] = {}
+    for row in db.query(WhatsAppChatLabel).all():
+        result.setdefault(row.remote_jid, []).append(row.label_id)
+    return result

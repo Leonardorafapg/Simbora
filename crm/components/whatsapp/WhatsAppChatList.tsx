@@ -1,8 +1,9 @@
 "use client";
 
-import { Users } from "lucide-react";
+import { Building2, Users } from "lucide-react";
 import Avatar from "@/components/ui/Avatar";
 import type { WhatsAppChat } from "@/types/whatsapp";
+import WhatsAppLabelChip from "@/components/whatsapp/WhatsAppLabelChip";
 
 type Props = {
   chats: WhatsAppChat[];
@@ -51,7 +52,25 @@ export default function WhatsAppChatList({ chats, loading, selectedJid, onSelect
 
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-white truncate">{chat.name ?? chat.remote_jid}</p>
+              {chat.client_name && (
+                <p
+                  className="flex items-center gap-1 text-[11px] text-cyan/80 truncate"
+                  title={chat.client_linked ? "Cliente vinculado" : "Cliente identificado pelo nome do grupo"}
+                >
+                  <Building2 className="h-3 w-3 shrink-0" />
+                  <span className="truncate">{chat.client_name}</span>
+                  {!chat.client_linked && <span className="text-white/30">?</span>}
+                </p>
+              )}
               {chat.last_message && <p className="text-xs text-white/50 truncate">{chat.last_message}</p>}
+              {chat.labels.length > 0 && (
+                <div className="mt-1 flex flex-wrap gap-1">
+                  {chat.labels.slice(0, 3).map((label) => (
+                    <WhatsAppLabelChip key={label.id} label={label} />
+                  ))}
+                  {chat.labels.length > 3 && <span className="text-[10px] text-white/40">+{chat.labels.length - 3}</span>}
+                </div>
+              )}
             </div>
 
             {chat.unread_count > 0 && (

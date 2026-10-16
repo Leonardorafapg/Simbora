@@ -131,6 +131,26 @@ async def _handle_presence_update(data: dict[str, Any]) -> None:
     await ws_manager.broadcast({"type": "whatsapp_presence", "remote_jid": remote_jid, "presence": presence})
 
 
+async def _handle_labels_association(db: Session, data: dict[str, Any]) -> None:
+    # Formato da Evolution v2: {type: "add"|"remove", chatId, labelId}. Aceita
+    # também o formato cru do Baileys ({association: {chatId, labelId}}) por
+    # garantia entre versões.
+    association = data.get("association") or {}
+    remote_jid = data.get("chatId") or association.get("chatId")
+    label_id = data.get("labelId") or association.get("labelId")
+    if not remote_jid or not label_id:
+        return
+    applied = data.get("type") != "remove"
+    whatsapp_store.set_chat_label(db, remote_jid, str(label_id), applied)
+    await ws_manager.broadcast({"type": "whatsapp_labels_changed", "remote_jid": remote_jid})
+
+
+async def _handle_labels_edit(db: Session, data: dict[str, Any]) -> None:
+    if data.get("deleted") and data.get("id") is not None:
+        whatsapp_store.delete_label(db, str(data["id"]))
+    await ws_manager.broadcast({"type": "whatsapp_labels_changed", "remote_jid": None})
+
+
 @router.post("/whatsapp/webhook", status_code=204)
 async def whatsapp_webhook(request: Request):
     if not settings.EVOLUTION_WEBHOOK_SECRET or request.headers.get("x-webhook-secret") != settings.EVOLUTION_WEBHOOK_SECRET:
@@ -149,5 +169,9 @@ async def whatsapp_webhook(request: Request):
             await _handle_messages_update(db, data)
         elif event == "presence.update":
             await _handle_presence_update(data)
+        elif event == "labels.association":
+            await _handle_labels_association(db, data)
+        elif event == "labels.edit":
+            await _handle_labels_edit(db, data)
     finally:
         db.close()

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Download, FileText, Send } from "lucide-react";
 import Avatar from "@/components/ui/Avatar";
+import WhatsAppLabelChip from "@/components/whatsapp/WhatsAppLabelChip";
 import { mediaUrl, sendMessage, sendTyping } from "@/services/client/whatsappApi";
 import type { WhatsAppChat, WhatsAppMessage } from "@/types/whatsapp";
 
@@ -157,20 +158,34 @@ export default function WhatsAppChatWindow({ chat, messages, loading, typingPres
   }
 
   return (
-    <div className="flex flex-col flex-1 min-w-0">
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-white/10">
+    <div className="flex flex-col flex-1 min-w-0 min-h-0">
+      <div className="shrink-0 flex items-center gap-3 px-4 py-3 border-b border-white/10">
         <Avatar name={chat.name ?? chat.remote_jid} photoUrl={chat.profile_pic_url} size="sm" />
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className="text-sm font-medium text-white truncate">{chat.name ?? chat.remote_jid}</p>
           {typingPresence && TYPING_PRESENCE_LABELS[typingPresence] ? (
             <p className="text-xs text-cyan">{TYPING_PRESENCE_LABELS[typingPresence]}</p>
           ) : (
-            chat.is_group && <p className="text-xs text-white/40">Grupo</p>
+            <p className="text-xs text-white/40 truncate" title={chat.group_description ?? undefined}>
+              {[
+                chat.is_group ? (chat.group_size ? `Grupo · ${chat.group_size} participantes` : "Grupo") : chat.phone,
+                chat.client_name && `Cliente: ${chat.client_name}${chat.client_linked ? "" : " (pelo nome)"}`,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
           )}
         </div>
+        {chat.labels.length > 0 && (
+          <div className="hidden sm:flex shrink-0 flex-wrap justify-end gap-1 max-w-[50%]">
+            {chat.labels.map((label) => (
+              <WhatsAppLabelChip key={label.id} label={label} />
+            ))}
+          </div>
+        )}
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-2">
+      <div className="flex-1 min-h-0 overflow-y-auto p-4 flex flex-col gap-2">
         {loading && (
           <div className="flex flex-col gap-2">
             {Array.from({ length: 4 }).map((_, i) => (
@@ -221,7 +236,7 @@ export default function WhatsAppChatWindow({ chat, messages, loading, typingPres
         <div ref={bottomRef} />
       </div>
 
-      <div className="p-3 border-t border-white/10">
+      <div className="shrink-0 p-3 border-t border-white/10">
         {error && <p className="text-xs text-danger mb-2">{error}</p>}
         <div className="flex items-center gap-2">
           <input

@@ -13,6 +13,13 @@ class QRCodeResponse(BaseModel):
     pairing_code: str | None = None
 
 
+class WhatsAppLabel(BaseModel):
+    id: str
+    name: str
+    # Índice da paleta do WhatsApp (0-19), não um hex — o front traduz.
+    color: int = 0
+
+
 class WhatsAppChat(BaseModel):
     remote_jid: str
     name: str | None = None
@@ -21,6 +28,17 @@ class WhatsAppChat(BaseModel):
     unread_count: int = 0
     profile_pic_url: str | None = None
     updated_at: str | None = None
+    labels: list[WhatsAppLabel] = []
+    # Só conversa individual: número em formato legível (None pra @lid/grupo).
+    phone: str | None = None
+    # Cliente do CRM ligado à conversa — pelo `whatsapp_group_id` do cliente ou,
+    # sem isso, pelo nome do cliente aparecer no nome do grupo.
+    client_id: int | None = None
+    client_name: str | None = None
+    client_linked: bool = False
+    # Só grupo (vem do fetchAllGroups em cache — pode faltar na 1ª carga).
+    group_size: int | None = None
+    group_description: str | None = None
 
 
 class WhatsAppMessage(BaseModel):

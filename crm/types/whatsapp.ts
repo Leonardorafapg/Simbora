@@ -10,6 +10,13 @@ export type WhatsAppQRCode = {
   pairing_code: string | null;
 };
 
+export type WhatsAppLabel = {
+  id: string;
+  name: string;
+  /** Índice da paleta do WhatsApp (0-19). */
+  color: number;
+};
+
 export type WhatsAppChat = {
   remote_jid: string;
   name: string | null;
@@ -18,6 +25,14 @@ export type WhatsAppChat = {
   unread_count: number;
   profile_pic_url: string | null;
   updated_at: string | null;
+  labels: WhatsAppLabel[];
+  phone: string | null;
+  client_id: number | null;
+  client_name: string | null;
+  /** true = vínculo pelo "Grupo de WhatsApp" do cliente; false = palpite pelo nome do grupo. */
+  client_linked: boolean;
+  group_size: number | null;
+  group_description: string | null;
 };
 
 export type WhatsAppMediaType = "image" | "video" | "audio" | "document";
