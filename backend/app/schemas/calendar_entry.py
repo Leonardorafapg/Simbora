@@ -43,6 +43,9 @@ class CalendarEntryCreate(BaseModel):
     caption: str | None = None
     material_notes: str | None = None
     status: str = "producao"
+    # Vazios = padrão do cliente (social / designer), aplicado no router.
+    requester_id: int | None = None
+    assignee_id: int | None = None
 
     @field_validator("title")
     @classmethod
@@ -73,6 +76,8 @@ class CalendarEntryUpdate(BaseModel):
     caption: str | None = None
     material_notes: str | None = None
     status: str | None = None
+    requester_id: int | None = None
+    assignee_id: int | None = None
 
     @field_validator("title")
     @classmethod
@@ -104,6 +109,8 @@ class CalendarEntryOut(BaseModel):
     caption: str | None
     material_notes: str | None
     status: str
+    requester_id: int | None
+    assignee_id: int | None
     created_by: int
 
     model_config = {"from_attributes": True}

@@ -34,6 +34,10 @@ class CalendarEntry(Base):
     material_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     # producao / andamento / modificacoes / checagem_aprovacao / finalizados — ver schemas/calendar_entry.py
     status: Mapped[str] = mapped_column(String(30), nullable=False, default="producao")
+    # Solicitante (social que pediu a demanda; padrão = social do cliente) e
+    # responsável (quem executa; padrão = designer do cliente).
+    requester_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
+    assignee_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
     created_by: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(

@@ -1,9 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { AlignLeft, CalendarDays, ImagePlus, Paperclip, Users, X } from "lucide-react";
+import { AlignLeft, CalendarDays, ImagePlus, Paperclip, UserRound, Users, X } from "lucide-react";
 import type { CalendarEntry, CalendarEntryCreateInput, CalendarEntryUpdateInput } from "@/types/calendar";
 import type { Client } from "@/types/client";
+import { useClients } from "@/hooks/useClients";
+import { useTeamMembers } from "@/hooks/useTeamMembers";
+import UserSelect from "@/components/ui/UserSelect";
 import ImageDropzone from "@/components/ui/ImageDropzone";
 import MultiImageDropzone from "@/components/ui/MultiImageDropzone";
 
@@ -22,9 +25,17 @@ type Props = {
   onRequestDelete?: (entry: CalendarEntry) => void;
 };
 
-function buildForm(entry: CalendarEntry | null | undefined, clientId: number, defaultDate: string) {
+function buildForm(
+  entry: CalendarEntry | null | undefined,
+  clientId: number,
+  defaultDate: string,
+  client?: Client,
+) {
   return {
     client_id: entry?.client_id ?? clientId,
+    // Nova postagem: solicitante = social do cliente, responsável = designer do cliente.
+    requester_id: entry ? entry.requester_id : (client?.default_social_id ?? null),
+    assignee_id: entry ? entry.assignee_id : (client?.default_designer_id ?? null),
     scheduled_date: entry?.scheduled_date ?? defaultDate,
     title: entry?.title ?? "",
     theme: entry?.theme ?? "",
@@ -47,7 +58,12 @@ export default function CalendarEntryDialog({
   onUpdate,
   onRequestDelete,
 }: Props) {
-  const [form, setForm] = useState(() => buildForm(entry, clientId, defaultDate));
+  const { clients: allClients } = useClients();
+  const { members } = useTeamMembers();
+  const clientList = clients ?? allClients;
+  const findClient = (id: number) => clientList.find((c) => c.id === id);
+
+  const [form, setForm] = useState(() => buildForm(entry, clientId, defaultDate, findClient(clientId)));
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [openKey, setOpenKey] = useState(entry?.id ?? "new");
@@ -55,7 +71,7 @@ export default function CalendarEntryDialog({
   // Reabre o form do zero quando o dialog é reaberto para uma entrada diferente.
   const currentKey = entry?.id ?? "new";
   if (currentKey !== openKey && open) {
-    setForm(buildForm(entry, clientId, defaultDate));
+    setForm(buildForm(entry, clientId, defaultDate, findClient(clientId)));
     setOpenKey(currentKey);
   }
 
@@ -126,6 +142,31 @@ export default function CalendarEntryDialog({
               />
             </section>
 
+            <section className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <div className={labelCls}>
+                  <UserRound className="h-4 w-4 text-white/40" />
+                  Solicitante
+                </div>
+                <UserSelect
+                  options={members}
+                  value={form.requester_id}
+                  onChange={(value) => update("requester_id", value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <div className={labelCls}>
+                  <UserRound className="h-4 w-4 text-white/40" />
+                  Responsável
+                </div>
+                <UserSelect
+                  options={members}
+                  value={form.assignee_id}
+                  onChange={(value) => update("assignee_id", value)}
+                />
+              </div>
+            </section>
+
             <section className="space-y-2">
               <div className={labelCls}>
                 <AlignLeft className="h-4 w-4 text-white/40" />
@@ -174,7 +215,16 @@ export default function CalendarEntryDialog({
                 <select
                   required
                   value={form.client_id}
-                  onChange={(e) => update("client_id", Number(e.target.value))}
+                  onChange={(e) => {
+                  const id = Number(e.target.value);
+                  const client = findClient(id);
+                  setForm((prev) => ({
+                    ...prev,
+                    client_id: id,
+                    requester_id: client?.default_social_id ?? null,
+                    assignee_id: client?.default_designer_id ?? null,
+                  }));
+                }}
                   className="glass-input w-full rounded-lg px-3 py-2 text-sm outline-none"
                 >
                   {clients.map((c) => (

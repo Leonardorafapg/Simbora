@@ -53,6 +53,7 @@ async def list_calendar_entries(
     client_id: int | None = Query(default=None),
     month: str | None = Query(default=None, description="YYYY-MM"),
     period_status: str | None = Query(default=None, description="Só postagens cujo mês do cliente está nesse status"),
+    assignee_id: int | None = Query(default=None, description="Só postagens desse responsável"),
     db: Session = Depends(get_db),
     _: User = Depends(require_permission("calendar.view")),
 ):
@@ -72,6 +73,9 @@ async def list_calendar_entries(
 
     if client_id is not None:
         query = query.filter(CalendarEntry.client_id == client_id)
+
+    if assignee_id is not None:
+        query = query.filter(CalendarEntry.assignee_id == assignee_id)
 
     if month is not None:
         try:
@@ -155,15 +159,27 @@ async def create_calendar_entry(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_permission("calendar.create")),
 ):
-    if db.get(Client, payload.client_id) is None:
+    client = db.get(Client, payload.client_id)
+    if client is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cliente inválido")
+
+    for user_id in (payload.requester_id, payload.assignee_id):
+        if user_id is not None and db.get(User, user_id) is None:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Usuário inválido")
 
     # Cronograma finalizado trava o planejamento, mas o quadro de Produção
     # pode abrir demandas novas nele.
     if not from_production:
         _ensure_period_editable(db, payload.client_id, payload.scheduled_date)
 
-    entry = CalendarEntry(**payload.model_dump(), created_by=current_user.id)
+    data = payload.model_dump()
+    # Sem escolha explícita: solicitante = social do cliente, responsável = designer do cliente.
+    if data["requester_id"] is None:
+        data["requester_id"] = client.default_social_id
+    if data["assignee_id"] is None:
+        data["assignee_id"] = client.default_designer_id
+
+    entry = CalendarEntry(**data, created_by=current_user.id)
     db.add(entry)
     db.commit()
     db.refresh(entry)
@@ -194,6 +210,10 @@ async def update_calendar_entry(
 
     if "client_id" in data and db.get(Client, data["client_id"]) is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cliente inválido")
+
+    for key in ("requester_id", "assignee_id"):
+        if data.get(key) is not None and db.get(User, data[key]) is None:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Usuário inválido")
 
     for field, value in data.items():
         setattr(entry, field, value)

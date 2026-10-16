@@ -37,6 +37,10 @@ export type CalendarEntry = {
   final_image: string | null;
   caption: string | null;
   status: CalendarEntryStatus;
+  /** Quem pediu a demanda (padrão: social do cliente). */
+  requester_id: number | null;
+  /** Quem executa (padrão: designer do cliente). */
+  assignee_id: number | null;
   /** Markdown livre "já tem material?" — sem UI própria ainda, reservado pra uso futuro. */
   material_notes: string | null;
   created_by: number;
@@ -55,6 +59,8 @@ export type CalendarEntryCreateInput = {
   caption?: string;
   material_notes?: string | null;
   status?: CalendarEntryStatus;
+  requester_id?: number | null;
+  assignee_id?: number | null;
 };
 
 export type CalendarEntryUpdateInput = Partial<{
@@ -70,4 +76,6 @@ export type CalendarEntryUpdateInput = Partial<{
   caption: string;
   material_notes: string | null;
   status: CalendarEntryStatus;
+  requester_id: number | null;
+  assignee_id: number | null;
 }>;

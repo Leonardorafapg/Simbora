@@ -5,6 +5,7 @@ import { Plus } from "lucide-react";
 import { DndContext, type DragEndEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { useCalendarEntries } from "@/hooks/useCalendarEntries";
 import { useClients } from "@/hooks/useClients";
+import { useTeamMembers } from "@/hooks/useTeamMembers";
 import type { CalendarEntry, CalendarEntryCreateInput, CalendarEntryStatus } from "@/types/calendar";
 import { CALENDAR_ENTRY_STATUSES } from "@/types/calendar";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
@@ -28,6 +29,7 @@ function currentMonth() {
  */
 export default function ProductionBoard({ canEdit, canCreate, canDelete }: Props) {
   const [clientId, setClientId] = useState<number | undefined>(undefined);
+  const [assigneeId, setAssigneeId] = useState<number | undefined>(undefined);
   const [month, setMonth] = useState(currentMonth());
   const [selected, setSelected] = useState<CalendarEntry | null>(null);
   const [creating, setCreating] = useState(false);
@@ -35,8 +37,9 @@ export default function ProductionBoard({ canEdit, canCreate, canDelete }: Props
   const [deleting, setDeleting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  const { entries, loading, error, create, update, remove } = useCalendarEntries(clientId, month, "finalizado");
+  const { entries, loading, error, create, update, remove } = useCalendarEntries(clientId, month, "finalizado", assigneeId);
   const { clients } = useClients();
+  const { members } = useTeamMembers();
 
   // Distância mínima antes de considerar "arrastando" — sem isso, todo
   // clique no card (pra abrir o drawer) seria capturado como um drag.
@@ -64,6 +67,7 @@ export default function ProductionBoard({ canEdit, canCreate, canDelete }: Props
     const entry = await create(input, { fromProduction: true });
     if (month && entry.scheduled_date.slice(0, 7) !== month) setMonth(entry.scheduled_date.slice(0, 7));
     if (clientId && clientId !== entry.client_id) setClientId(entry.client_id);
+    if (assigneeId && assigneeId !== entry.assignee_id) setAssigneeId(undefined);
     return entry;
   }
 
@@ -108,6 +112,19 @@ export default function ProductionBoard({ canEdit, canCreate, canDelete }: Props
           {clients.map((c) => (
             <option key={c.id} value={c.id}>
               {c.name}
+            </option>
+          ))}
+        </select>
+        <select
+          value={assigneeId ?? ""}
+          onChange={(e) => setAssigneeId(e.target.value ? Number(e.target.value) : undefined)}
+          className="glass-input rounded-lg px-3 py-2 text-sm outline-none"
+          aria-label="Filtrar por responsável"
+        >
+          <option value="">Todos os responsáveis</option>
+          {members.map((m) => (
+            <option key={m.id} value={m.id}>
+              {m.full_name}
             </option>
           ))}
         </select>
