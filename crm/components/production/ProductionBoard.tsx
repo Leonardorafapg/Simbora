@@ -3,7 +3,15 @@
 import { useState } from "react";
 import { Plus } from "lucide-react";
 import { deadlineInfo, urgencyRank } from "@/lib/deadline";
-import { DndContext, type DragEndEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
+import {
+  DndContext,
+  DragOverlay,
+  type DragEndEvent,
+  type DragStartEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
 import { useCalendarEntries } from "@/hooks/useCalendarEntries";
 import { useClients } from "@/hooks/useClients";
 import { useTeamMembers } from "@/hooks/useTeamMembers";
@@ -12,6 +20,7 @@ import { CALENDAR_ENTRY_STATUSES } from "@/types/calendar";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import CalendarEntryDialog from "@/components/calendar/CalendarEntryDialog";
 import KanbanColumn from "./KanbanColumn";
+import { PostCardOverlay } from "./PostCard";
 
 type Props = {
   canEdit: boolean;
@@ -35,6 +44,7 @@ export default function ProductionBoard({ canEdit, canCreate, canDelete }: Props
   const [month, setMonth] = useState(currentMonth());
   const [selected, setSelected] = useState<CalendarEntry | null>(null);
   const [creating, setCreating] = useState(false);
+  const [activeEntry, setActiveEntry] = useState<CalendarEntry | null>(null);
   const [pendingDelete, setPendingDelete] = useState<CalendarEntry | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -58,7 +68,12 @@ export default function ProductionBoard({ canEdit, canCreate, canDelete }: Props
   // clique no card (pra abrir o drawer) seria capturado como um drag.
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
+  function handleDragStart(event: DragStartEvent) {
+    setActiveEntry((event.active.data.current?.entry as CalendarEntry | undefined) ?? null);
+  }
+
   async function handleDragEnd(event: DragEndEvent) {
+    setActiveEntry(null);
     const { active, over } = event;
     if (!over) return;
 
@@ -99,8 +114,8 @@ export default function ProductionBoard({ canEdit, canCreate, canDelete }: Props
   }
 
   return (
-    <div className="relative h-full p-6 sm:p-8 space-y-4">
-      <div className="flex items-center justify-between gap-3">
+    <div className="relative flex min-h-0 flex-1 flex-col gap-4 overflow-hidden p-6 sm:p-8">
+      <div className="flex shrink-0 items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold text-white">Produção</h1>
         {canCreate && (
           <button
@@ -115,7 +130,7 @@ export default function ProductionBoard({ canEdit, canCreate, canDelete }: Props
         )}
       </div>
 
-      <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex shrink-0 items-center gap-2 flex-wrap">
         <select
           value={clientId ?? ""}
           onChange={(e) => setClientId(e.target.value ? Number(e.target.value) : undefined)}
@@ -168,11 +183,17 @@ export default function ProductionBoard({ canEdit, canCreate, canDelete }: Props
       {error && <p className="text-sm text-danger">{error}</p>}
       {actionError && <p className="text-sm text-danger">{actionError}</p>}
 
-      <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-        {/* Mobile: colunas lado a lado com scroll horizontal e snap; a partir de sm vira grid. */}
-        <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-5 sm:overflow-visible sm:pb-0 items-start">
+      <DndContext
+        sensors={sensors}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+        onDragCancel={() => setActiveEntry(null)}
+      >
+        {/* Colunas largas lado a lado: rola pro lado se precisar, nunca pra baixo —
+            a altura é a da tela e cada coluna rola por dentro. */}
+        <div className="flex min-h-0 flex-1 gap-4 overflow-x-auto overflow-y-hidden pb-2">
           {CALENDAR_ENTRY_STATUSES.map((status) => (
-            <div key={status} className="w-[85vw] shrink-0 snap-start sm:w-auto sm:shrink">
+            <div key={status} className="h-full w-[360px] shrink-0">
               <KanbanColumn
                 status={status}
                 entries={visibleEntries.filter((e) => e.status === status)}
@@ -183,6 +204,12 @@ export default function ProductionBoard({ canEdit, canCreate, canDelete }: Props
             </div>
           ))}
         </div>
+
+        <DragOverlay dropAnimation={null}>
+          {activeEntry ? (
+            <PostCardOverlay entry={activeEntry} client={clients.find((c) => c.id === activeEntry.client_id)} />
+          ) : null}
+        </DragOverlay>
       </DndContext>
 
       {creating && (
