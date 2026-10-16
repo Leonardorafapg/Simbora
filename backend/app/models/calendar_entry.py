@@ -1,9 +1,10 @@
 # backend/app/models/calendar_entry.py
 from datetime import date as date_type, datetime, timezone
 from sqlalchemy import String, Integer, Date, DateTime, ForeignKey, Text
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 from app.core.types import JSONText
+from app.models.tag import Tag, calendar_entry_tags
 
 
 class CalendarEntry(Base):
@@ -44,4 +45,10 @@ class CalendarEntry(Base):
         DateTime,
         default=lambda: datetime.now(timezone.utc),
         onupdate=lambda: datetime.now(timezone.utc),
+    )
+    # Etiquetas globais atribuídas à postagem; selectin evita N+1 na listagem.
+    tags: Mapped[list[Tag]] = relationship(
+        secondary=calendar_entry_tags,
+        lazy="selectin",
+        order_by=Tag.name,
     )

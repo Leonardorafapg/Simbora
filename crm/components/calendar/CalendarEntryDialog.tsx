@@ -7,6 +7,7 @@ import type { Client } from "@/types/client";
 import { useClients } from "@/hooks/useClients";
 import { useTeamMembers } from "@/hooks/useTeamMembers";
 import UserSelect from "@/components/ui/UserSelect";
+import TagPicker from "./TagPicker";
 import ImageDropzone from "@/components/ui/ImageDropzone";
 import MultiImageDropzone from "@/components/ui/MultiImageDropzone";
 
@@ -37,6 +38,7 @@ function buildForm(
     requester_id: entry ? entry.requester_id : (client?.default_social_id ?? null),
     assignee_id: entry ? entry.assignee_id : (client?.default_designer_id ?? null),
     scheduled_date: entry?.scheduled_date ?? defaultDate,
+    tag_ids: entry?.tags.map((t) => t.id) ?? ([] as number[]),
     title: entry?.title ?? "",
     theme: entry?.theme ?? "",
     reference_image: entry?.reference_image ?? null,
@@ -141,6 +143,8 @@ export default function CalendarEntryDialog({
                 className="w-full rounded-lg border border-transparent bg-transparent px-2 py-1 -mx-2 text-2xl font-bold text-white outline-none placeholder:text-white/30 hover:border-white/10 focus:border-cyan/50 focus:bg-white/5"
               />
             </section>
+
+            <TagPicker selectedIds={form.tag_ids} onChange={(ids) => update("tag_ids", ids)} />
 
             <section className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
@@ -250,27 +254,27 @@ export default function CalendarEntryDialog({
               />
             </section>
 
-            {entry && (
-              <section className="space-y-3">
-                <div className={labelCls}>
-                  <ImagePlus className="h-4 w-4 text-white/40" />
-                  Entrega
-                </div>
-                <div>
-                  <p className="mb-1.5 text-xs text-white/50">Imagem final</p>
-                  <ImageDropzone value={form.final_image} onChange={(value) => update("final_image", value)} />
-                </div>
-                <div>
-                  <p className="mb-1.5 text-xs text-white/50">Legenda</p>
-                  <textarea
-                    value={form.caption}
-                    onChange={(e) => update("caption", e.target.value)}
-                    placeholder="Legenda que vai junto com a postagem"
-                    className="glass-input min-h-[120px] w-full rounded-lg px-3 py-2 text-sm outline-none"
-                  />
-                </div>
-              </section>
-            )}
+            {/* Sempre visível (inclusive ao criar): o post pronto e a legenda
+                podem já existir quando a demanda é cadastrada. */}
+            <section className="space-y-3">
+              <div className={labelCls}>
+                <ImagePlus className="h-4 w-4 text-white/40" />
+                Post feito
+              </div>
+              <div>
+                <p className="mb-1.5 text-xs text-white/50">Arte final do post</p>
+                <ImageDropzone value={form.final_image} onChange={(value) => update("final_image", value)} />
+              </div>
+              <div>
+                <p className="mb-1.5 text-xs text-white/50">Legenda</p>
+                <textarea
+                  value={form.caption}
+                  onChange={(e) => update("caption", e.target.value)}
+                  placeholder="Legenda que vai junto com a postagem"
+                  className="glass-input min-h-[160px] w-full rounded-lg px-3 py-2 text-sm outline-none"
+                />
+              </div>
+            </section>
           </aside>
         </div>
 

@@ -3,6 +3,8 @@ from datetime import date
 
 from pydantic import BaseModel, field_validator
 
+from app.schemas.tag import TagOut
+
 # Quadros do fluxo de produção, na ordem do kanban.
 CALENDAR_STATUSES = ["producao", "andamento", "modificacoes", "checagem_aprovacao", "finalizados"]
 
@@ -46,6 +48,7 @@ class CalendarEntryCreate(BaseModel):
     # Vazios = padrão do cliente (social / designer), aplicado no router.
     requester_id: int | None = None
     assignee_id: int | None = None
+    tag_ids: list[int] = []
 
     @field_validator("title")
     @classmethod
@@ -78,6 +81,7 @@ class CalendarEntryUpdate(BaseModel):
     status: str | None = None
     requester_id: int | None = None
     assignee_id: int | None = None
+    tag_ids: list[int] | None = None
 
     @field_validator("title")
     @classmethod
@@ -111,6 +115,7 @@ class CalendarEntryOut(BaseModel):
     status: str
     requester_id: int | None
     assignee_id: int | None
+    tags: list[TagOut] = []
     created_by: int
 
     model_config = {"from_attributes": True}

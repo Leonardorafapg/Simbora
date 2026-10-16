@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.database import run_light_migrations
-from app.routers import leads, auth, users, team, clients, calendar, calendar_periods, whatsapp, whatsapp_webhook, search, uploads
+from app.routers import leads, auth, users, team, clients, calendar, calendar_periods, whatsapp, whatsapp_webhook, search, uploads, tags
 
 run_light_migrations()
 
@@ -28,6 +28,7 @@ app.include_router(team.router, prefix="/api/v1")
 app.include_router(clients.router, prefix="/api/v1")
 app.include_router(calendar.router, prefix="/api/v1")
 app.include_router(calendar_periods.router, prefix="/api/v1")
+app.include_router(tags.router, prefix="/api/v1")
 app.include_router(whatsapp.router, prefix="/api/v1")
 app.include_router(whatsapp_webhook.router, prefix="/api/v1")
 app.include_router(search.router, prefix="/api/v1")

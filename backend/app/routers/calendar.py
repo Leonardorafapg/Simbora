@@ -10,6 +10,7 @@ from app.core.database import get_db
 from app.core.deps import require_permission
 from app.models.calendar_entry import CalendarEntry
 from app.models.calendar_period import CalendarPeriod
+from app.models.tag import Tag
 from app.models.client import Client
 from app.models.user import User
 from app.routers.calendar_periods import get_period_status
@@ -46,6 +47,16 @@ PLANNING_FIELDS = (
     "material_files",
     "material_notes",
 )
+
+
+def _load_tags(db: Session, tag_ids: list[int]) -> list[Tag]:
+    unique_ids = list(dict.fromkeys(tag_ids))
+    if not unique_ids:
+        return []
+    tags = db.query(Tag).filter(Tag.id.in_(unique_ids)).all()
+    if len(tags) != len(unique_ids):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Etiqueta inválida")
+    return tags
 
 
 @router.get("/calendar-entries", response_model=list[CalendarEntryOut])
@@ -140,7 +151,10 @@ async def bulk_create_calendar_entries(
     if payload.dry_run:
         return CalendarEntryBulkResult(dry_run=True, count=len(payload.entries), entries=[])
 
-    created = [CalendarEntry(**item.model_dump(), created_by=current_user.id) for item in payload.entries]
+    created = [
+        CalendarEntry(**item.model_dump(exclude={"tag_ids"}), created_by=current_user.id)
+        for item in payload.entries
+    ]
     for entry in created:
         db.add(entry)
     db.commit()
@@ -173,6 +187,7 @@ async def create_calendar_entry(
         _ensure_period_editable(db, payload.client_id, payload.scheduled_date)
 
     data = payload.model_dump()
+    tags = _load_tags(db, data.pop("tag_ids"))
     # Sem escolha explícita: solicitante = social do cliente, responsável = designer do cliente.
     if data["requester_id"] is None:
         data["requester_id"] = client.default_social_id
@@ -180,6 +195,7 @@ async def create_calendar_entry(
         data["assignee_id"] = client.default_designer_id
 
     entry = CalendarEntry(**data, created_by=current_user.id)
+    entry.tags = tags
     db.add(entry)
     db.commit()
     db.refresh(entry)
@@ -198,6 +214,10 @@ async def update_calendar_entry(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Entrada não encontrada")
 
     data = payload.model_dump(exclude_unset=True)
+    # Etiquetas são do fluxo de produção: editáveis mesmo com o mês finalizado.
+    tag_ids = data.pop("tag_ids", None)
+    if tag_ids is not None:
+        entry.tags = _load_tags(db, tag_ids)
 
     # Mês finalizado só aceita mudanças do fluxo de produção (status, arte
     # final, legenda); o planejamento fica travado. Reenviar o mesmo valor

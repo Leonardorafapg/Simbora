@@ -20,6 +20,8 @@ export const CALENDAR_ENTRY_STATUS_LABELS: Record<CalendarEntryStatus, string> =
   finalizados: "Finalizados",
 };
 
+import type { Tag } from "@/types/tag";
+
 export type CalendarEntry = {
   id: number;
   client_id: number;
@@ -41,6 +43,8 @@ export type CalendarEntry = {
   requester_id: number | null;
   /** Quem executa (padrão: designer do cliente). */
   assignee_id: number | null;
+  /** Etiquetas globais aplicadas à postagem. */
+  tags: Tag[];
   /** Markdown livre "já tem material?" — sem UI própria ainda, reservado pra uso futuro. */
   material_notes: string | null;
   created_by: number;
@@ -61,6 +65,7 @@ export type CalendarEntryCreateInput = {
   status?: CalendarEntryStatus;
   requester_id?: number | null;
   assignee_id?: number | null;
+  tag_ids?: number[];
 };
 
 export type CalendarEntryUpdateInput = Partial<{
@@ -78,4 +83,5 @@ export type CalendarEntryUpdateInput = Partial<{
   status: CalendarEntryStatus;
   requester_id: number | null;
   assignee_id: number | null;
+  tag_ids: number[];
 }>;
