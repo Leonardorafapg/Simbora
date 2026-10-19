@@ -23,6 +23,8 @@ PERMISSIONS: dict[str, str] = {
     "calendar.delete": "Remover entradas no calendário",
     "whatsapp.view": "Ver WhatsApp",
     "whatsapp.send": "Enviar mensagens no WhatsApp",
+    "instagram.view": "Ver Instagram (agendamentos e métricas)",
+    "instagram.manage": "Conectar contas e agendar posts no Instagram",
 }
 
 

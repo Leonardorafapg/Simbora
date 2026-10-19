@@ -4,15 +4,46 @@
     {
       "name": "frontend",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["--prefix", "frontend", "run", "dev"],
+      "runtimeArgs": [
+        "--prefix",
+        "frontend",
+        "run",
+        "dev"
+      ],
       "port": 3000,
       "autoPort": true
     },
     {
       "name": "crm",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["--prefix", "crm", "run", "dev", "--", "-p", "3001"],
+      "runtimeArgs": [
+        "--prefix",
+        "crm",
+        "run",
+        "dev",
+        "--",
+        "-p",
+        "3001"
+      ],
       "port": 3001
+    },
+    {
+      "name": "backend-ig",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": [
+        "/c",
+        "cd backend && python -m uvicorn app.main:app --port 8010"
+      ],
+      "port": 8010
+    },
+    {
+      "name": "crm-ig",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": [
+        "/c",
+        "set BACKEND_URL=http://127.0.0.1:8010&& set BUILD_VERIFY=1&& npm --prefix crm run dev -- -p 3011"
+      ],
+      "port": 3011
     }
   ]
 }

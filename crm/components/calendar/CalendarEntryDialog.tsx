@@ -11,6 +11,7 @@ import TagPicker from "./TagPicker";
 import { DEADLINE_CLASSES, DEADLINE_LABELS, deadlineFor, deadlineInfo, formatDeadline } from "@/lib/deadline";
 import ImageDropzone from "@/components/ui/ImageDropzone";
 import MultiImageDropzone from "@/components/ui/MultiImageDropzone";
+import EntryInstagramSection from "@/components/instagram/EntryInstagramSection";
 
 type Props = {
   open: boolean;
@@ -25,6 +26,8 @@ type Props = {
   onCreate: (input: CalendarEntryCreateInput) => Promise<CalendarEntry>;
   onUpdate: (id: number, input: CalendarEntryUpdateInput) => Promise<CalendarEntry>;
   onRequestDelete?: (entry: CalendarEntry) => void;
+  /** Mostra o agendamento no Instagram (só no quadro de Produção). */
+  instagram?: { canView: boolean; canManage: boolean; onChanged?: () => void };
 };
 
 function buildForm(
@@ -60,6 +63,7 @@ export default function CalendarEntryDialog({
   onCreate,
   onUpdate,
   onRequestDelete,
+  instagram,
 }: Props) {
   const { clients: allClients } = useClients();
   const { members } = useTeamMembers();
@@ -298,6 +302,16 @@ export default function CalendarEntryDialog({
                 />
               </div>
             </section>
+
+            {entry && instagram?.canView && (
+              <EntryInstagramSection
+                entry={entry}
+                finalImage={form.final_image}
+                caption={form.caption}
+                canManage={instagram.canManage}
+                onChanged={instagram.onChanged}
+              />
+            )}
           </aside>
         </div>
 

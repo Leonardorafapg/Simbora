@@ -63,8 +63,17 @@ async def presign_upload(
     _require_configured()
 
     content_type = _normalize_content_type(payload.content_type)
-    _check_image_type(content_type)
-    _check_size(payload.size)
+    if content_type in r2_client.VIDEO_EXTENSIONS:
+        # Vídeo só existe pro Instagram (Reels/Stories) — limite próprio, maior.
+        if payload.size > settings.UPLOAD_VIDEO_MAX_BYTES:
+            limit_mb = settings.UPLOAD_VIDEO_MAX_BYTES // (1024 * 1024)
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail=f"Vídeo acima do limite de {limit_mb} MB",
+            )
+    else:
+        _check_image_type(content_type)
+        _check_size(payload.size)
 
     key = r2_client.new_object_key(content_type)
     try:

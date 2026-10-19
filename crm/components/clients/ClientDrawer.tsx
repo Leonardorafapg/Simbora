@@ -3,6 +3,7 @@ import type { TeamMember } from "@/types/team";
 import ClientDetail from "./ClientDetail";
 
 type CalendarPermissions = { canCreate: boolean; canEdit: boolean; canDelete: boolean };
+type InstagramPermissions = { canView: boolean; canManage: boolean };
 
 type Props = {
   client: Client | null;
@@ -10,6 +11,7 @@ type Props = {
   canDelete: boolean;
   teamMembers: TeamMember[];
   calendarPermissions: CalendarPermissions;
+  instagramPermissions: InstagramPermissions;
   onClose: () => void;
   onUpdate: (id: number, input: ClientUpdateInput) => Promise<Client>;
   onRequestDelete: (client: Client) => void;
@@ -26,6 +28,7 @@ export default function ClientDrawer({
   canDelete,
   teamMembers,
   calendarPermissions,
+  instagramPermissions,
   onClose,
   onUpdate,
   onRequestDelete,
@@ -46,6 +49,7 @@ export default function ClientDrawer({
             canDelete={canDelete}
             teamMembers={teamMembers}
             calendarPermissions={calendarPermissions}
+            instagramPermissions={instagramPermissions}
             onBack={onClose}
             onUpdate={onUpdate}
             onRequestDelete={onRequestDelete}

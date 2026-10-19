@@ -4,14 +4,24 @@ import type { Client } from "@/types/client";
 import { formatDate } from "@/lib/format";
 import { DEADLINE_CLASSES, DEADLINE_LABELS, deadlineInfo, formatDeadline } from "@/lib/deadline";
 import { tagChipClass } from "@/lib/tagColors";
+import { POST_STATUS_CLASSES, formatBrt } from "@/lib/instagram";
+import type { InstagramPost } from "@/types/instagram";
+
+const IG_BADGE: Record<InstagramPost["status"], string> = {
+  pendente: "IG agendado",
+  publicando: "IG publicando",
+  publicado: "IG publicado",
+  erro: "IG com erro",
+};
 
 type ContentProps = {
   entry: CalendarEntry;
   client?: Client;
   onSelect?: (entry: CalendarEntry) => void;
+  instagramPost?: InstagramPost;
 };
 
-function PostCardContent({ entry, client, onSelect }: ContentProps) {
+function PostCardContent({ entry, client, onSelect, instagramPost }: ContentProps) {
   const deadline = deadlineInfo(entry);
 
   return (
@@ -49,6 +59,15 @@ function PostCardContent({ entry, client, onSelect }: ContentProps) {
                   ? `Entregar até ${formatDeadline(deadline.deadline)}`
                   : DEADLINE_LABELS[deadline.state]}
         </span>
+        {instagramPost && (
+          <span
+            className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${POST_STATUS_CLASSES[instagramPost.status]}`}
+            title={instagramPost.error_message ?? undefined}
+          >
+            {IG_BADGE[instagramPost.status]}
+            {instagramPost.status === "pendente" ? ` ${formatBrt(instagramPost.scheduled_at)}` : ""}
+          </span>
+        )}
       </div>
     </button>
   );
@@ -59,9 +78,10 @@ type Props = {
   client?: Client;
   canEdit: boolean;
   onSelect: (entry: CalendarEntry) => void;
+  instagramPost?: InstagramPost;
 };
 
-export default function PostCard({ entry, client, canEdit, onSelect }: Props) {
+export default function PostCard({ entry, client, canEdit, onSelect, instagramPost }: Props) {
   // O movimento durante o arraste é do DragOverlay (a coluna tem overflow, que
   // cortaria o card): aqui o original só fica esmaecido no lugar.
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
@@ -79,7 +99,7 @@ export default function PostCard({ entry, client, canEdit, onSelect }: Props) {
         {...(canEdit ? { ...attributes, ...listeners } : {})}
         className={canEdit ? "cursor-grab active:cursor-grabbing" : ""}
       >
-        <PostCardContent entry={entry} client={client} onSelect={onSelect} />
+        <PostCardContent entry={entry} client={client} onSelect={onSelect} instagramPost={instagramPost} />
       </div>
     </div>
   );

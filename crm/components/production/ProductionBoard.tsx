@@ -15,6 +15,7 @@ import {
 import { useCalendarEntries } from "@/hooks/useCalendarEntries";
 import { useClients } from "@/hooks/useClients";
 import { useTeamMembers } from "@/hooks/useTeamMembers";
+import { useInstagramByEntries } from "@/hooks/useInstagram";
 import type { CalendarEntry, CalendarEntryCreateInput, CalendarEntryStatus } from "@/types/calendar";
 import { CALENDAR_ENTRY_STATUSES } from "@/types/calendar";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
@@ -26,6 +27,8 @@ type Props = {
   canEdit: boolean;
   canCreate: boolean;
   canDelete: boolean;
+  canViewInstagram: boolean;
+  canManageInstagram: boolean;
 };
 
 function currentMonth() {
@@ -37,7 +40,7 @@ function currentMonth() {
  * Quadro de produção: cada postagem do calendário é um card, arrastado entre os quadros.
  * Só entram postagens de cronogramas finalizados (aprovados) — o resto ainda está em planejamento.
  */
-export default function ProductionBoard({ canEdit, canCreate, canDelete }: Props) {
+export default function ProductionBoard({ canEdit, canCreate, canDelete, canViewInstagram, canManageInstagram }: Props) {
   const [clientId, setClientId] = useState<number | undefined>(undefined);
   const [assigneeId, setAssigneeId] = useState<number | undefined>(undefined);
   const [deadlineFilter, setDeadlineFilter] = useState<"" | "atrasados" | "vencem">("");
@@ -52,6 +55,11 @@ export default function ProductionBoard({ canEdit, canCreate, canDelete }: Props
   const { entries, loading, error, create, update, remove } = useCalendarEntries(clientId, month, "finalizado", assigneeId);
   const { clients } = useClients();
   const { members } = useTeamMembers();
+  // Badge do Instagram: só faz sentido em postagem aprovada/publicada (ou que já teve agendamento).
+  const { byEntry: instagramByEntry, refresh: refreshInstagram } = useInstagramByEntries(
+    entries.filter((e) => (["finalizados", "publicados"] as string[]).includes(e.status)).map((e) => e.id),
+    canViewInstagram,
+  );
 
   // Prazo: filtra e põe os mais urgentes no topo de cada coluna.
   const visibleEntries = entries
@@ -200,6 +208,7 @@ export default function ProductionBoard({ canEdit, canCreate, canDelete }: Props
                 clients={clients}
                 canEdit={canEdit}
                 onSelect={setSelected}
+                instagramByEntry={instagramByEntry}
               />
             </div>
           ))}
@@ -234,6 +243,7 @@ export default function ProductionBoard({ canEdit, canCreate, canDelete }: Props
           canDelete={canDelete}
           onCreate={create}
           onUpdate={update}
+          instagram={{ canView: canViewInstagram, canManage: canManageInstagram, onChanged: refreshInstagram }}
           onRequestDelete={(entry) => {
             setSelected(null);
             setPendingDelete(entry);

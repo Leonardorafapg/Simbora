@@ -6,5 +6,6 @@ from app.models.calendar_period import CalendarPeriod
 from app.models.whatsapp_message import WhatsAppMessage
 from app.models.whatsapp_chat_label import WhatsAppChatLabel
 from app.models.tag import Tag
+from app.models.instagram import InstagramAccount, InstagramPost
 
-__all__ = ["User", "Client", "CalendarEntry", "CalendarPeriod", "WhatsAppMessage", "WhatsAppChatLabel", "Tag"]
+__all__ = ["User", "Client", "CalendarEntry", "CalendarPeriod", "WhatsAppMessage", "WhatsAppChatLabel", "Tag", "InstagramAccount", "InstagramPost"]

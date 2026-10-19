@@ -1,13 +1,32 @@
 # backend/app/main.py
+import logging
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.database import run_light_migrations
-from app.routers import leads, auth, users, team, clients, calendar, calendar_periods, whatsapp, whatsapp_webhook, search, uploads, tags
+from app.routers import leads, auth, users, team, clients, calendar, calendar_periods, whatsapp, whatsapp_webhook, search, uploads, tags, instagram
+from app.services.instagram_posts import worker as instagram_worker
+
+logging.basicConfig(level=logging.INFO)
+# O httpx loga a URL completa em INFO, e a API do Instagram leva o access_token
+# na query — vazaria o token nos logs.
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
 run_light_migrations()
 
-app = FastAPI(title=settings.APP_NAME, debug=settings.DEBUG)
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    # Laço que publica os posts agendados e renova os tokens do Instagram.
+    if settings.INSTAGRAM_WORKER_ENABLED:
+        instagram_worker.start()
+    yield
+    instagram_worker.stop()
+
+
+app = FastAPI(title=settings.APP_NAME, debug=settings.DEBUG, lifespan=lifespan)
 
 # CORS — Permite chamadas do frontend Next.js
 app.add_middleware(
@@ -33,6 +52,7 @@ app.include_router(whatsapp.router, prefix="/api/v1")
 app.include_router(whatsapp_webhook.router, prefix="/api/v1")
 app.include_router(search.router, prefix="/api/v1")
 app.include_router(uploads.router, prefix="/api/v1")
+app.include_router(instagram.router, prefix="/api/v1")
 
 @app.get("/api/v1/health")
 async def health_check():

@@ -11,12 +11,14 @@ import ClientDrawer from "./ClientDrawer";
 import NewClientDialog from "./NewClientDialog";
 
 type CalendarPermissions = { canCreate: boolean; canEdit: boolean; canDelete: boolean };
+type InstagramPermissions = { canView: boolean; canManage: boolean };
 
 type Props = {
   canCreate: boolean;
   canEdit: boolean;
   canDelete: boolean;
   calendarPermissions: CalendarPermissions;
+  instagramPermissions: InstagramPermissions;
 };
 
 export default function ClientPageClient({
@@ -24,6 +26,7 @@ export default function ClientPageClient({
   canEdit,
   canDelete,
   calendarPermissions,
+  instagramPermissions,
 }: Props) {
   const { clients, loading, error, create, update, remove } = useClients();
   const { members: teamMembers } = useTeamMembers();
@@ -93,6 +96,7 @@ export default function ClientPageClient({
         canDelete={canDelete}
         teamMembers={teamMembers}
         calendarPermissions={calendarPermissions}
+            instagramPermissions={instagramPermissions}
         onClose={() => setSelectedId(null)}
         onUpdate={update}
         onRequestDelete={setPendingDelete}

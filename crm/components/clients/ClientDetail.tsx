@@ -8,6 +8,7 @@ import UserSelect from "@/components/ui/UserSelect";
 import Avatar from "@/components/ui/Avatar";
 import ImageDropzone from "@/components/ui/ImageDropzone";
 import ClientCalendar from "@/components/calendar/ClientCalendar";
+import InstagramPanel from "@/components/instagram/InstagramPanel";
 
 type CalendarPermissions = {
   canCreate: boolean;
@@ -15,12 +16,15 @@ type CalendarPermissions = {
   canDelete: boolean;
 };
 
+type InstagramPermissions = { canView: boolean; canManage: boolean };
+
 type Props = {
   client: Client;
   canEdit: boolean;
   canDelete: boolean;
   teamMembers: TeamMember[];
   calendarPermissions: CalendarPermissions;
+  instagramPermissions: InstagramPermissions;
   onBack: () => void;
   onUpdate: (id: number, input: ClientUpdateInput) => Promise<Client>;
   onRequestDelete: (client: Client) => void;
@@ -32,6 +36,7 @@ export default function ClientDetail({
   canDelete,
   teamMembers,
   calendarPermissions,
+  instagramPermissions,
   onBack,
   onUpdate,
   onRequestDelete,
@@ -60,6 +65,7 @@ export default function ClientDetail({
     is_active: client.is_active,
   }));
   const [saving, setSaving] = useState(false);
+  const [rightTab, setRightTab] = useState<"calendar" | "instagram">("calendar");
   const [error, setError] = useState<string | null>(null);
 
   function update<K extends keyof ClientUpdateInput>(
@@ -293,6 +299,25 @@ export default function ClientDetail({
         </div>
 
         <div className="w-full min-w-0">
+          {instagramPermissions.canView && (
+            <div className="mb-4 flex w-fit gap-1 rounded-xl bg-white/5 p-1 text-sm">
+              {(["calendar", "instagram"] as const).map((key) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setRightTab(key)}
+                  className={`rounded-lg px-4 py-1.5 font-semibold transition ${
+                    rightTab === key ? "bg-white/15 text-white" : "text-white/50 hover:text-white"
+                  }`}
+                >
+                  {key === "calendar" ? "Calendário" : "Instagram"}
+                </button>
+              ))}
+            </div>
+          )}
+          {rightTab === "instagram" && instagramPermissions.canView ? (
+            <InstagramPanel clientId={client.id} canManage={instagramPermissions.canManage} />
+          ) : (
           <ClientCalendar
             clientId={client.id}
             clientName={client.name}
@@ -306,6 +331,7 @@ export default function ClientDetail({
               setCalendarMonth(m);
             }}
           />
+          )}
         </div>
       </div>
     </>

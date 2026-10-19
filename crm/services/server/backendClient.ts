@@ -20,9 +20,9 @@ const BACKEND_TIMEOUT_MS = 15_000;
  * Sintetiza uma Response 503 no mesmo formato que o FastAPI usa (`detail`),
  * então `proxyJson`/`extractErrorMessage` lidam com ela sem saber a diferença.
  */
-async function safeFetch(url: string, init: RequestInit) {
+async function safeFetch(url: string, init: RequestInit, timeoutMs = BACKEND_TIMEOUT_MS) {
   try {
-    return await fetch(url, { ...init, signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS) });
+    return await fetch(url, { ...init, signal: AbortSignal.timeout(timeoutMs) });
   } catch {
     return NextResponse.json(
       { detail: "Não foi possível conectar ao servidor. Tente novamente em instantes." },
@@ -39,8 +39,11 @@ export async function backendFetchPublic(path: string, init: RequestInit = {}) {
   });
 }
 
-/** Chamada ao backend repassando o JWT guardado no cookie da sessão. */
-export async function backendFetch(path: string, init: RequestInit = {}) {
+/**
+ * Chamada ao backend repassando o JWT guardado no cookie da sessão.
+ * `timeoutMs` maior só pra rotas que esperam terceiros (ex.: Instagram).
+ */
+export async function backendFetch(path: string, init: RequestInit = {}, timeoutMs = BACKEND_TIMEOUT_MS) {
   const cookieStore = await cookies();
   const token = cookieStore.get(AUTH_COOKIE)?.value;
 
@@ -51,7 +54,7 @@ export async function backendFetch(path: string, init: RequestInit = {}) {
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...init.headers,
     },
-  });
+  }, timeoutMs);
 }
 
 /**
