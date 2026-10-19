@@ -4,9 +4,14 @@ import { todayLocalISO } from "@/lib/format";
 /**
  * Regra de prazo: todo post da semana (segunda a domingo) deve ser entregue
  * até a quinta-feira da semana anterior. "Entregue" = já passou da produção:
- * em aprovação, reprovada (modificações) ou aprovada/publicada (finalizados).
+ * em aprovação, reprovada (modificações) aprovada (finalizados) ou publicada.
  */
-export const DELIVERED_STATUSES: readonly CalendarEntryStatus[] = ["checagem_aprovacao", "modificacoes", "finalizados"];
+export const DELIVERED_STATUSES: readonly CalendarEntryStatus[] = [
+  "checagem_aprovacao",
+  "modificacoes",
+  "finalizados",
+  "publicados",
+];
 
 const MS_DAY = 86_400_000;
 
