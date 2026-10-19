@@ -53,7 +53,7 @@ desses textos.
 confirmação. Ações destrutivas exigem confirm=true.
 - Mês de calendário "finalizado" não aceita criar/editar/apagar postagens; \
 reprove o período antes. Finalizar um mês só trava o mês.
-- Status de postagem (quadros de produção): producao, andamento, modificacoes, checagem_aprovacao, finalizados.
+- Status de postagem (quadros de produção): producao, andamento, modificacoes, checagem_aprovacao, finalizados (rótulo "Aprovados"), publicados.
 - Datas no formato AAAA-MM-DD.
 """
 
@@ -343,7 +343,7 @@ async def update_calendar_entry(
     final_image: Annotated[str | None, Field(description="URL da arte final (entrega)")] = None,
     caption: str | None = None,
     material_notes: str | None = None,
-    status: Annotated[str | None, Field(description="producao | andamento | modificacoes | checagem_aprovacao | finalizados")] = None,
+    status: Annotated[str | None, Field(description="producao | andamento | modificacoes | checagem_aprovacao | finalizados | publicados")] = None,
 ) -> dict:
     """Edita uma postagem do calendário. Só os campos informados mudam. Falha se o mês estiver finalizado."""
     body: dict[str, Any] = {

@@ -33,7 +33,7 @@ class CalendarEntry(Base):
     # Markdown livre respondendo "já tem material?" — sem UI própria ainda,
     # reservado pra uso futuro (igual "status", ver comentário abaixo).
     material_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
-    # producao / andamento / modificacoes / checagem_aprovacao / finalizados — ver schemas/calendar_entry.py
+    # producao / andamento / modificacoes / checagem_aprovacao / finalizados (Aprovados) / publicados — ver schemas/calendar_entry.py
     status: Mapped[str] = mapped_column(String(30), nullable=False, default="producao")
     # Solicitante (social que pediu a demanda; padrão = social do cliente) e
     # responsável (quem executa; padrão = designer do cliente).

@@ -6,12 +6,12 @@ from pydantic import BaseModel, field_validator
 from app.schemas.tag import TagOut
 
 # Quadros do fluxo de produção, na ordem do kanban.
-CALENDAR_STATUSES = ["producao", "andamento", "modificacoes", "checagem_aprovacao", "finalizados"]
+CALENDAR_STATUSES = ["producao", "andamento", "modificacoes", "checagem_aprovacao", "finalizados", "publicados"]
 
 
 # Status em que a postagem já foi entregue pela produção (em aprovação,
-# reprovada/em modificações, aprovada/publicada) — contam como "entregue" no controle de prazo.
-DELIVERED_STATUSES = {"checagem_aprovacao", "modificacoes", "finalizados"}
+# reprovada/em modificações, aprovada ("finalizados" no banco) ou publicada) — contam como "entregue" no controle de prazo.
+DELIVERED_STATUSES = {"checagem_aprovacao", "modificacoes", "finalizados", "publicados"}
 
 
 def _validate_status(value: str) -> str:

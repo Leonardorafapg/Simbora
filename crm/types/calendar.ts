@@ -10,6 +10,7 @@ export const CALENDAR_ENTRY_STATUSES = [
   "modificacoes",
   "checagem_aprovacao",
   "finalizados",
+  "publicados",
 ] as const;
 export type CalendarEntryStatus = (typeof CALENDAR_ENTRY_STATUSES)[number];
 export const CALENDAR_ENTRY_STATUS_LABELS: Record<CalendarEntryStatus, string> = {
@@ -17,7 +18,9 @@ export const CALENDAR_ENTRY_STATUS_LABELS: Record<CalendarEntryStatus, string> =
   andamento: "Andamento",
   modificacoes: "Modificações",
   checagem_aprovacao: "Checagem e aprovação",
-  finalizados: "Finalizados",
+  // A chave interna continua "finalizados" (já gravada no banco); o rótulo é "Aprovados".
+  finalizados: "Aprovados",
+  publicados: "Publicados",
 };
 
 import type { Tag } from "@/types/tag";
