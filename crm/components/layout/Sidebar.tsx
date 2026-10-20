@@ -19,17 +19,11 @@ type Props = {
   onToggleCollapsed: () => void;
 };
 
-// Agrupa o menu em seções (só visual no modo expandido).
-const GROUPS: { label: string; hrefs: string[] }[] = [
-  { label: "Operação", hrefs: ["/dashboard", "/clients", "/production", "/whatsapp"] },
-  { label: "Gestão", hrefs: ["/team", "/settings"] },
-];
-
 // Rótulo curto do trilho recolhido (63px de largura).
 const SHORT_LABEL: Record<string, string> = { "/settings": "Config." };
 
 /**
- * Expandida (desktop): sidebar de 240px com seções, ícone em bloco, item ativo
+ * Expandida (desktop): sidebar de 240px com ícone em bloco, item ativo
  * em destaque e a conta embaixo.
  * Recolhida (desktop): trilho fino de 63px — ícone em pílula com rótulo curto
  * embaixo e a conta como avatar (mesmo padrão do CRM+IA).
@@ -144,22 +138,11 @@ export default function Sidebar({ user, mobileOpen, onClose, collapsed, onToggle
 
         {/* Navegação */}
         <nav
-          className={`flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto overflow-x-hidden px-3 py-4 ${
+          className={`flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overflow-x-hidden px-3 py-4 ${
             c ? "lg:gap-1.5 lg:px-0.5 lg:py-2.5" : ""
           }`}
         >
-          {GROUPS.map((group) => (
-            <div key={group.label} className={`flex flex-col gap-1 ${c ? "lg:gap-1.5" : ""}`}>
-              <p
-                className={`px-2.5 pb-1 text-[11px] font-semibold uppercase tracking-wider text-text-faint ${
-                  c ? "lg:hidden" : ""
-                }`}
-              >
-                {group.label}
-              </p>
-              {group.hrefs.map(renderItem)}
-            </div>
-          ))}
+          {NAV_ITEMS.map((item) => renderItem(item.href))}
         </nav>
 
         {/* Conta */}

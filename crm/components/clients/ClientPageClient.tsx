@@ -62,7 +62,7 @@ export default function ClientPageClient({
   }
 
   return (
-    <div className="relative h-full p-6 sm:p-8">
+    <div className="relative h-full overflow-x-clip p-6 sm:p-8">
       <div className="flex items-center justify-between gap-3 flex-wrap mb-6">
         <h1 className="text-2xl font-semibold text-white">Clientes</h1>
         {canCreate && (
