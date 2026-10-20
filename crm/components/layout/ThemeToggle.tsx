@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { Moon, Sun } from "lucide-react";
 import { THEME_STORAGE_KEY, type Theme } from "@/lib/theme";
 
-export default function ThemeToggle() {
+/** Estado e ação do tema (claro/escuro), reaproveitados pelo botão do topo e pelo menu da conta. */
+export function useThemeToggle() {
   // Começa null: o tema real já foi aplicado ao <html> pelo script inline
   // antes da hidratação, então só sincronizamos o ícone depois do mount pra
   // não arriscar um mismatch de hidratação lendo o DOM durante o render.
@@ -31,6 +32,12 @@ export default function ThemeToggle() {
       // localStorage indisponível — o tema só não persiste entre sessões.
     }
   }
+
+  return { theme, toggle };
+}
+
+export default function ThemeToggle() {
+  const { theme, toggle } = useThemeToggle();
 
   return (
     <button

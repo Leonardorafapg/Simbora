@@ -16,7 +16,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="h-full p-6 sm:p-8 space-y-4">
-      <h1 className="text-2xl font-semibold text-white">Dashboard</h1>
+      <h1 className="text-2xl font-semibold text-text">Dashboard</h1>
       <PostsDashboard />
     </div>
   );

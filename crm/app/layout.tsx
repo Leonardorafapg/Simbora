@@ -1,6 +1,10 @@
 import type { Metadata, Viewport } from "next";
+import { Bricolage_Grotesque, Inter } from "next/font/google";
 import "./globals.css";
 import { themeInitScript } from "@/lib/theme";
+
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
+const bricolage = Bricolage_Grotesque({ subsets: ["latin"], variable: "--font-bricolage", display: "swap" });
 
 export const metadata: Metadata = {
   title: "Simbora CRM",
@@ -35,7 +39,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="pt-BR" suppressHydrationWarning>
+    <html lang="pt-BR" suppressHydrationWarning className={`${inter.variable} ${bricolage.variable}`}>
       <body className="bg-dark text-white antialiased">
         {/* Inline puro em vez de next/script: precisa rodar antes do paint pra
             evitar flash de tema, e o <Script beforeInteractive> quebra o
