@@ -35,6 +35,8 @@ def _clean_title(value: str | None) -> str | None:
 class CalendarEntryCreate(BaseModel):
     client_id: int
     scheduled_date: date
+    # Sobrepõe a regra automática de prazo — ver comentário no model.
+    custom_deadline: date | None = None
     title: str | None = None
     theme: str
     # Campo "Execução" saiu da UI/relatório; mantido opcional por compatibilidade.
@@ -74,6 +76,7 @@ class CalendarEntryCreate(BaseModel):
 class CalendarEntryUpdate(BaseModel):
     client_id: int | None = None
     scheduled_date: date | None = None
+    custom_deadline: date | None = None
     title: str | None = None
     theme: str | None = None
     execution_notes: str | None = None
@@ -108,6 +111,7 @@ class CalendarEntryOut(BaseModel):
     id: int
     client_id: int
     scheduled_date: date
+    custom_deadline: date | None
     title: str | None
     theme: str
     execution_notes: str | None

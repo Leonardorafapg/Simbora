@@ -49,6 +49,7 @@ def _ensure_period_editable(db: Session, client_id: int, entry_date: date) -> No
 PLANNING_FIELDS = (
     "client_id",
     "scheduled_date",
+    "custom_deadline",
     "theme",
     "execution_notes",
     "reference_link",

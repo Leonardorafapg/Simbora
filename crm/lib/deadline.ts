@@ -58,7 +58,9 @@ function localDateOf(timestamp: string) {
 }
 
 export function deadlineInfo(entry: CalendarEntry, today: string = todayLocalISO()): DeadlineInfo {
-  const deadline = deadlineFor(entry.scheduled_date);
+  // Demanda avulsa fora do calendário pode ter um prazo configurado na mão,
+  // que sobrepõe a regra automática (ver custom_deadline no model/schema).
+  const deadline = entry.custom_deadline ?? deadlineFor(entry.scheduled_date);
   const delivered = DELIVERED_STATUSES.includes(entry.status);
 
   if (delivered) {

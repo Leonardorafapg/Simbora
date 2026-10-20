@@ -39,6 +39,7 @@ function buildForm(
     requester_id: entry ? entry.requester_id : (client?.default_social_id ?? null),
     assignee_id: entry ? entry.assignee_id : (client?.default_designer_id ?? null),
     scheduled_date: entry?.scheduled_date ?? defaultDate,
+    custom_deadline: entry?.custom_deadline ?? null,
     tag_ids: entry?.tags.map((t) => t.id) ?? ([] as number[]),
     title: entry?.title ?? "",
     theme: entry?.theme ?? "",
@@ -260,21 +261,39 @@ export default function CalendarEntryDialog({
                 <Clock className="h-4 w-4 text-white/40" />
                 Prazo de entrega
               </div>
-              {(() => {
-                const info = entry ? deadlineInfo({ ...entry, scheduled_date: form.scheduled_date }) : null;
-                return (
-                  <div className="flex flex-wrap items-center gap-2 text-sm text-white/80">
-                    <span>{formatDeadline(info?.deadline ?? deadlineFor(form.scheduled_date))}</span>
-                    {info && (
-                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${DEADLINE_CLASSES[info.state]}`}>
-                        {DEADLINE_LABELS[info.state]}
-                        {info.daysLate > 0 ? ` (${info.daysLate}d)` : ""}
-                      </span>
-                    )}
-                  </div>
-                );
-              })()}
-              <p className="text-xs text-white/40">Quinta-feira da semana anterior à data da postagem.</p>
+              {clients && !entry ? (
+                <>
+                  <input
+                    type="date"
+                    value={form.custom_deadline ?? deadlineFor(form.scheduled_date)}
+                    onChange={(e) => update("custom_deadline", e.target.value)}
+                    className="glass-input w-full rounded-lg px-3 py-2 text-sm outline-none"
+                  />
+                  <p className="text-xs text-white/40">
+                    Demanda fora do calendário — ajuste o prazo manualmente (sugestão: quinta da semana anterior).
+                  </p>
+                </>
+              ) : (
+                (() => {
+                  const info = entry ? deadlineInfo({ ...entry, scheduled_date: form.scheduled_date }) : null;
+                  return (
+                    <>
+                      <div className="flex flex-wrap items-center gap-2 text-sm text-white/80">
+                        <span>{formatDeadline(info?.deadline ?? deadlineFor(form.scheduled_date))}</span>
+                        {info && (
+                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${DEADLINE_CLASSES[info.state]}`}>
+                            {DEADLINE_LABELS[info.state]}
+                            {info.daysLate > 0 ? ` (${info.daysLate}d)` : ""}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-white/40">
+                        {entry?.custom_deadline ? "Prazo customizado." : "Quinta-feira da semana anterior à data da postagem."}
+                      </p>
+                    </>
+                  );
+                })()
+              )}
             </section>
 
             {/* Sempre visível (inclusive ao criar): o post pronto e a legenda
