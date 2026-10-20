@@ -1,68 +1,24 @@
-"""Cliente HTTP do backend Simbora: login da conta de serviço, cache de token e erros legíveis."""
-import asyncio
+"""Cliente HTTP do backend Simbora: repassa o token do usuário logado no MCP e traduz erros em mensagens legíveis."""
 import os
-import time
 from typing import Any
 
 import httpx
+from mcp.server.auth.middleware.auth_context import get_access_token
 from mcp.server.fastmcp.exceptions import ToolError
 
 
 class BackendClient:
     def __init__(self) -> None:
         self.base_url = os.environ.get("BACKEND_URL", "").rstrip("/")
-        self.email = os.environ.get("MCP_SERVICE_EMAIL", "")
-        self.password = os.environ.get("MCP_SERVICE_PASSWORD", "")
-        self._token: str | None = None
-        self._token_exp: float = 0.0
-        self._lock = asyncio.Lock()
         self._http = httpx.AsyncClient(timeout=httpx.Timeout(30.0, connect=10.0))
 
-    # --- auth -----------------------------------------------------------------
-    def _check_config(self) -> None:
-        missing = [
-            name
-            for name, value in (
-                ("BACKEND_URL", self.base_url),
-                ("MCP_SERVICE_EMAIL", self.email),
-                ("MCP_SERVICE_PASSWORD", self.password),
-            )
-            if not value
-        ]
-        if missing:
-            raise ToolError(
-                "Servidor MCP sem configuração: faltam as variáveis " + ", ".join(missing) + " no serviço mcp."
-            )
+    @staticmethod
+    def _user_token() -> str:
+        access = get_access_token()
+        if access is None:
+            raise ToolError("Sem usuário autenticado. Reconecte o MCP e faça login no Simbora.")
+        return access.token
 
-    async def _login(self) -> str:
-        self._check_config()
-        try:
-            resp = await self._http.post(
-                f"{self.base_url}/api/v1/auth/login",
-                json={"email": self.email, "password": self.password},
-            )
-        except httpx.HTTPError as exc:
-            raise ToolError(f"Não consegui falar com o backend: {exc.__class__.__name__}") from exc
-
-        if resp.status_code == 401:
-            raise ToolError("A conta de serviço do MCP não conseguiu entrar (email/senha inválidos ou usuário inativo).")
-        if resp.status_code >= 400:
-            raise ToolError(f"Falha no login da conta de serviço (HTTP {resp.status_code}).")
-
-        data = resp.json()
-        self._token = data["access_token"]
-        # Renova um pouco antes de expirar de verdade.
-        self._token_exp = time.time() + max(60, int(data.get("expires_in", 3600)) - 120)
-        return self._token
-
-    async def _get_token(self) -> str:
-        async with self._lock:
-            if self._token is None or time.time() >= self._token_exp:
-                await self._login()
-            assert self._token is not None
-            return self._token
-
-    # --- requests -------------------------------------------------------------
     async def request(
         self,
         method: str,
@@ -71,27 +27,24 @@ class BackendClient:
         params: dict[str, Any] | None = None,
         json: Any = None,
     ) -> Any:
+        if not self.base_url:
+            raise ToolError("Servidor MCP sem configuração: falta a variável BACKEND_URL no serviço mcp.")
         url = f"{self.base_url}/api/v1{path}"
         clean_params = {k: v for k, v in (params or {}).items() if v is not None}
 
-        for attempt in (1, 2):
-            token = await self._get_token()
-            try:
-                resp = await self._http.request(
-                    method,
-                    url,
-                    params=clean_params,
-                    json=json,
-                    headers={"Authorization": f"Bearer {token}"},
-                )
-            except httpx.HTTPError as exc:
-                raise ToolError(f"Não consegui falar com o backend: {exc.__class__.__name__}") from exc
+        try:
+            resp = await self._http.request(
+                method,
+                url,
+                params=clean_params,
+                json=json,
+                headers={"Authorization": f"Bearer {self._user_token()}"},
+            )
+        except httpx.HTTPError as exc:
+            raise ToolError(f"Não consegui falar com o backend: {exc.__class__.__name__}") from exc
 
-            if resp.status_code == 401 and attempt == 1:
-                self._token = None  # token expirou/foi invalidado: reloga e tenta uma vez
-                continue
-            break
-
+        if resp.status_code == 401:
+            raise ToolError("Sua sessão no Simbora expirou ou foi revogada. Reconecte o MCP e faça login de novo.")
         if resp.status_code == 204:
             return None
         if resp.status_code >= 400:
@@ -119,7 +72,7 @@ class BackendClient:
         if resp.status_code == 403:
             if detail and detail != "Permissão insuficiente":
                 return f"Não permitido: {detail}"  # regra de negócio do backend, mensagem já é clara
-            return "Sem permissão para essa ação: a conta de serviço do MCP não tem a permissão necessária."
+            return "Você não tem permissão para essa ação no CRM. Peça a um administrador para liberar."
         if resp.status_code == 404:
             return f"Não encontrado: {detail or 'recurso inexistente'}"
         return f"O backend recusou (HTTP {resp.status_code}): {detail or 'erro sem detalhe'}"

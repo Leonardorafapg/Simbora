@@ -7,6 +7,7 @@ from app.models.calendar_approval import CalendarApproval
 from app.models.whatsapp_message import WhatsAppMessage
 from app.models.whatsapp_chat_label import WhatsAppChatLabel
 from app.models.tag import Tag
+from app.models.oauth import OAuthAuthorizationCode, OAuthClient, OAuthGrant, OAuthRefreshToken
 
 __all__ = [
     "User",
@@ -17,4 +18,8 @@ __all__ = [
     "WhatsAppMessage",
     "WhatsAppChatLabel",
     "Tag",
+    "OAuthClient",
+    "OAuthGrant",
+    "OAuthAuthorizationCode",
+    "OAuthRefreshToken",
 ]

@@ -26,6 +26,7 @@ from app.core.deps import require_permission
 from app.core.permissions import PERMISSIONS, has_permission
 from app.core.security import hash_password
 from app.models.user import User
+from app.services import oauth
 from app.schemas.user import PermissionCatalogEntry, TeamMemberCreate, TeamMemberUpdate, UserOut
 
 router = APIRouter()
@@ -128,5 +129,7 @@ async def update_team_member(
     except IntegrityError:
         db.rollback()
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email ou CPF já cadastrado")
+    if data.get("is_active") is False:
+        oauth.revoke_all_for_user(db, user.id)
     db.refresh(user)
     return user
