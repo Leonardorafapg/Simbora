@@ -10,6 +10,7 @@ import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import CalendarMonthView from "./CalendarMonthView";
 import CalendarEntryDialog from "./CalendarEntryDialog";
 import CalendarPeriodControl from "./CalendarPeriodControl";
+import CalendarApprovalPanel from "./CalendarApprovalPanel";
 import CalendarReport from "./CalendarReport";
 import { todayLocalISO } from "@/lib/format";
 
@@ -19,11 +20,20 @@ type Props = {
   canCreate: boolean;
   canEdit: boolean;
   canDelete: boolean;
+  /** Decidir pela Amanda na etapa interna de aprovação (permissão separada de canEdit). */
+  canApprove: boolean;
   /** Mês/ano são controlados por quem renderiza (ex.: ClientDetail usa pra filtrar "demandas do mês" pelo mesmo período mostrado aqui). */
   year: number;
   month: number;
   onChangeMonth: (year: number, month: number) => void;
 };
+
+const LOCKED_STATUSES: CalendarPeriodStatus[] = [
+  "finalizado",
+  "enviado_aprovacao_amanda",
+  "aprovado_amanda",
+  "enviado_aprovacao_cliente",
+];
 
 /** Calendário de postagens de um único cliente — vive dentro do drawer de detalhe. */
 export default function ClientCalendar({
@@ -32,6 +42,7 @@ export default function ClientCalendar({
   canCreate,
   canEdit,
   canDelete,
+  canApprove,
   year,
   month,
   onChangeMonth,
@@ -52,11 +63,12 @@ export default function ClientCalendar({
   // Falha ao listar (ou mês sem nenhuma postagem) são o mesmo estado pra UI:
   // `entries` fica `[]` e o calendário renderiza normal — sem banner de erro.
   const { entries, create, update, remove } = useCalendarEntries(clientId, monthStr);
-  const { period, setStatus: setPeriodStatus } = useCalendarPeriod(clientId, year, month);
+  const { period, setStatus: setPeriodStatus, refresh: refreshPeriod } = useCalendarPeriod(clientId, year, month);
 
-  // Cronograma finalizado trava o mês inteiro — a checagem real é sempre no
-  // backend, isso aqui só evita abrir diálogos que vão ser recusados.
-  const locked = period.status === "finalizado";
+  // Cronograma em qualquer etapa de aprovação (ou já finalizado) trava o mês
+  // inteiro — a checagem real é sempre no backend, isso aqui só evita abrir
+  // diálogos que vão ser recusados.
+  const locked = LOCKED_STATUSES.includes(period.status);
 
   function openCreateDialog(date: string) {
     setDialogDate(date);
@@ -109,6 +121,20 @@ export default function ClientCalendar({
         saving={savingPeriod}
         onChange={handlePeriodStatusChange}
       />
+
+      <CalendarApprovalPanel
+        clientId={clientId}
+        clientName={clientName}
+        year={year}
+        month={month}
+        monthLabel={monthLabel}
+        status={period.status}
+        entries={entries}
+        canSend={canEdit}
+        canApprove={canApprove}
+        onChanged={refreshPeriod}
+      />
+
       {periodError && <p className="text-sm text-danger">{periodError}</p>}
       {deleteError && <p className="text-sm text-danger">{deleteError}</p>}
 

@@ -29,6 +29,8 @@ export type CalendarEntry = {
   id: number;
   client_id: number;
   scheduled_date: string;
+  /** Sobrepõe a regra automática de prazo (quinta da semana anterior) — usado em demanda avulsa fora do calendário. Nulo = regra automática. */
+  custom_deadline: string | null;
   /** Nome da publicação — opcional em postagens antigas (cai no theme). */
   title: string | null;
   theme: string;
@@ -58,6 +60,7 @@ export type CalendarEntry = {
 export type CalendarEntryCreateInput = {
   client_id: number;
   scheduled_date: string;
+  custom_deadline?: string | null;
   title?: string | null;
   theme: string;
   execution_notes?: string;
@@ -76,6 +79,7 @@ export type CalendarEntryCreateInput = {
 export type CalendarEntryUpdateInput = Partial<{
   client_id: number;
   scheduled_date: string;
+  custom_deadline: string | null;
   title: string | null;
   theme: string;
   execution_notes: string;

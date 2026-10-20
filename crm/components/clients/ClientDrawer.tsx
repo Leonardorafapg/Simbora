@@ -2,7 +2,7 @@ import type { Client, ClientUpdateInput } from "@/types/client";
 import type { TeamMember } from "@/types/team";
 import ClientDetail from "./ClientDetail";
 
-type CalendarPermissions = { canCreate: boolean; canEdit: boolean; canDelete: boolean };
+type CalendarPermissions = { canCreate: boolean; canEdit: boolean; canDelete: boolean; canApprove: boolean };
 type InstagramPermissions = { canView: boolean; canManage: boolean };
 
 type Props = {

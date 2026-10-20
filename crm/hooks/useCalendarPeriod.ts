@@ -10,6 +10,19 @@ export function useCalendarPeriod(clientId: number, year: number, month: number)
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await fetchCalendarPeriod(clientId, year, month);
+      setPeriod(data);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro inesperado.");
+    } finally {
+      setLoading(false);
+    }
+  }, [clientId, year, month]);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -41,5 +54,5 @@ export function useCalendarPeriod(clientId: number, year: number, month: number)
     [clientId, year, month],
   );
 
-  return { period, loading, error, setStatus };
+  return { period, loading, error, setStatus, refresh: load };
 }

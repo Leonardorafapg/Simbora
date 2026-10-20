@@ -27,12 +27,20 @@ from app.schemas.calendar_entry import (
 router = APIRouter()
 
 
+_LOCKED_PERIOD_STATUSES = {
+    "finalizado",
+    "enviado_aprovacao_amanda",
+    "aprovado_amanda",
+    "enviado_aprovacao_cliente",
+}
+
+
 def _ensure_period_editable(db: Session, client_id: int, entry_date: date) -> None:
     period_status = get_period_status(db, client_id, entry_date.year, entry_date.month)
-    if period_status == "finalizado":
+    if period_status in _LOCKED_PERIOD_STATUSES:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Esse cronograma já foi finalizado — reprove antes de editar.",
+            detail="Esse cronograma está em aprovação ou já foi finalizado — reprove antes de editar.",
         )
 
 
@@ -42,6 +50,7 @@ def _ensure_period_editable(db: Session, client_id: int, entry_date: date) -> No
 PLANNING_FIELDS = (
     "client_id",
     "scheduled_date",
+    "custom_deadline",
     "theme",
     "execution_notes",
     "reference_link",

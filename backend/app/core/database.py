@@ -72,6 +72,7 @@ def run_light_migrations():
         add_column_if_missing(conn, "calendar_entries", "title", "title VARCHAR(200)")
         add_column_if_missing(conn, "calendar_entries", "requester_id", "requester_id INTEGER REFERENCES users(id)")
         add_column_if_missing(conn, "calendar_entries", "assignee_id", "assignee_id INTEGER REFERENCES users(id)")
+        add_column_if_missing(conn, "calendar_entries", "custom_deadline", "custom_deadline DATE")
         if inspector.has_table("calendar_entries") and "delivered_at" not in {
             col["name"] for col in inspector.get_columns("calendar_entries")
         }:
@@ -97,3 +98,9 @@ def run_light_migrations():
         add_column_if_missing(conn, "whatsapp_messages", "media_type", "media_type VARCHAR(20)")
         add_column_if_missing(conn, "whatsapp_messages", "media_mimetype", "media_mimetype VARCHAR(100)")
         add_column_if_missing(conn, "clients", "photo_url", "photo_url VARCHAR(500)")
+        add_column_if_missing(conn, "calendar_periods", "pdf_url", "pdf_url VARCHAR(500)")
+        if inspector.has_table("calendar_periods") and not IS_SQLITE:
+            # Status novos da cadeia de aprovação ("enviado_aprovacao_amanda" etc.)
+            # passam de 20 caracteres — a coluna antiga era VARCHAR(20) em produção.
+            conn.exec_driver_sql("ALTER TABLE calendar_periods ALTER COLUMN status TYPE VARCHAR(30)")
+            conn.commit()

@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "change-me-in-env"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 480
+    # Quantos dias o link de aprovação enviado ao cliente (sem login) fica válido.
+    CALENDAR_APPROVAL_TOKEN_EXPIRE_DAYS: int = 7
 
     # Evolution API — gateway self-hosted de WhatsApp (conexão única, global)
     EVOLUTION_API_URL: str = ""
@@ -52,6 +54,16 @@ class Settings(BaseSettings):
     TOKEN_ENCRYPTION_KEY: str = ""
     # Desliga o laço de publicação/renovação (ex.: rodar uma segunda instância só de leitura).
     INSTAGRAM_WORKER_ENABLED: bool = True
+
+    # Login OAuth do MCP (ver docs/plano-mcp-oauth.md). O issuer é o PUBLIC_API_URL.
+    # URL do endpoint MCP (com /mcp): vira o `aud` dos tokens e o `resource` aceito.
+    MCP_RESOURCE_URL: str = ""
+    # Segredo só entre o serviço MCP e o backend, usado em /oauth/introspect.
+    MCP_INTROSPECTION_SECRET: str = ""
+    OAUTH_ACCESS_TOKEN_MINUTES: int = 60
+    OAUTH_REFRESH_TOKEN_DAYS: int = 30
+    # Hosts HTTPS extras aceitos como redirect do OAuth (separados por vírgula).
+    OAUTH_EXTRA_REDIRECT_HOSTS: str = ""
 
     # Login OAuth do MCP (ver docs/plano-mcp-oauth.md). O issuer é o PUBLIC_API_URL.
     # URL do endpoint MCP (com /mcp): vira o `aud` dos tokens e o `resource` aceito.

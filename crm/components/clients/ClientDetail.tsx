@@ -14,6 +14,7 @@ type CalendarPermissions = {
   canCreate: boolean;
   canEdit: boolean;
   canDelete: boolean;
+  canApprove: boolean;
 };
 
 type InstagramPermissions = { canView: boolean; canManage: boolean };
@@ -324,6 +325,7 @@ export default function ClientDetail({
             canCreate={calendarPermissions.canCreate}
             canEdit={calendarPermissions.canEdit}
             canDelete={calendarPermissions.canDelete}
+            canApprove={calendarPermissions.canApprove}
             year={calendarYear}
             month={calendarMonth}
             onChangeMonth={(y, m) => {

@@ -3,6 +3,7 @@ from app.models.user import User
 from app.models.client import Client
 from app.models.calendar_entry import CalendarEntry
 from app.models.calendar_period import CalendarPeriod
+from app.models.calendar_approval import CalendarApproval
 from app.models.whatsapp_message import WhatsAppMessage
 from app.models.whatsapp_chat_label import WhatsAppChatLabel
 from app.models.tag import Tag
@@ -11,6 +12,6 @@ from app.models.oauth import OAuthAuthorizationCode, OAuthClient, OAuthGrant, OA
 
 __all__ = [
     "User", "Client", "CalendarEntry", "CalendarPeriod", "WhatsAppMessage", "WhatsAppChatLabel", "Tag",
-    "InstagramAccount", "InstagramPost",
+    "InstagramAccount", "InstagramPost", "CalendarApproval",
     "OAuthClient", "OAuthGrant", "OAuthAuthorizationCode", "OAuthRefreshToken",
 ]
