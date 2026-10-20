@@ -15,6 +15,7 @@ import {
 import { useCalendarEntries } from "@/hooks/useCalendarEntries";
 import { useClients } from "@/hooks/useClients";
 import { useTeamMembers } from "@/hooks/useTeamMembers";
+import { useTags } from "@/hooks/useTags";
 import type { CalendarEntry, CalendarEntryCreateInput, CalendarEntryStatus } from "@/types/calendar";
 import { CALENDAR_ENTRY_STATUSES } from "@/types/calendar";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
@@ -40,6 +41,7 @@ function currentMonth() {
 export default function ProductionBoard({ canEdit, canCreate, canDelete }: Props) {
   const [clientId, setClientId] = useState<number | undefined>(undefined);
   const [assigneeId, setAssigneeId] = useState<number | undefined>(undefined);
+  const [tagId, setTagId] = useState<number | undefined>(undefined);
   const [deadlineFilter, setDeadlineFilter] = useState<"" | "atrasados" | "vencem">("");
   const [month, setMonth] = useState(currentMonth());
   const [selected, setSelected] = useState<CalendarEntry | null>(null);
@@ -52,10 +54,12 @@ export default function ProductionBoard({ canEdit, canCreate, canDelete }: Props
   const { entries, loading, error, create, update, remove } = useCalendarEntries(clientId, month, "finalizado", assigneeId);
   const { clients } = useClients();
   const { members } = useTeamMembers();
+  const { tags } = useTags();
 
   // Prazo: filtra e põe os mais urgentes no topo de cada coluna.
   const visibleEntries = entries
     .map((entry) => ({ entry, info: deadlineInfo(entry) }))
+    .filter(({ entry }) => tagId === undefined || entry.tags.some((tag) => tag.id === tagId))
     .filter(({ info }) => {
       if (deadlineFilter === "atrasados") return info.state === "atrasado";
       if (deadlineFilter === "vencem") return info.state === "vence_hoje" || info.state === "vence_amanha";
@@ -153,6 +157,19 @@ export default function ProductionBoard({ canEdit, canCreate, canDelete }: Props
           {members.map((m) => (
             <option key={m.id} value={m.id}>
               {m.full_name}
+            </option>
+          ))}
+        </select>
+        <select
+          value={tagId ?? ""}
+          onChange={(e) => setTagId(e.target.value ? Number(e.target.value) : undefined)}
+          className="glass-input rounded-lg px-3 py-2 text-sm outline-none"
+          aria-label="Filtrar por etiqueta"
+        >
+          <option value="">Todas as etiquetas</option>
+          {tags.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.name}
             </option>
           ))}
         </select>
