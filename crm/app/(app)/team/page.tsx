@@ -8,6 +8,7 @@ export default async function TeamPage() {
   return (
     <TeamPageClient
       canManage={canManageTeam(session?.is_admin)}
+      currentUserId={session ? Number(session.sub) : null}
     />
   );
 }

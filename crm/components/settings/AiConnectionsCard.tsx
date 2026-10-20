@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Bot, Unplug } from "lucide-react";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import ConnectClaudeButton from "@/components/settings/ConnectClaudeButton";
 import { fetchAiConnections, revokeAiConnection } from "@/services/client/aiConnectionsApi";
 import type { AiConnection } from "@/types/aiConnection";
 
@@ -74,13 +75,17 @@ export default function AiConnectionsCard() {
         </div>
       </div>
 
+      <div className="mt-4">
+        <ConnectClaudeButton />
+      </div>
+
       <div className="mt-5 flex flex-col gap-2">
         {connections === null ? (
           <p className="text-sm text-white/50">Carregando...</p>
         ) : connections.length === 0 ? (
           <p className="rounded-xl border border-white/10 px-4 py-3 text-sm text-white/50">
-            Nenhuma conexão ativa. Para conectar, adicione o servidor MCP do Simbora no seu app de IA e entre com o seu
-            login quando ele abrir o navegador.
+            Nenhuma conexão ativa. Clique em &quot;Conectar com o Claude&quot; e siga os passos; o Claude vai abrir a
+            tela de login do Simbora.
           </p>
         ) : (
           connections.map((connection) => (

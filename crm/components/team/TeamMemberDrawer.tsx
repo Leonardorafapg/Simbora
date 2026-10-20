@@ -4,6 +4,7 @@ import TeamMemberDetail from "./TeamMemberDetail";
 type Props = {
   member: TeamMember | null;
   canManage: boolean;
+  currentUserId: number | null;
   onClose: () => void;
   onUpdate: (id: number, input: TeamMemberUpdateInput) => Promise<TeamMember>;
   onRequestDelete: (member: TeamMember) => void;
@@ -17,6 +18,7 @@ type Props = {
 export default function TeamMemberDrawer({
   member,
   canManage,
+  currentUserId,
   onClose,
   onUpdate,
   onRequestDelete,
@@ -34,6 +36,7 @@ export default function TeamMemberDrawer({
             key={member.id}
             member={member}
             canManage={canManage}
+            isSelf={member.id === currentUserId}
             onBack={onClose}
             onUpdate={onUpdate}
             onRequestDelete={onRequestDelete}

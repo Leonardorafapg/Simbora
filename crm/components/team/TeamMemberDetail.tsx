@@ -8,11 +8,13 @@ import Avatar from "@/components/ui/Avatar";
 import Field from "@/components/ui/Field";
 import Switch from "@/components/ui/Switch";
 import ImageDropzone from "@/components/ui/ImageDropzone";
+import ConnectClaudeButton from "@/components/settings/ConnectClaudeButton";
 import ChangePasswordForm from "./ChangePasswordForm";
 
 type Props = {
   member: TeamMember;
   canManage: boolean;
+  isSelf: boolean;
   onBack: () => void;
   onUpdate: (id: number, input: TeamMemberUpdateInput) => Promise<TeamMember>;
   onRequestDelete: (member: TeamMember) => void;
@@ -21,6 +23,7 @@ type Props = {
 export default function TeamMemberDetail({
   member,
   canManage,
+  isSelf,
   onBack,
   onUpdate,
   onRequestDelete,
@@ -213,6 +216,17 @@ export default function TeamMemberDetail({
         </div>
 
         {error && <p className="text-sm text-danger max-w-md">{error}</p>}
+
+        {isSelf && !editing && (
+          <div className="glass-card w-full max-w-md rounded-2xl p-5">
+            <p className="text-sm font-semibold text-white">Conexão com IA</p>
+            <p className="mt-1 mb-4 text-xs text-white/50">
+              Use o Claude para trabalhar no CRM com as suas permissões. Você entra com o seu login e pode desconectar
+              quando quiser em Configurações.
+            </p>
+            <ConnectClaudeButton />
+          </div>
+        )}
 
         {canManage && !editing && <ChangePasswordForm memberId={member.id} memberName={member.full_name} />}
 
