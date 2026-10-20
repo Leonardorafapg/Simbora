@@ -189,11 +189,11 @@ export default function ProductionBoard({ canEdit, canCreate, canDelete }: Props
         onDragEnd={handleDragEnd}
         onDragCancel={() => setActiveEntry(null)}
       >
-        {/* Colunas largas (315px) de largura fixa: rola pro lado quando não cabem, nunca pra baixo —
+        {/* Colunas largas (380px) de largura fixa: rola pro lado quando não cabem, nunca pra baixo —
             a altura é a da tela e cada coluna rola por dentro. */}
         <div className="flex min-h-0 flex-1 gap-4 overflow-x-auto overflow-y-hidden pb-2">
           {CALENDAR_ENTRY_STATUSES.map((status) => (
-            <div key={status} className="h-full w-[315px] shrink-0">
+            <div key={status} className="h-full w-[380px] shrink-0">
               <KanbanColumn
                 status={status}
                 entries={visibleEntries.filter((e) => e.status === status)}
