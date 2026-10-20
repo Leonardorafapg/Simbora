@@ -62,30 +62,33 @@ export default function ClientPageClient({
   }
 
   return (
-    <div className="relative h-full overflow-x-clip p-6 sm:p-8">
-      <div className="flex items-center justify-between gap-3 flex-wrap mb-6">
-        <h1 className="text-2xl font-semibold text-white">Clientes</h1>
-        {canCreate && (
-          <button
-            type="button"
-            onClick={() => setAddOpen(true)}
-            className="rounded-lg bg-cyan px-4 py-2 text-sm font-semibold text-black transition hover:bg-cyan-dark"
-          >
-            + Novo cliente
-          </button>
-        )}
+    <div className="relative h-full overflow-x-clip">
+      {/* A página rola aqui dentro; o painel (drawer) fica fora da rolagem para sempre cobrir a área visível. */}
+      <div className="h-full overflow-y-auto p-6 sm:p-8">
+        <div className="flex items-center justify-between gap-3 flex-wrap mb-6">
+          <h1 className="text-2xl font-semibold text-white">Clientes</h1>
+          {canCreate && (
+            <button
+              type="button"
+              onClick={() => setAddOpen(true)}
+              className="rounded-lg bg-cyan px-4 py-2 text-sm font-semibold text-black transition hover:bg-cyan-dark"
+            >
+              + Novo cliente
+            </button>
+          )}
+        </div>
+
+        {loading && <p className="text-sm text-white/50">Carregando...</p>}
+        {error && <p className="text-sm text-danger">{error}</p>}
+        {deleteError && <p className="mb-4 text-sm text-danger">{deleteError}</p>}
+
+        <ClientGrid
+          clients={clients}
+          canCreate={canCreate}
+          onSelect={(client) => setSelectedId(client.id)}
+          onAddClick={() => setAddOpen(true)}
+        />
       </div>
-
-      {loading && <p className="text-sm text-white/50">Carregando...</p>}
-      {error && <p className="text-sm text-danger">{error}</p>}
-      {deleteError && <p className="mb-4 text-sm text-danger">{deleteError}</p>}
-
-      <ClientGrid
-        clients={clients}
-        canCreate={canCreate}
-        onSelect={(client) => setSelectedId(client.id)}
-        onAddClick={() => setAddOpen(true)}
-      />
 
       <ClientDrawer
         client={selected}
