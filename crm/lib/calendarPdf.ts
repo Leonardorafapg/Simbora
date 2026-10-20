@@ -37,11 +37,7 @@ const COL_WIDTHS = {
   data: 110,
 };
 
-export async function exportCalendarToPdf(
-  clientName: string,
-  monthLabel: string,
-  entries: CalendarEntry[],
-): Promise<void> {
+async function buildCalendarPdfDoc(clientName: string, monthLabel: string, entries: CalendarEntry[]) {
   const { jsPDF } = await import("jspdf");
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -93,8 +89,7 @@ export async function exportCalendarToPdf(
     doc.setFontSize(7.81); // 11 * 0.710125
     doc.setTextColor(120, 120, 120);
     doc.text("Nenhuma postagem planejada neste mês.", PAGE_MARGIN, y);
-    doc.save(`cronograma-${slugify(clientName)}-${slugify(monthLabel)}.pdf`);
-    return;
+    return doc;
   }
 
   function drawHeaderRow() {
@@ -165,5 +160,24 @@ export async function exportCalendarToPdf(
     y = rowTop + rowHeight;
   }
 
+  return doc;
+}
+
+export async function exportCalendarToPdf(
+  clientName: string,
+  monthLabel: string,
+  entries: CalendarEntry[],
+): Promise<void> {
+  const doc = await buildCalendarPdfDoc(clientName, monthLabel, entries);
   doc.save(`cronograma-${slugify(clientName)}-${slugify(monthLabel)}.pdf`);
+}
+
+/** Mesmo PDF, como Blob — usado pra subir no R2 antes de enviar pro WhatsApp (fluxo de aprovação). */
+export async function buildCalendarPdfBlob(
+  clientName: string,
+  monthLabel: string,
+  entries: CalendarEntry[],
+): Promise<Blob> {
+  const doc = await buildCalendarPdfDoc(clientName, monthLabel, entries);
+  return doc.output("blob");
 }

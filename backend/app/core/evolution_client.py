@@ -317,3 +317,21 @@ async def send_text_message(remote_jid: str, text: str) -> dict[str, Any]:
         json={"number": remote_jid, "text": text},
     )
     return response.json()
+
+
+async def send_document_url(remote_jid: str, media_url: str, file_name: str, caption: str = "") -> dict[str, Any]:
+    """Manda um documento (ex.: PDF já hospedado no R2) por URL — a Evolution
+    baixa e repassa pro WhatsApp, não precisa mandar o arquivo em base64."""
+    instance = _instance_name()
+    response = await _request(
+        "POST",
+        f"/message/sendMedia/{instance}",
+        json={
+            "number": remote_jid,
+            "mediatype": "document",
+            "media": media_url,
+            "fileName": file_name,
+            "caption": caption,
+        },
+    )
+    return response.json()

@@ -10,7 +10,7 @@ import ClientGrid from "./ClientGrid";
 import ClientDrawer from "./ClientDrawer";
 import NewClientDialog from "./NewClientDialog";
 
-type CalendarPermissions = { canCreate: boolean; canEdit: boolean; canDelete: boolean };
+type CalendarPermissions = { canCreate: boolean; canEdit: boolean; canDelete: boolean; canApprove: boolean };
 
 type Props = {
   canCreate: boolean;

@@ -83,6 +83,41 @@ async def presign_upload(
     )
 
 
+@router.post("/uploads/presign-document", response_model=PresignOut)
+async def presign_document_upload(
+    payload: PresignRequest,
+    _: User = Depends(get_current_user),
+):
+    """Mesma mecânica de `presign_upload`, mas para documentos (hoje só o PDF
+    do calendário no fluxo de aprovação) — mantido à parte pra não afrouxar a
+    validação de tipo/tamanho do upload de imagens."""
+    _require_configured()
+
+    content_type = _normalize_content_type(payload.content_type)
+    if content_type not in r2_client.DOCUMENT_EXTENSIONS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Formato não suportado. Envie um PDF.",
+        )
+    _check_size(payload.size)
+
+    key = r2_client.new_object_key(content_type, subdir="calendar-approvals")
+    try:
+        upload_url = r2_client.presign_put(key, content_type, payload.size)
+    except Exception as exc:
+        logger.exception("Falha ao assinar URL de upload de documento do R2: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Falha ao preparar o envio do documento",
+        )
+
+    return PresignOut(
+        upload_url=upload_url,
+        headers={"Content-Type": content_type},
+        url=r2_client.public_url(key),
+    )
+
+
 async def _assert_public_host(url: str) -> None:
     """Recusa hosts que resolvem pra rede interna (anti-SSRF)."""
     host = urlparse(url).hostname

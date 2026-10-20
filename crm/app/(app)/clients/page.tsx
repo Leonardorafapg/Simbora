@@ -14,6 +14,7 @@ export default async function ClientsPage() {
         canCreate: hasPermission(session, "calendar.create"),
         canEdit: hasPermission(session, "calendar.edit"),
         canDelete: hasPermission(session, "calendar.delete"),
+        canApprove: hasPermission(session, "calendar.approve"),
       }}
     />
   );

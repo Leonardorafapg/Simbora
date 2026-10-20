@@ -13,6 +13,7 @@ type CalendarPermissions = {
   canCreate: boolean;
   canEdit: boolean;
   canDelete: boolean;
+  canApprove: boolean;
 };
 
 type Props = {
@@ -299,6 +300,7 @@ export default function ClientDetail({
             canCreate={calendarPermissions.canCreate}
             canEdit={calendarPermissions.canEdit}
             canDelete={calendarPermissions.canDelete}
+            canApprove={calendarPermissions.canApprove}
             year={calendarYear}
             month={calendarMonth}
             onChangeMonth={(y, m) => {
