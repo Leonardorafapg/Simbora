@@ -256,8 +256,9 @@ async def get_calendar_period(
 # --------------------------------------------------------------------------- #
 class CalendarRow(BaseModel):
     date: Annotated[str, Field(description="Data da postagem AAAA-MM-DD (ou DD/MM/AAAA)")]
-    theme: Annotated[str, Field(description="Descrição/tema da postagem")]
-    execution_notes: Annotated[str, Field(description="Execução: como fazer")]
+    title: Annotated[str | None, Field(description="Título da postagem (tema/chamada que aparece no card)")] = None
+    theme: Annotated[str, Field(description="Descrição da postagem (como fazer / execução)")]
+    execution_notes: Annotated[str, Field(description="Campo legado — deixe vazio; a execução agora vai em theme")] = ""
     reference_link: str | None = None
     caption: str | None = None
     material_notes: str | None = None
@@ -279,6 +280,7 @@ async def import_calendar(
         {
             "client_id": client_id,
             "scheduled_date": _iso_date(r.date, f"linha {i} data"),
+            "title": r.title,
             "theme": r.theme,
             "execution_notes": r.execution_notes,
             "reference_link": r.reference_link,
@@ -290,7 +292,7 @@ async def import_calendar(
     ]
     result = await api.post("/calendar-entries/bulk", {"entries": entries, "dry_run": dry_run})
     preview = [
-        {"data": e["scheduled_date"], "tema": e["theme"][:80]} for e in sorted(entries, key=lambda e: e["scheduled_date"])
+        {"data": e["scheduled_date"], "titulo": (e.get("title") or "")[:80], "descricao": e["theme"][:80]} for e in sorted(entries, key=lambda e: e["scheduled_date"])
     ]
     return {
         "dry_run": dry_run,
@@ -306,8 +308,9 @@ async def import_calendar(
 async def create_calendar_entry(
     client: Annotated[int | str, Field(description="Cliente (id ou nome)")],
     date: Annotated[str, Field(description="Data da postagem AAAA-MM-DD")],
-    theme: str,
-    execution_notes: str,
+    theme: Annotated[str, Field(description="Descrição da postagem")],
+    title: Annotated[str | None, Field(description="Título da postagem")] = None,
+    execution_notes: str = "",
     reference_link: str | None = None,
     reference_image: str | None = None,
     material_files: list[str] | None = None,
@@ -319,6 +322,7 @@ async def create_calendar_entry(
     body = {
         "client_id": await _client_id(client),
         "scheduled_date": _iso_date(date),
+        "title": title,
         "theme": theme,
         "execution_notes": execution_notes,
         "reference_link": reference_link,
@@ -335,7 +339,8 @@ async def create_calendar_entry(
 async def update_calendar_entry(
     entry_id: int,
     date: str | None = None,
-    theme: str | None = None,
+    title: Annotated[str | None, Field(description="Título da postagem")] = None,
+    theme: Annotated[str | None, Field(description="Descrição da postagem")] = None,
     execution_notes: str | None = None,
     reference_link: str | None = None,
     reference_image: str | None = None,
@@ -349,6 +354,7 @@ async def update_calendar_entry(
     body: dict[str, Any] = {
         k: v
         for k, v in {
+            "title": title,
             "theme": theme,
             "execution_notes": execution_notes,
             "reference_link": reference_link,
