@@ -2,15 +2,15 @@
 Servidor MCP do CRM Simbora.
 
 Camada fina sobre a API REST do backend: toda regra de negócio e checagem de
-permissão continua lá — este serviço só traduz tools do Claude em chamadas
-HTTP, com a conta de serviço configurada nas variáveis de ambiente.
+permissão continua lá. Cada pessoa entra com o próprio login do Simbora (OAuth,
+quem emite os tokens é o backend) e as tools rodam com as permissões dela.
 
 Variáveis:
-  BACKEND_URL            URL pública do backend (sem /api/v1)
-  MCP_SERVICE_EMAIL      email da conta de serviço (usuário NÃO admin)
-  MCP_SERVICE_PASSWORD   senha da conta de serviço
-  MCP_PATH_SECRET        segredo que faz parte da URL do MCP (>= 24 caracteres)
-  PORT                   porta HTTP (a Railway define)
+  BACKEND_URL               URL pública do backend (sem /api/v1)
+  OAUTH_ISSUER_URL          issuer OAuth = PUBLIC_API_URL do backend
+  MCP_RESOURCE_URL          URL pública deste MCP, com /mcp no fim
+  MCP_INTROSPECTION_SECRET  segredo compartilhado com o backend (/oauth/introspect)
+  PORT                      porta HTTP (a Railway define)
 """
 import functools
 import json
@@ -23,6 +23,8 @@ import unicodedata
 from datetime import date, datetime
 from typing import Annotated, Any
 
+from mcp.server.auth.middleware.auth_context import get_access_token
+from mcp.server.auth.settings import AuthSettings
 from mcp.server.fastmcp import FastMCP
 from mcp.server.fastmcp.exceptions import ToolError
 from mcp.server.transport_security import TransportSecuritySettings
@@ -30,14 +32,19 @@ from mcp.types import ToolAnnotations
 from pydantic import BaseModel, Field
 from starlette.responses import JSONResponse
 
+from auth import IntrospectionVerifier
 from client import BackendClient
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 log = logging.getLogger("simbora-mcp")
 
-PATH_SECRET = os.environ.get("MCP_PATH_SECRET", "")
-if len(PATH_SECRET) < 24:
-    sys.exit("MCP_PATH_SECRET ausente ou curto demais (mínimo 24 caracteres). Recusando subir sem proteção.")
+_missing = [
+    name
+    for name in ("BACKEND_URL", "OAUTH_ISSUER_URL", "MCP_RESOURCE_URL", "MCP_INTROSPECTION_SECRET")
+    if not os.environ.get(name)
+]
+if _missing:
+    sys.exit("Faltam variáveis de ambiente do MCP: " + ", ".join(_missing) + ". Recusando subir sem autenticação.")
 
 api = BackendClient()
 
@@ -55,17 +62,29 @@ confirmação. Ações destrutivas exigem confirm=true.
 reprove o período antes. Finalizar um mês só trava o mês.
 - Status de postagem (quadros de produção): producao, andamento, modificacoes, checagem_aprovacao, finalizados (rótulo "Aprovados"), publicados.
 - Datas no formato AAAA-MM-DD.
+- As ações rodam com as permissões do usuário que fez login. Se algo for negado, explique qual permissão \
+falta (peça a um administrador) em vez de tentar contornar.
 """
+
+RESOURCE_URL = os.environ["MCP_RESOURCE_URL"].rstrip("/")
 
 mcp = FastMCP(
     "Simbora CRM",
     instructions=INSTRUCTIONS,
     host="0.0.0.0",
     port=int(os.environ.get("PORT", "8000")),
-    streamable_http_path=f"/{PATH_SECRET}/mcp",
+    streamable_http_path="/mcp",
     stateless_http=True,
-    # O "segredo" é o caminho da URL; Host/Origin variam (domínio da Railway,
-    # domínio próprio), então a checagem de DNS rebinding só atrapalharia.
+    token_verifier=IntrospectionVerifier(),
+    auth=AuthSettings(
+        issuer_url=os.environ["OAUTH_ISSUER_URL"].rstrip("/"),
+        resource_server_url=RESOURCE_URL,
+        required_scopes=["crm.read"],
+        # O backend já confere o `aud` do token na introspecção; o verificador devolve só tokens deste recurso.
+        validate_token_resource=False,
+    ),
+    # O acesso é protegido pelo token OAuth; Host/Origin variam (domínio da Railway, domínio próprio),
+    # então a checagem de DNS rebinding só atrapalharia.
     transport_security=TransportSecuritySettings(enable_dns_rebinding_protection=False),
 )
 
@@ -87,6 +106,13 @@ def _short(value: Any) -> Any:
     return text if len(text) <= 300 else text[:300] + "…"
 
 
+def _caller() -> dict:
+    access = get_access_token()
+    if access is None:
+        return {}
+    return {"user_id": access.subject, "email": (access.claims or {}).get("email"), "app": access.client_id}
+
+
 def audited(fn):
     @functools.wraps(fn)
     async def wrapper(*args, **kwargs):
@@ -103,6 +129,7 @@ def audited(fn):
                     {
                         "audit": "mcp_tool",
                         "tool": fn.__name__,
+                        **_caller(),
                         "ok": ok,
                         "ms": int((time.time() - started) * 1000),
                         "args": {k: _short(v) for k, v in kwargs.items()},
@@ -114,6 +141,26 @@ def audited(fn):
     return wrapper
 
 
+def requires_scope(scope: str, what: str):
+    """Falha cedo, com mensagem clara, se a conexão não tem o escopo (o backend também confere)."""
+
+    def decorate(fn):
+        @functools.wraps(fn)
+        async def wrapper(*args, **kwargs):
+            access = get_access_token()
+            if access is None:
+                raise ToolError("Sem usuário autenticado. Reconecte o MCP e faça login no Simbora.")
+            if scope not in access.scopes:
+                raise ToolError(
+                    f"Esta conexão não tem permissão para {what}. Reconecte o MCP e deixe marcada essa opção na tela de login."
+                )
+            return await fn(*args, **kwargs)
+
+        return wrapper
+
+    return decorate
+
+
 def read_tool(fn):
     return mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, openWorldHint=False))(audited(fn))
 
@@ -121,13 +168,13 @@ def read_tool(fn):
 def write_tool(fn):
     return mcp.tool(
         annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, openWorldHint=False)
-    )(audited(fn))
+    )(audited(requires_scope("crm.write", "criar e editar")(fn)))
 
 
 def danger_tool(fn):
     return mcp.tool(
         annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, openWorldHint=False)
-    )(audited(fn))
+    )(audited(requires_scope("crm.delete", "apagar ou finalizar")(fn)))
 
 
 # --------------------------------------------------------------------------- #
@@ -728,5 +775,5 @@ async def update_team_member(
 
 
 if __name__ == "__main__":
-    log.info("Simbora MCP iniciando em /<segredo>/mcp (porta %s)", os.environ.get("PORT", "8000"))
+    log.info("Simbora MCP iniciando em /mcp (porta %s)", os.environ.get("PORT", "8000"))
     mcp.run(transport="streamable-http")

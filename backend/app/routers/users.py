@@ -8,6 +8,7 @@ from app.core.deps import get_current_user, require_admin
 from app.core.permissions import PERMISSIONS
 from app.core.security import hash_password
 from app.models.user import User
+from app.services import oauth
 from app.schemas.user import (
     PasswordChange,
     PermissionCatalogEntry,
@@ -110,6 +111,8 @@ async def update_user(
     except IntegrityError:
         db.rollback()
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email ou CPF já cadastrado")
+    if password or data.get("is_active") is False:
+        oauth.revoke_all_for_user(db, user.id)
     db.refresh(user)
     return user
 
@@ -128,6 +131,7 @@ async def change_user_password(
 
     user.password_hash = hash_password(payload.password)
     db.commit()
+    oauth.revoke_all_for_user(db, user.id)
 
 
 @router.delete("/users/{user_id}", status_code=204)
@@ -146,5 +150,6 @@ async def delete_user(
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuário não encontrado")
 
+    oauth.delete_user_oauth_data(db, user.id)
     db.delete(user)
     db.commit()
