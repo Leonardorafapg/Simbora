@@ -3,7 +3,9 @@ import { AUTH_COOKIE, verifySessionToken } from "@/services/server/session";
 import { canManageTeam } from "@/lib/permissions";
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|logo.png|manifest.webmanifest|icons/).*)"],
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|logo.png|manifest.webmanifest|apple-touch-icon.png|sw.js|icons/).*)",
+  ],
 };
 
 const PUBLIC_ROUTES = ["/login", "/api/auth"];

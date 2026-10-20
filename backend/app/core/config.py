@@ -53,6 +53,16 @@ class Settings(BaseSettings):
     # Desliga o laço de publicação/renovação (ex.: rodar uma segunda instância só de leitura).
     INSTAGRAM_WORKER_ENABLED: bool = True
 
+    # Login OAuth do MCP (ver docs/plano-mcp-oauth.md). O issuer é o PUBLIC_API_URL.
+    # URL do endpoint MCP (com /mcp): vira o `aud` dos tokens e o `resource` aceito.
+    MCP_RESOURCE_URL: str = ""
+    # Segredo só entre o serviço MCP e o backend, usado em /oauth/introspect.
+    MCP_INTROSPECTION_SECRET: str = ""
+    OAUTH_ACCESS_TOKEN_MINUTES: int = 60
+    OAUTH_REFRESH_TOKEN_DAYS: int = 30
+    # Hosts HTTPS extras aceitos como redirect do OAuth (separados por vírgula).
+    OAUTH_EXTRA_REDIRECT_HOSTS: str = ""
+
     model_config = SettingsConfigDict(env_file=".env")
 
 settings = Settings()

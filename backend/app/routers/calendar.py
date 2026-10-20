@@ -129,11 +129,15 @@ async def bulk_create_calendar_entries(
     """
     errors: list[str] = []
     clients_ok: dict[int, bool] = {}
+    client_by_id: dict[int, Client] = {}
     period_ok: dict[tuple[int, int, int], bool] = {}
 
     for index, item in enumerate(payload.entries, start=1):
         if item.client_id not in clients_ok:
-            clients_ok[item.client_id] = db.get(Client, item.client_id) is not None
+            client = db.get(Client, item.client_id)
+            clients_ok[item.client_id] = client is not None
+            if client is not None:
+                client_by_id[item.client_id] = client
         if not clients_ok[item.client_id]:
             errors.append(f"Linha {index}: cliente {item.client_id} inválido")
             continue
@@ -153,10 +157,17 @@ async def bulk_create_calendar_entries(
     if payload.dry_run:
         return CalendarEntryBulkResult(dry_run=True, count=len(payload.entries), entries=[])
 
-    created = [
-        CalendarEntry(**item.model_dump(exclude={"tag_ids"}), created_by=current_user.id)
-        for item in payload.entries
-    ]
+    created = []
+    for item in payload.entries:
+        data = item.model_dump(exclude={"tag_ids"})
+        client = client_by_id[item.client_id]
+        # Mesmo padrão da criação avulsa: solicitante = social do cliente,
+        # responsável = designer do cliente (quando não vierem informados).
+        if data["requester_id"] is None:
+            data["requester_id"] = client.default_social_id
+        if data["assignee_id"] is None:
+            data["assignee_id"] = client.default_designer_id
+        created.append(CalendarEntry(**data, created_by=current_user.id))
     for entry in created:
         db.add(entry)
     db.commit()

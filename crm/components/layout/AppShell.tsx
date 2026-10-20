@@ -39,6 +39,7 @@ export default function AppShell({ user, children }: Props) {
   return (
     <div className="flex h-screen w-screen overflow-hidden">
       <Sidebar
+        user={user}
         mobileOpen={mobileNavOpen}
         onClose={() => setMobileNavOpen(false)}
         collapsed={collapsed}

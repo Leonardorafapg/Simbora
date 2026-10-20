@@ -3,6 +3,7 @@
 import type { SessionUser } from "@/types/auth";
 import ProfileCard from "@/components/settings/ProfileCard";
 import WhatsAppConnectionCard from "@/components/settings/WhatsAppConnectionCard";
+import AiConnectionsCard from "@/components/settings/AiConnectionsCard";
 
 type Props = {
   user: SessionUser | null;
@@ -16,6 +17,8 @@ export default function SettingsPageClient({ user }: Props) {
       {user && <ProfileCard user={user} />}
 
       <WhatsAppConnectionCard />
+
+      <AiConnectionsCard />
     </div>
   );
 }

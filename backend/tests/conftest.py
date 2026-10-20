@@ -15,6 +15,9 @@ os.environ["INSTAGRAM_APP_SECRET"] = "app-secret"
 os.environ["INSTAGRAM_REDIRECT_URI"] = "https://api.test/api/v1/instagram/oauth/callback"
 os.environ["R2_PUBLIC_BASE_URL"] = "https://media.test"
 os.environ["SECRET_KEY"] = "test-secret-with-at-least-32-bytes!!"
+os.environ["PUBLIC_API_URL"] = "https://api.test"
+os.environ["MCP_RESOURCE_URL"] = "https://mcp.test/mcp"
+os.environ["MCP_INTROSPECTION_SECRET"] = "introspection-secret-for-tests-only"
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import pytest  # noqa: E402

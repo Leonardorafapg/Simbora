@@ -1,18 +1,26 @@
 import type { Client } from "@/types/client";
+import type { TeamMember } from "@/types/team";
 import ClientCard from "./ClientCard";
 
 type Props = {
   clients: Client[];
+  teamMembers: TeamMember[];
   canCreate: boolean;
   onSelect: (client: Client) => void;
   onAddClick: () => void;
 };
 
-export default function ClientGrid({ clients, canCreate, onSelect, onAddClick }: Props) {
+export default function ClientGrid({ clients, teamMembers, canCreate, onSelect, onAddClick }: Props) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
       {clients.map((client) => (
-        <ClientCard key={client.id} client={client} onClick={() => onSelect(client)} />
+        <ClientCard
+          key={client.id}
+          client={client}
+          social={teamMembers.find((m) => m.id === client.default_social_id)}
+          designer={teamMembers.find((m) => m.id === client.default_designer_id)}
+          onClick={() => onSelect(client)}
+        />
       ))}
 
       {canCreate && (

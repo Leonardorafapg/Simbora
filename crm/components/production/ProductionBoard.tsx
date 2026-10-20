@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Plus } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Plus, Search, SlidersHorizontal, X } from "lucide-react";
 import { deadlineInfo, urgencyRank } from "@/lib/deadline";
 import {
   DndContext,
@@ -15,10 +15,12 @@ import {
 import { useCalendarEntries } from "@/hooks/useCalendarEntries";
 import { useClients } from "@/hooks/useClients";
 import { useTeamMembers } from "@/hooks/useTeamMembers";
+import { useTags } from "@/hooks/useTags";
 import { useInstagramByEntries } from "@/hooks/useInstagram";
 import type { CalendarEntry, CalendarEntryCreateInput, CalendarEntryStatus } from "@/types/calendar";
 import { CALENDAR_ENTRY_STATUSES } from "@/types/calendar";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import MultiSelect from "@/components/ui/MultiSelect";
 import CalendarEntryDialog from "@/components/calendar/CalendarEntryDialog";
 import KanbanColumn from "./KanbanColumn";
 import { PostCardOverlay } from "./PostCard";
@@ -41,10 +43,14 @@ function currentMonth() {
  * Só entram postagens de cronogramas finalizados (aprovados) — o resto ainda está em planejamento.
  */
 export default function ProductionBoard({ canEdit, canCreate, canDelete, canViewInstagram, canManageInstagram }: Props) {
-  const [clientId, setClientId] = useState<number | undefined>(undefined);
-  const [assigneeId, setAssigneeId] = useState<number | undefined>(undefined);
+  const [clientIds, setClientIds] = useState<number[]>([]);
+  const [assigneeIds, setAssigneeIds] = useState<number[]>([]);
+  const [tagIds, setTagIds] = useState<number[]>([]);
   const [deadlineFilter, setDeadlineFilter] = useState<"" | "atrasados" | "vencem">("");
   const [month, setMonth] = useState(currentMonth());
+  const [search, setSearch] = useState("");
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const filtersRef = useRef<HTMLDivElement>(null);
   const [selected, setSelected] = useState<CalendarEntry | null>(null);
   const [creating, setCreating] = useState(false);
   const [activeEntry, setActiveEntry] = useState<CalendarEntry | null>(null);
@@ -52,18 +58,64 @@ export default function ProductionBoard({ canEdit, canCreate, canDelete, canView
   const [deleting, setDeleting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  const { entries, loading, error, create, update, remove } = useCalendarEntries(clientId, month, "finalizado", assigneeId);
+  const { entries, loading, error, create, update, remove } = useCalendarEntries(undefined, month, "finalizado");
   const { clients } = useClients();
   const { members } = useTeamMembers();
+  const { tags } = useTags();
   // Badge do Instagram: só faz sentido em postagem aprovada/publicada (ou que já teve agendamento).
   const { byEntry: instagramByEntry, refresh: refreshInstagram } = useInstagramByEntries(
     entries.filter((e) => (["finalizados", "publicados"] as string[]).includes(e.status)).map((e) => e.id),
     canViewInstagram,
   );
 
+  useEffect(() => {
+    if (!filtersOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (filtersRef.current && !filtersRef.current.contains(e.target as Node)) setFiltersOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setFiltersOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [filtersOpen]);
+
+  // Busca por texto (sem diferenciar acentos/maiúsculas): título, descrição, cliente e etiquetas.
+  const normalize = (text: string) => text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const term = normalize(search.trim());
+  const matchesSearch = (entry: CalendarEntry) => {
+    if (!term) return true;
+    const clientName = clients.find((c) => c.id === entry.client_id)?.name ?? "";
+    const haystack = [entry.title ?? "", entry.theme, clientName, ...entry.tags.map((t) => t.name)].join(" ");
+    return normalize(haystack).includes(term);
+  };
+
+  const activeFilters =
+    (clientIds.length ? 1 : 0) +
+    (assigneeIds.length ? 1 : 0) +
+    (tagIds.length ? 1 : 0) +
+    (deadlineFilter ? 1 : 0) +
+    (month !== currentMonth() ? 1 : 0);
+
+  function clearFilters() {
+    setClientIds([]);
+    setAssigneeIds([]);
+    setTagIds([]);
+    setDeadlineFilter("");
+    setMonth(currentMonth());
+  }
+
   // Prazo: filtra e põe os mais urgentes no topo de cada coluna.
   const visibleEntries = entries
+    .filter(matchesSearch)
     .map((entry) => ({ entry, info: deadlineInfo(entry) }))
+    .filter(({ entry }) => clientIds.length === 0 || clientIds.includes(entry.client_id))
+    .filter(({ entry }) => assigneeIds.length === 0 || (entry.assignee_id !== null && assigneeIds.includes(entry.assignee_id)))
+    .filter(({ entry }) => tagIds.length === 0 || entry.tags.some((tag) => tagIds.includes(tag.id)))
     .filter(({ info }) => {
       if (deadlineFilter === "atrasados") return info.state === "atrasado";
       if (deadlineFilter === "vencem") return info.state === "vence_hoje" || info.state === "vence_amanha";
@@ -102,8 +154,10 @@ export default function ProductionBoard({ canEdit, canCreate, canDelete, canView
   async function handleCreate(input: CalendarEntryCreateInput) {
     const entry = await create(input, { fromProduction: true });
     if (month && entry.scheduled_date.slice(0, 7) !== month) setMonth(entry.scheduled_date.slice(0, 7));
-    if (clientId && clientId !== entry.client_id) setClientId(entry.client_id);
-    if (assigneeId && assigneeId !== entry.assignee_id) setAssigneeId(undefined);
+    // Filtros que deixariam a demanda nova de fora são limpos, pra ela não sumir da tela.
+    if (clientIds.length && !clientIds.includes(entry.client_id)) setClientIds([]);
+    if (assigneeIds.length && (entry.assignee_id === null || !assigneeIds.includes(entry.assignee_id))) setAssigneeIds([]);
+    if (tagIds.length && !entry.tags.some((tag) => tagIds.includes(tag.id))) setTagIds([]);
     return entry;
   }
 
@@ -139,52 +193,137 @@ export default function ProductionBoard({ canEdit, canCreate, canDelete, canView
       </div>
 
       <div className="flex shrink-0 items-center gap-2 flex-wrap">
-        <select
-          value={clientId ?? ""}
-          onChange={(e) => setClientId(e.target.value ? Number(e.target.value) : undefined)}
-          className="glass-input rounded-lg px-3 py-2 text-sm outline-none"
-        >
-          <option value="">Todos os clientes</option>
-          {clients.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-        <select
-          value={assigneeId ?? ""}
-          onChange={(e) => setAssigneeId(e.target.value ? Number(e.target.value) : undefined)}
-          className="glass-input rounded-lg px-3 py-2 text-sm outline-none"
-          aria-label="Filtrar por responsável"
-        >
-          <option value="">Todos os responsáveis</option>
-          {members.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.full_name}
-            </option>
-          ))}
-        </select>
-        <select
-          value={deadlineFilter}
-          onChange={(e) => setDeadlineFilter(e.target.value as "" | "atrasados" | "vencem")}
-          className="glass-input rounded-lg px-3 py-2 text-sm outline-none"
-          aria-label="Filtrar por prazo"
-        >
-          <option value="">Todos os prazos</option>
-          <option value="atrasados">Atrasados</option>
-          <option value="vencem">Vencem hoje ou amanhã</option>
-        </select>
-        <input
-          type="month"
-          value={month}
-          onChange={(e) => setMonth(e.target.value)}
-          className="glass-input rounded-lg px-3 py-2 text-sm outline-none"
-        />
-        {month && (
-          <button type="button" onClick={() => setMonth("")} className="text-xs text-white/50 hover:text-white">
-            Ver todos os meses
+        <div className="relative w-full max-w-sm">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-faint" />
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar demanda por título, descrição, cliente ou etiqueta"
+            aria-label="Buscar demandas"
+            className="glass-input w-full rounded-lg py-2 pl-9 pr-8 text-sm outline-none [&::-webkit-search-cancel-button]:hidden"
+          />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch("")}
+              aria-label="Limpar busca"
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-text-muted hover:bg-surface-2 hover:text-text"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+
+        <div ref={filtersRef} className="relative">
+          <button
+            type="button"
+            onClick={() => setFiltersOpen((o) => !o)}
+            aria-expanded={filtersOpen}
+            className={`glass-input flex items-center gap-2 rounded-lg px-3 py-2 text-sm outline-none ${
+              activeFilters > 0 ? "border-accent-border" : ""
+            }`}
+          >
+            <SlidersHorizontal className="h-4 w-4" />
+            Filtros
+            {activeFilters > 0 && (
+              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1.5 text-[11px] font-bold text-black">
+                {activeFilters}
+              </span>
+            )}
           </button>
-        )}
+
+          {filtersOpen && (
+            <div className="absolute left-0 top-full z-30 mt-2 w-[340px] max-w-[calc(100vw-3rem)] space-y-3 rounded-xl border border-border bg-surface p-4 shadow-menu">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold text-text">Filtros</span>
+                <button
+                  type="button"
+                  onClick={() => setFiltersOpen(false)}
+                  aria-label="Fechar filtros"
+                  className="rounded-full p-1 text-text-muted hover:bg-surface-2 hover:text-text"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="space-y-1">
+                <p className="text-xs text-text-muted">Cliente</p>
+                <MultiSelect
+                  fullWidth
+                  options={clients.map((c) => ({ value: c.id, label: c.name }))}
+                  value={clientIds}
+                  onChange={setClientIds}
+                  allLabel="Todos os clientes"
+                  pluralLabel="clientes"
+                />
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-text-muted">Responsável</p>
+                <MultiSelect
+                  fullWidth
+                  options={members.map((m) => ({ value: m.id, label: m.full_name }))}
+                  value={assigneeIds}
+                  onChange={setAssigneeIds}
+                  allLabel="Todos os responsáveis"
+                  pluralLabel="responsáveis"
+                  ariaLabel="Filtrar por responsável"
+                />
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-text-muted">Etiqueta</p>
+                <MultiSelect
+                  fullWidth
+                  options={tags.map((t) => ({ value: t.id, label: t.name }))}
+                  value={tagIds}
+                  onChange={setTagIds}
+                  allLabel="Todas as etiquetas"
+                  pluralLabel="etiquetas"
+                  ariaLabel="Filtrar por etiqueta"
+                />
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-text-muted">Prazo</p>
+                <select
+                  value={deadlineFilter}
+                  onChange={(e) => setDeadlineFilter(e.target.value as "" | "atrasados" | "vencem")}
+                  className="glass-input w-full rounded-lg px-3 py-2 text-sm outline-none"
+                  aria-label="Filtrar por prazo"
+                >
+                  <option value="">Todos os prazos</option>
+                  <option value="atrasados">Atrasados</option>
+                  <option value="vencem">Vencem hoje ou amanhã</option>
+                </select>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-text-muted">Mês</p>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="month"
+                    value={month}
+                    onChange={(e) => setMonth(e.target.value)}
+                    className="glass-input flex-1 rounded-lg px-3 py-2 text-sm outline-none"
+                  />
+                  {month && (
+                    <button type="button" onClick={() => setMonth("")} className="shrink-0 text-xs text-text-muted hover:text-text">
+                      Todos os meses
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {activeFilters > 0 && (
+                <button
+                  type="button"
+                  onClick={clearFilters}
+                  className="w-full rounded-lg border border-border px-3 py-2 text-xs font-semibold text-text-muted hover:bg-surface-2 hover:text-text"
+                >
+                  Limpar filtros
+                </button>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {loading && <p className="text-sm text-white/50">Carregando...</p>}
@@ -197,11 +336,11 @@ export default function ProductionBoard({ canEdit, canCreate, canDelete, canView
         onDragEnd={handleDragEnd}
         onDragCancel={() => setActiveEntry(null)}
       >
-        {/* Colunas largas lado a lado: rola pro lado se precisar, nunca pra baixo —
+        {/* Colunas largas (380px) de largura fixa: rola pro lado quando não cabem, nunca pra baixo —
             a altura é a da tela e cada coluna rola por dentro. */}
         <div className="flex min-h-0 flex-1 gap-4 overflow-x-auto overflow-y-hidden pb-2">
           {CALENDAR_ENTRY_STATUSES.map((status) => (
-            <div key={status} className="h-full w-[360px] shrink-0">
+            <div key={status} className="h-full w-[380px] shrink-0">
               <KanbanColumn
                 status={status}
                 entries={visibleEntries.filter((e) => e.status === status)}
@@ -225,7 +364,7 @@ export default function ProductionBoard({ canEdit, canCreate, canDelete, canView
         <CalendarEntryDialog
           open
           onClose={() => setCreating(false)}
-          clientId={clientId ?? clients[0].id}
+          clientId={clientIds[0] ?? clients[0].id}
           clients={clients}
           defaultDate={`${month || currentMonth()}-${month ? "01" : String(new Date().getDate()).padStart(2, "0")}`}
           onCreate={handleCreate}

@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.database import run_light_migrations
-from app.routers import leads, auth, users, team, clients, calendar, calendar_periods, whatsapp, whatsapp_webhook, search, uploads, tags, instagram
+from app.routers import leads, auth, users, team, clients, calendar, calendar_periods, whatsapp, whatsapp_webhook, search, uploads, tags, instagram, oauth
 from app.services.instagram_posts import worker as instagram_worker
 
 logging.basicConfig(level=logging.INFO)
@@ -53,6 +53,8 @@ app.include_router(whatsapp_webhook.router, prefix="/api/v1")
 app.include_router(search.router, prefix="/api/v1")
 app.include_router(uploads.router, prefix="/api/v1")
 app.include_router(instagram.router, prefix="/api/v1")
+app.include_router(oauth.router)  # metadata e /oauth/* na raiz, exigido pelo OAuth
+app.include_router(oauth.api_router, prefix="/api/v1")
 
 @app.get("/api/v1/health")
 async def health_check():

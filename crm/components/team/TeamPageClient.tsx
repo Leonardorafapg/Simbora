@@ -11,9 +11,10 @@ import NewTeamMemberDialog from "./NewTeamMemberDialog";
 
 type Props = {
   canManage: boolean;
+  currentUserId: number | null;
 };
 
-export default function TeamPageClient({ canManage }: Props) {
+export default function TeamPageClient({ canManage, currentUserId }: Props) {
   const { members, loading, error, create, update, remove } = useTeamMembers();
   const searchParams = useSearchParams();
 
@@ -50,34 +51,38 @@ export default function TeamPageClient({ canManage }: Props) {
   }
 
   return (
-    <div className="relative h-full p-6 sm:p-8">
-      <div className="flex items-center justify-between gap-3 flex-wrap mb-6">
-        <h1 className="text-2xl font-semibold text-white">Equipe</h1>
-        {canManage && (
-          <button
-            type="button"
-            onClick={() => setAddOpen(true)}
-            className="rounded-lg bg-cyan px-4 py-2 text-sm font-semibold text-black transition hover:bg-cyan-dark"
-          >
-            + Novo membro
-          </button>
-        )}
+    <div className="relative h-full overflow-x-clip">
+      {/* A página rola aqui dentro; o painel (drawer) fica fora da rolagem para sempre cobrir a área visível. */}
+      <div className="h-full overflow-y-auto p-6 sm:p-8">
+        <div className="flex items-center justify-between gap-3 flex-wrap mb-6">
+          <h1 className="text-2xl font-semibold text-white">Equipe</h1>
+          {canManage && (
+            <button
+              type="button"
+              onClick={() => setAddOpen(true)}
+              className="rounded-lg bg-cyan px-4 py-2 text-sm font-semibold text-black transition hover:bg-cyan-dark"
+            >
+              + Novo membro
+            </button>
+          )}
+        </div>
+
+        {loading && <p className="text-sm text-white/50">Carregando...</p>}
+        {error && <p className="text-sm text-danger">{error}</p>}
+        {deleteError && <p className="mb-4 text-sm text-danger">{deleteError}</p>}
+
+        <TeamMemberGrid
+          members={members}
+          canManage={canManage}
+          onSelect={(member) => setSelectedId(member.id)}
+          onAddClick={() => setAddOpen(true)}
+        />
       </div>
-
-      {loading && <p className="text-sm text-white/50">Carregando...</p>}
-      {error && <p className="text-sm text-danger">{error}</p>}
-      {deleteError && <p className="mb-4 text-sm text-danger">{deleteError}</p>}
-
-      <TeamMemberGrid
-        members={members}
-        canManage={canManage}
-        onSelect={(member) => setSelectedId(member.id)}
-        onAddClick={() => setAddOpen(true)}
-      />
 
       <TeamMemberDrawer
         member={selected}
         canManage={canManage}
+        currentUserId={currentUserId}
         onClose={() => setSelectedId(null)}
         onUpdate={update}
         onRequestDelete={setPendingDelete}
