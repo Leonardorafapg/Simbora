@@ -14,7 +14,7 @@ import {
 } from "@dnd-kit/core";
 import { useCalendarEntries } from "@/hooks/useCalendarEntries";
 import { useClients } from "@/hooks/useClients";
-import { useTeamMembers } from "@/hooks/useTeamMembers";
+import { useTeamDirectory } from "@/hooks/useTeamDirectory";
 import { useTags } from "@/hooks/useTags";
 import { useInstagramByEntries } from "@/hooks/useInstagram";
 import type { CalendarEntry, CalendarEntryCreateInput, CalendarEntryStatus } from "@/types/calendar";
@@ -60,7 +60,7 @@ export default function ProductionBoard({ canEdit, canCreate, canDelete, canView
 
   const { entries, loading, error, create, update, remove } = useCalendarEntries(undefined, month, "finalizado");
   const { clients } = useClients();
-  const { members } = useTeamMembers();
+  const { members } = useTeamDirectory();
   const { tags } = useTags();
   // Badge do Instagram: só faz sentido em postagem aprovada/publicada (ou que já teve agendamento).
   const { byEntry: instagramByEntry, refresh: refreshInstagram } = useInstagramByEntries(

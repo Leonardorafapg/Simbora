@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useClients } from "@/hooks/useClients";
-import { useTeamMembers } from "@/hooks/useTeamMembers";
+import { useTeamDirectory } from "@/hooks/useTeamDirectory";
 import type { Client } from "@/types/client";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import MultiSelect from "@/components/ui/MultiSelect";
@@ -30,7 +30,7 @@ export default function ClientPageClient({
   instagramPermissions,
 }: Props) {
   const { clients, loading, error, create, update, remove } = useClients();
-  const { members: teamMembers } = useTeamMembers();
+  const { members: teamMembers } = useTeamDirectory();
   const searchParams = useSearchParams();
 
   // Guardamos o id, não o objeto: assim o drawer sempre reflete a versão mais

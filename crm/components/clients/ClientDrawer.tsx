@@ -1,5 +1,5 @@
 import type { Client, ClientUpdateInput } from "@/types/client";
-import type { TeamMember } from "@/types/team";
+import type { TeamDirectoryEntry } from "@/types/team";
 import ClientDetail from "./ClientDetail";
 
 type CalendarPermissions = { canCreate: boolean; canEdit: boolean; canDelete: boolean; canApprove: boolean };
@@ -9,7 +9,7 @@ type Props = {
   client: Client | null;
   canEdit: boolean;
   canDelete: boolean;
-  teamMembers: TeamMember[];
+  teamMembers: TeamDirectoryEntry[];
   calendarPermissions: CalendarPermissions;
   instagramPermissions: InstagramPermissions;
   onClose: () => void;

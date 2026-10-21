@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { Client, ClientUpdateInput } from "@/types/client";
-import type { TeamMember } from "@/types/team";
+import type { TeamDirectoryEntry } from "@/types/team";
 import Field from "@/components/ui/Field";
 import UserSelect from "@/components/ui/UserSelect";
 import Avatar from "@/components/ui/Avatar";
@@ -23,7 +23,7 @@ type Props = {
   client: Client;
   canEdit: boolean;
   canDelete: boolean;
-  teamMembers: TeamMember[];
+  teamMembers: TeamDirectoryEntry[];
   calendarPermissions: CalendarPermissions;
   instagramPermissions: InstagramPermissions;
   onBack: () => void;

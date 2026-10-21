@@ -5,7 +5,7 @@ import { AlignLeft, CalendarDays, Clock, ImagePlus, Paperclip, UserRound, Users,
 import type { CalendarEntry, CalendarEntryCreateInput, CalendarEntryUpdateInput } from "@/types/calendar";
 import type { Client } from "@/types/client";
 import { useClients } from "@/hooks/useClients";
-import { useTeamMembers } from "@/hooks/useTeamMembers";
+import { useTeamDirectory } from "@/hooks/useTeamDirectory";
 import UserSelect from "@/components/ui/UserSelect";
 import TagPicker from "./TagPicker";
 import { DEADLINE_CLASSES, DEADLINE_LABELS, deadlineFor, deadlineInfo, formatDeadline } from "@/lib/deadline";
@@ -67,7 +67,7 @@ export default function CalendarEntryDialog({
   instagram,
 }: Props) {
   const { clients: allClients } = useClients();
-  const { members } = useTeamMembers();
+  const { members } = useTeamDirectory();
   const clientList = clients ?? allClients;
   const findClient = (id: number) => clientList.find((c) => c.id === id);
 

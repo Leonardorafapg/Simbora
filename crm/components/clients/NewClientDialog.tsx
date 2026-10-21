@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { Client, ClientCreateInput } from "@/types/client";
-import type { TeamMember } from "@/types/team";
+import type { TeamDirectoryEntry } from "@/types/team";
 import Field from "@/components/ui/Field";
 import UserSelect from "@/components/ui/UserSelect";
 import ImageDropzone from "@/components/ui/ImageDropzone";
@@ -11,7 +11,7 @@ type Props = {
   open: boolean;
   onClose: () => void;
   onCreate: (input: ClientCreateInput) => Promise<Client>;
-  teamMembers: TeamMember[];
+  teamMembers: TeamDirectoryEntry[];
 };
 
 const emptyForm: ClientCreateInput = {

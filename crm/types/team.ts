@@ -23,6 +23,18 @@ export type TeamMemberCreateInput = {
   permissions?: string[];
 };
 
+/**
+ * Diretório enxuto — qualquer usuário autenticado pode ler (sem CPF, email ou
+ * permissões), diferente de TeamMember que vem de /users (admin only).
+ * Usado pra atribuir/filtrar demandas (requester/assignee).
+ */
+export type TeamDirectoryEntry = {
+  id: number;
+  full_name: string;
+  cargo: string;
+  is_active: boolean;
+};
+
 export type TeamMemberUpdateInput = Partial<{
   full_name: string;
   cpf: string;

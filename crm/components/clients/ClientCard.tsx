@@ -1,13 +1,13 @@
 import type { Client } from "@/types/client";
 import Avatar from "@/components/ui/Avatar";
-import type { TeamMember } from "@/types/team";
+import type { TeamDirectoryEntry } from "@/types/team";
 import { tagChipClass } from "@/lib/tagColors";
 
 type Props = {
   client: Client;
   /** Social media e designer padrão do cliente (mostrados como etiquetas fixas). */
-  social?: TeamMember;
-  designer?: TeamMember;
+  social?: TeamDirectoryEntry;
+  designer?: TeamDirectoryEntry;
   onClick: () => void;
 };
 

@@ -1,10 +1,10 @@
 import type { Client } from "@/types/client";
-import type { TeamMember } from "@/types/team";
+import type { TeamDirectoryEntry } from "@/types/team";
 import ClientCard from "./ClientCard";
 
 type Props = {
   clients: Client[];
-  teamMembers: TeamMember[];
+  teamMembers: TeamDirectoryEntry[];
   canCreate: boolean;
   onSelect: (client: Client) => void;
   onAddClick: () => void;

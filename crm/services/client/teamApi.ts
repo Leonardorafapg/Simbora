@@ -1,4 +1,4 @@
-import type { TeamMember, TeamMemberCreateInput, TeamMemberUpdateInput } from "@/types/team";
+import type { TeamDirectoryEntry, TeamMember, TeamMemberCreateInput, TeamMemberUpdateInput } from "@/types/team";
 
 async function parseErrorMessage(res: Response, fallback: string) {
   const data = await res.json().catch(() => ({}));
@@ -7,6 +7,17 @@ async function parseErrorMessage(res: Response, fallback: string) {
 
 export async function fetchTeamMembers(): Promise<TeamMember[]> {
   const res = await fetch("/api/team");
+  if (!res.ok) throw new Error(await parseErrorMessage(res, "Não foi possível carregar a equipe."));
+  return res.json();
+}
+
+/**
+ * Diretório enxuto — liberado pra qualquer usuário autenticado (não só
+ * admin), usado pra atribuir/filtrar demandas (requester/assignee). Ver
+ * TeamDirectoryEntry.
+ */
+export async function fetchTeamDirectory(): Promise<TeamDirectoryEntry[]> {
+  const res = await fetch("/api/team/directory");
   if (!res.ok) throw new Error(await parseErrorMessage(res, "Não foi possível carregar a equipe."));
   return res.json();
 }
