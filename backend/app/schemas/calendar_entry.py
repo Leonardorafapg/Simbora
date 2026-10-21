@@ -112,6 +112,7 @@ class CalendarEntryOut(BaseModel):
     client_id: int
     scheduled_date: date
     custom_deadline: date | None
+    from_production: bool
     title: str | None
     theme: str
     execution_notes: str | None

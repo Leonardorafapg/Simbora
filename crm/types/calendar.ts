@@ -54,6 +54,8 @@ export type CalendarEntry = {
   delivered_at: string | null;
   /** Markdown livre "já tem material?" — sem UI própria ainda, reservado pra uso futuro. */
   material_notes: string | null;
+  /** Demanda avulsa aberta pela tela de Produção — não depende da aprovação do calendário do cliente pra aparecer no quadro. */
+  from_production: boolean;
   created_by: number;
 };
 

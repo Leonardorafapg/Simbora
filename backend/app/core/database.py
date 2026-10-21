@@ -73,6 +73,9 @@ def run_light_migrations():
         add_column_if_missing(conn, "calendar_entries", "requester_id", "requester_id INTEGER REFERENCES users(id)")
         add_column_if_missing(conn, "calendar_entries", "assignee_id", "assignee_id INTEGER REFERENCES users(id)")
         add_column_if_missing(conn, "calendar_entries", "custom_deadline", "custom_deadline DATE")
+        add_column_if_missing(
+            conn, "calendar_entries", "from_production", "from_production BOOLEAN NOT NULL DEFAULT FALSE"
+        )
         if inspector.has_table("calendar_entries") and "delivered_at" not in {
             col["name"] for col in inspector.get_columns("calendar_entries")
         }:

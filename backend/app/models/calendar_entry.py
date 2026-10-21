@@ -1,6 +1,6 @@
 # backend/app/models/calendar_entry.py
 from datetime import date as date_type, datetime, timezone
-from sqlalchemy import String, Integer, Date, DateTime, ForeignKey, Text
+from sqlalchemy import String, Integer, Date, DateTime, ForeignKey, Text, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 from app.core.types import JSONText
@@ -18,6 +18,10 @@ class CalendarEntry(Base):
     # calendário (tela de Produção), onde a regra semanal não faz sentido.
     # Nulo = usa a regra automática normalmente.
     custom_deadline: Mapped[date_type | None] = mapped_column(Date, nullable=True)
+    # Demanda avulsa aberta pela tela de Produção (botão "Nova demanda"),
+    # fora do ciclo normal do calendário — não deve depender da aprovação do
+    # cronograma do mês pra aparecer no quadro de produção (ver routers/calendar.py).
+    from_production: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     # Nome da publicação (opcional: postagens antigas não têm; cai no theme).
     title: Mapped[str | None] = mapped_column(String(200), nullable=True)
     theme: Mapped[str] = mapped_column(Text, nullable=False)

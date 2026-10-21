@@ -3,7 +3,7 @@ from datetime import date, datetime, timezone
 from calendar import monthrange
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import and_, exists, extract, inspect, text
+from sqlalchemy import and_, exists, extract, inspect, or_, text
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -81,14 +81,20 @@ async def list_calendar_entries(
     query = db.query(CalendarEntry)
 
     if period_status is not None:
+        # Demanda avulsa aberta pela tela de Produção não depende da aprovação
+        # do cronograma do cliente — sempre aparece no quadro, independente
+        # do status do período.
         query = query.filter(
-            exists().where(
-                and_(
-                    CalendarPeriod.client_id == CalendarEntry.client_id,
-                    CalendarPeriod.year == extract("year", CalendarEntry.scheduled_date),
-                    CalendarPeriod.month == extract("month", CalendarEntry.scheduled_date),
-                    CalendarPeriod.status == period_status,
-                )
+            or_(
+                CalendarEntry.from_production.is_(True),
+                exists().where(
+                    and_(
+                        CalendarPeriod.client_id == CalendarEntry.client_id,
+                        CalendarPeriod.year == extract("year", CalendarEntry.scheduled_date),
+                        CalendarPeriod.month == extract("month", CalendarEntry.scheduled_date),
+                        CalendarPeriod.status == period_status,
+                    )
+                ),
             )
         )
 
@@ -215,7 +221,7 @@ async def create_calendar_entry(
     if data["assignee_id"] is None:
         data["assignee_id"] = client.default_designer_id
 
-    entry = CalendarEntry(**data, created_by=current_user.id)
+    entry = CalendarEntry(**data, created_by=current_user.id, from_production=from_production)
     entry.tags = tags
     if entry.status in DELIVERED_STATUSES:
         entry.delivered_at = datetime.now(timezone.utc)
@@ -245,7 +251,9 @@ async def update_calendar_entry(
     # Mês finalizado só aceita mudanças do fluxo de produção (status, arte
     # final, legenda); o planejamento fica travado. Reenviar o mesmo valor
     # de um campo de planejamento é aceito (o drawer manda o form inteiro).
-    if any(
+    # Demanda avulsa (from_production) nunca depende da aprovação do
+    # cronograma do cliente — nem pra criar, nem pra editar depois.
+    if not entry.from_production and any(
         field in data and data[field] != getattr(entry, field)
         for field in PLANNING_FIELDS
     ):
