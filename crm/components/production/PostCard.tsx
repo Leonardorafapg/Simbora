@@ -4,7 +4,7 @@ import type { CalendarEntry } from "@/types/calendar";
 import type { Client } from "@/types/client";
 import { formatDate } from "@/lib/format";
 import { DEADLINE_CLASSES, DEADLINE_LABELS, deadlineInfo, formatDeadline } from "@/lib/deadline";
-import { tagChipClass } from "@/lib/tagColors";
+import { tagChipClass, tagChipStyle } from "@/lib/tagColors";
 import { POST_STATUS_CLASSES, formatBrt } from "@/lib/instagram";
 import type { InstagramPost } from "@/types/instagram";
 
@@ -58,6 +58,7 @@ function PostCardContent({ entry, client, onSelect, instagramPost }: ContentProp
               <span
                 key={tag.id}
                 title={tag.name}
+                style={tagChipStyle(tag.color)}
                 className={`max-w-full truncate rounded px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide ${tagChipClass(tag.color)}`}
               >
                 {tag.name}

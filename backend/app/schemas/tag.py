@@ -1,7 +1,8 @@
 # backend/app/schemas/tag.py
 from pydantic import BaseModel, field_validator
 
-TAG_COLORS = ["green", "yellow", "orange", "red", "purple", "blue", "teal", "lime", "pink", "gray"]
+from app.core.tag_colors import TAG_COLOR_KEYS as TAG_COLORS
+from app.core.tag_colors import is_valid_color, normalize_color
 
 
 def _clean_name(value: str) -> str:
@@ -14,9 +15,11 @@ def _clean_name(value: str) -> str:
 
 
 def _check_color(value: str) -> str:
-    if value not in TAG_COLORS:
-        raise ValueError(f"Cor inválida. Use uma de: {', '.join(TAG_COLORS)}")
-    return value
+    if not is_valid_color(value):
+        raise ValueError(
+            f"Cor inválida. Use uma da paleta ({', '.join(TAG_COLORS)}) ou um hex no formato #rrggbb"
+        )
+    return normalize_color(value)
 
 
 class TagOut(BaseModel):
