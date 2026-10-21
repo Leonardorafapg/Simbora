@@ -42,6 +42,8 @@ export type CalendarEntry = {
   material_files: string[];
   /** URL (R2) da arte final, entregue pelo designer pelo drawer da postagem. */
   final_image: string | null;
+  /** URL (R2) da versão em formato Stories (vertical) da mesma arte — opcional. */
+  final_image_story: string | null;
   caption: string | null;
   status: CalendarEntryStatus;
   /** Quem pediu a demanda (padrão: social do cliente). */
@@ -70,6 +72,7 @@ export type CalendarEntryCreateInput = {
   reference_image?: string | null;
   material_files?: string[];
   final_image?: string | null;
+  final_image_story?: string | null;
   caption?: string;
   material_notes?: string | null;
   status?: CalendarEntryStatus;
@@ -89,6 +92,7 @@ export type CalendarEntryUpdateInput = Partial<{
   reference_image: string | null;
   material_files: string[];
   final_image: string | null;
+  final_image_story: string | null;
   caption: string;
   material_notes: string | null;
   status: CalendarEntryStatus;

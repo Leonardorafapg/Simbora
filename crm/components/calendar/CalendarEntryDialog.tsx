@@ -49,6 +49,7 @@ function buildForm(
     reference_image: entry?.reference_image ?? null,
     material_files: entry?.material_files ?? [],
     final_image: entry?.final_image ?? null,
+    final_image_story: entry?.final_image_story ?? null,
     caption: entry?.caption ?? "",
   };
 }
@@ -307,9 +308,18 @@ export default function CalendarEntryDialog({
                 <ImagePlus className="h-4 w-4 text-white/40" />
                 Post feito
               </div>
-              <div>
-                <p className="mb-1.5 text-xs text-white/50">Arte final do post</p>
-                <ImageDropzone value={form.final_image} onChange={(value) => update("final_image", value)} />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <p className="mb-1.5 text-xs text-white/50">Arte final do post</p>
+                  <ImageDropzone value={form.final_image} onChange={(value) => update("final_image", value)} />
+                </div>
+                <div>
+                  <p className="mb-1.5 text-xs text-white/50">Arte para Stories (opcional)</p>
+                  <ImageDropzone
+                    value={form.final_image_story}
+                    onChange={(value) => update("final_image_story", value)}
+                  />
+                </div>
               </div>
               <div>
                 <p className="mb-1.5 text-xs text-white/50">Legenda</p>

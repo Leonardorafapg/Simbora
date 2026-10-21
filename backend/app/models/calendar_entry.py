@@ -38,6 +38,9 @@ class CalendarEntry(Base):
     material_files: Mapped[list] = mapped_column(JSONText, default=list, nullable=False)
     # URL (R2) da arte finalizada que o designer entrega pelo drawer da postagem.
     final_image: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # URL (R2) da versão em formato Stories (vertical) da mesma arte — opcional,
+    # entregue junto quando o post também vai pro Stories.
+    final_image_story: Mapped[str | None] = mapped_column(Text, nullable=True)
     caption: Mapped[str | None] = mapped_column(Text, nullable=True)
     # Markdown livre respondendo "já tem material?" — sem UI própria ainda,
     # reservado pra uso futuro (igual "status", ver comentário abaixo).

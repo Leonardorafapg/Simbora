@@ -49,6 +49,7 @@ class CalendarEntryCreate(BaseModel):
     reference_image: str | None = None
     material_files: list[str] = []
     final_image: str | None = None
+    final_image_story: str | None = None
     caption: str | None = None
     material_notes: str | None = None
     status: str = "producao"
@@ -84,6 +85,7 @@ class CalendarEntryUpdate(BaseModel):
     reference_image: str | None = None
     material_files: list[str] | None = None
     final_image: str | None = None
+    final_image_story: str | None = None
     caption: str | None = None
     material_notes: str | None = None
     status: str | None = None
@@ -120,6 +122,7 @@ class CalendarEntryOut(BaseModel):
     reference_image: str | None
     material_files: list[str]
     final_image: str | None
+    final_image_story: str | None
     caption: str | None
     material_notes: str | None
     status: str
