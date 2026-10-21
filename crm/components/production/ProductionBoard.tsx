@@ -377,6 +377,7 @@ export default function ProductionBoard({ canEdit, canCreate, canDelete, canView
           open
           onClose={() => setSelected(null)}
           clientId={selected.client_id}
+          clients={clients}
           defaultDate={selected.scheduled_date}
           entry={selected}
           canDelete={canDelete}
