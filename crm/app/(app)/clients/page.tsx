@@ -16,6 +16,10 @@ export default async function ClientsPage() {
         canDelete: hasPermission(session, "calendar.delete"),
         canApprove: hasPermission(session, "calendar.approve"),
       }}
+      instagramPermissions={{
+        canView: hasPermission(session, "instagram.view"),
+        canManage: hasPermission(session, "instagram.manage"),
+      }}
     />
   );
 }

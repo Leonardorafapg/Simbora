@@ -38,6 +38,32 @@ class Settings(BaseSettings):
     R2_PRESIGN_EXPIRES_SECONDS: int = 300
     # Teto de segurança contra abuso (a URL pré-assinada fixa o tamanho exato).
     UPLOAD_MAX_BYTES: int = 50 * 1024 * 1024
+    # Vídeo (Reels/Stories) é bem maior que imagem; o Instagram aceita Reels até 300 MB.
+    UPLOAD_VIDEO_MAX_BYTES: int = 300 * 1024 * 1024
+
+    # Instagram (API do Instagram com Login do Instagram) — cada cliente conecta a
+    # própria conta profissional. App criado no painel da Meta (produto Instagram >
+    # "Configuração da API com login do Instagram"); não é um app de Facebook Login.
+    INSTAGRAM_APP_ID: str = ""
+    INSTAGRAM_APP_SECRET: str = ""
+    # URL pública do callback, idêntica à cadastrada no painel da Meta. Vazio =
+    # PUBLIC_API_URL + /api/v1/instagram/oauth/callback.
+    INSTAGRAM_REDIRECT_URI: str = ""
+    # Chave Fernet pra criptografar os tokens do Instagram no banco. Vazio = derivada
+    # do SECRET_KEY (trocar o SECRET_KEY nesse caso obriga a reconectar as contas).
+    TOKEN_ENCRYPTION_KEY: str = ""
+    # Desliga o laço de publicação/renovação (ex.: rodar uma segunda instância só de leitura).
+    INSTAGRAM_WORKER_ENABLED: bool = True
+
+    # Login OAuth do MCP (ver docs/plano-mcp-oauth.md). O issuer é o PUBLIC_API_URL.
+    # URL do endpoint MCP (com /mcp): vira o `aud` dos tokens e o `resource` aceito.
+    MCP_RESOURCE_URL: str = ""
+    # Segredo só entre o serviço MCP e o backend, usado em /oauth/introspect.
+    MCP_INTROSPECTION_SECRET: str = ""
+    OAUTH_ACCESS_TOKEN_MINUTES: int = 60
+    OAUTH_REFRESH_TOKEN_DAYS: int = 30
+    # Hosts HTTPS extras aceitos como redirect do OAuth (separados por vírgula).
+    OAUTH_EXTRA_REDIRECT_HOSTS: str = ""
 
     # Login OAuth do MCP (ver docs/plano-mcp-oauth.md). O issuer é o PUBLIC_API_URL.
     # URL do endpoint MCP (com /mcp): vira o `aud` dos tokens e o `resource` aceito.

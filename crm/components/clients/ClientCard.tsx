@@ -1,12 +1,17 @@
 import type { Client } from "@/types/client";
 import Avatar from "@/components/ui/Avatar";
+import type { TeamMember } from "@/types/team";
+import { tagChipClass } from "@/lib/tagColors";
 
 type Props = {
   client: Client;
+  /** Social media e designer padrão do cliente (mostrados como etiquetas fixas). */
+  social?: TeamMember;
+  designer?: TeamMember;
   onClick: () => void;
 };
 
-export default function ClientCard({ client, onClick }: Props) {
+export default function ClientCard({ client, social, designer, onClick }: Props) {
   return (
     <button
       type="button"
@@ -25,6 +30,26 @@ export default function ClientCard({ client, onClick }: Props) {
       <div className="min-w-0">
         <p className="font-semibold text-white truncate">{client.name}</p>
         <p className="text-xs text-cyan truncate">{client.contact_name || client.email || "—"}</p>
+      </div>
+
+      {/* Etiquetas padrão (fixas): quem é o social e o designer do cliente. */}
+      <div className="flex flex-wrap gap-1.5">
+        <span
+          title={social ? `Social media: ${social.full_name}` : "Sem social media padrão"}
+          className={`max-w-full truncate rounded px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide ${
+            social ? tagChipClass("yellow") : "bg-white/10 text-white/40"
+          }`}
+        >
+          Social: {social?.full_name ?? "—"}
+        </span>
+        <span
+          title={designer ? `Designer: ${designer.full_name}` : "Sem designer padrão"}
+          className={`max-w-full truncate rounded px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide ${
+            designer ? tagChipClass("purple") : "bg-white/10 text-white/40"
+          }`}
+        >
+          Designer: {designer?.full_name ?? "—"}
+        </span>
       </div>
     </button>
   );

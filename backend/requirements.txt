@@ -12,3 +12,5 @@ httpx
 boto3
 python-multipart
 psycopg[binary]
+cryptography
+Pillow

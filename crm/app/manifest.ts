@@ -5,7 +5,10 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Simbora CRM",
     short_name: "Simbora",
     description: "Painel operacional interno da Simbora.",
+    id: "/",
+    lang: "pt-BR",
     start_url: "/",
+    scope: "/",
     display: "standalone",
     // Só o `background_color` (a tela nativa de abertura do PWA, antes do
     // app carregar) é diferente do fundo escuro do resto do app — de

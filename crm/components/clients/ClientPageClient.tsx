@@ -6,17 +6,20 @@ import { useClients } from "@/hooks/useClients";
 import { useTeamMembers } from "@/hooks/useTeamMembers";
 import type { Client } from "@/types/client";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import MultiSelect from "@/components/ui/MultiSelect";
 import ClientGrid from "./ClientGrid";
 import ClientDrawer from "./ClientDrawer";
 import NewClientDialog from "./NewClientDialog";
 
 type CalendarPermissions = { canCreate: boolean; canEdit: boolean; canDelete: boolean; canApprove: boolean };
+type InstagramPermissions = { canView: boolean; canManage: boolean };
 
 type Props = {
   canCreate: boolean;
   canEdit: boolean;
   canDelete: boolean;
   calendarPermissions: CalendarPermissions;
+  instagramPermissions: InstagramPermissions;
 };
 
 export default function ClientPageClient({
@@ -24,6 +27,7 @@ export default function ClientPageClient({
   canEdit,
   canDelete,
   calendarPermissions,
+  instagramPermissions,
 }: Props) {
   const { clients, loading, error, create, update, remove } = useClients();
   const { members: teamMembers } = useTeamMembers();
@@ -39,11 +43,22 @@ export default function ClientPageClient({
     if (openClient) setSelectedId(Number(openClient));
   }, [searchParams]);
   const [addOpen, setAddOpen] = useState(false);
+  // Filtro por responsável: o cliente aparece se o social OU o designer padrão estiver entre os escolhidos.
+  const [responsibleIds, setResponsibleIds] = useState<number[]>([]);
   const [pendingDelete, setPendingDelete] = useState<Client | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const selected = clients.find((client) => client.id === selectedId) ?? null;
+
+  const visibleClients =
+    responsibleIds.length === 0
+      ? clients
+      : clients.filter(
+          (client) =>
+            (client.default_social_id !== null && responsibleIds.includes(client.default_social_id)) ||
+            (client.default_designer_id !== null && responsibleIds.includes(client.default_designer_id)),
+        );
 
   async function handleConfirmDelete() {
     if (!pendingDelete) return;
@@ -78,12 +93,29 @@ export default function ClientPageClient({
           )}
         </div>
 
+        <div className="mb-6 flex flex-wrap items-center gap-2">
+          <MultiSelect
+            options={teamMembers.map((m) => ({ value: m.id, label: m.full_name }))}
+            value={responsibleIds}
+            onChange={setResponsibleIds}
+            allLabel="Todos os responsáveis"
+            pluralLabel="responsáveis"
+            ariaLabel="Filtrar por responsável"
+          />
+          {responsibleIds.length > 0 && (
+            <span className="text-xs text-white/50">
+              {visibleClients.length} de {clients.length} clientes
+            </span>
+          )}
+        </div>
+
         {loading && <p className="text-sm text-white/50">Carregando...</p>}
         {error && <p className="text-sm text-danger">{error}</p>}
         {deleteError && <p className="mb-4 text-sm text-danger">{deleteError}</p>}
 
         <ClientGrid
-          clients={clients}
+          clients={visibleClients}
+          teamMembers={teamMembers}
           canCreate={canCreate}
           onSelect={(client) => setSelectedId(client.id)}
           onAddClick={() => setAddOpen(true)}
@@ -96,6 +128,7 @@ export default function ClientPageClient({
         canDelete={canDelete}
         teamMembers={teamMembers}
         calendarPermissions={calendarPermissions}
+            instagramPermissions={instagramPermissions}
         onClose={() => setSelectedId(null)}
         onUpdate={update}
         onRequestDelete={setPendingDelete}

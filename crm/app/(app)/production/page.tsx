@@ -19,6 +19,8 @@ export default async function ProductionPage() {
       canEdit={hasPermission(session, "calendar.edit")}
       canCreate={hasPermission(session, "calendar.create")}
       canDelete={hasPermission(session, "calendar.delete")}
+      canViewInstagram={hasPermission(session, "instagram.view")}
+      canManageInstagram={hasPermission(session, "instagram.manage")}
     />
   );
 }

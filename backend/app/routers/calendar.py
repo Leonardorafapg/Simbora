@@ -14,6 +14,7 @@ from app.models.tag import Tag
 from app.models.client import Client
 from app.models.user import User
 from app.routers.calendar_periods import get_period_status
+from app.services import instagram_posts
 from app.schemas.calendar_entry import (
     DELIVERED_STATUSES,
     CalendarEntryBulkCreate,
@@ -275,6 +276,11 @@ async def update_calendar_entry(
         else:
             entry.delivered_at = None
 
+    # Saiu de "aprovados": cancela o agendamento do Instagram que ainda não
+    # saiu, senão o post iria ao ar mesmo depois de a equipe tirá-lo da fila.
+    if new_status is not None and new_status not in instagram_posts.SCHEDULABLE_ENTRY_STATUSES + ("publicados",):
+        instagram_posts.cancel_for_entry(db, entry.id, detach_others=False)
+
     for field, value in data.items():
         setattr(entry, field, value)
 
@@ -299,6 +305,9 @@ async def delete_calendar_entry(
     # com FK pra postagem — solta o vínculo, senão apagar daria IntegrityError.
     if inspect(db.get_bind()).has_table("demands"):
         db.execute(text("UPDATE demands SET calendar_entry_id = NULL WHERE calendar_entry_id = :id"), {"id": entry_id})
+
+    # Apagar a postagem cancela o agendamento do Instagram que ainda não saiu.
+    instagram_posts.cancel_for_entry(db, entry_id, detach_others=True)
 
     db.delete(entry)
     db.commit()

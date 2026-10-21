@@ -24,6 +24,8 @@ PERMISSIONS: dict[str, str] = {
     "calendar.approve": "Aprovar calendário (etapa Amanda)",
     "whatsapp.view": "Ver WhatsApp",
     "whatsapp.send": "Enviar mensagens no WhatsApp",
+    "instagram.view": "Ver Instagram (agendamentos e métricas)",
+    "instagram.manage": "Conectar contas e agendar posts no Instagram",
 }
 
 

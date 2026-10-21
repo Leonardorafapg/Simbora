@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, Inter } from "next/font/google";
 import "./globals.css";
 import { themeInitScript } from "@/lib/theme";
+import ServiceWorkerRegister from "@/components/pwa/ServiceWorkerRegister";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
 const bricolage = Bricolage_Grotesque({ subsets: ["latin"], variable: "--font-bricolage", display: "swap" });
@@ -15,9 +16,11 @@ export const metadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
-    statusBarStyle: "black-translucent",
+    statusBarStyle: "black",
     title: "Simbora",
   },
+  // O Next só emite o mobile-web-app-capable; iOS antigos ainda exigem o da Apple para abrir sem barra do Safari.
+  other: { "apple-mobile-web-app-capable": "yes" },
   icons: {
     icon: [
       { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
@@ -46,6 +49,7 @@ export default function RootLayout({
             render do RootLayout nessa versão do Next. */}
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         {children}
+        <ServiceWorkerRegister />
       </body>
     </html>
   );

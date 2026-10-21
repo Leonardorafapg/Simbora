@@ -2,6 +2,7 @@ import { useDroppable } from "@dnd-kit/core";
 import type { CalendarEntry, CalendarEntryStatus } from "@/types/calendar";
 import { CALENDAR_ENTRY_STATUS_LABELS } from "@/types/calendar";
 import type { Client } from "@/types/client";
+import type { InstagramPost } from "@/types/instagram";
 import PostCard from "./PostCard";
 
 type Props = {
@@ -10,9 +11,11 @@ type Props = {
   clients: Client[];
   canEdit: boolean;
   onSelect: (entry: CalendarEntry) => void;
+  /** Agendamento do Instagram por id de postagem. */
+  instagramByEntry?: Record<string, InstagramPost>;
 };
 
-export default function KanbanColumn({ status, entries, clients, canEdit, onSelect }: Props) {
+export default function KanbanColumn({ status, entries, clients, canEdit, onSelect, instagramByEntry }: Props) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
 
   return (
@@ -38,6 +41,7 @@ export default function KanbanColumn({ status, entries, clients, canEdit, onSele
             client={clients.find((c) => c.id === entry.client_id)}
             canEdit={canEdit}
             onSelect={onSelect}
+            instagramPost={instagramByEntry?.[entry.id]}
           />
         ))}
       </div>

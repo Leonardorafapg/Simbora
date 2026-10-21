@@ -17,6 +17,12 @@ IMAGE_EXTENSIONS = {
     "image/avif": "avif",
 }
 
+# Só pro Instagram (Reels/Stories em vídeo) — formatos que a Meta aceita.
+VIDEO_EXTENSIONS = {
+    "video/mp4": "mp4",
+    "video/quicktime": "mov",
+}
+
 # PDFs do calendário (fluxo de aprovação) — upload separado do de imagens,
 # mesmo mecanismo de presign.
 DOCUMENT_EXTENSIONS = {
@@ -59,10 +65,10 @@ def get_client():
     return _client
 
 
-def new_object_key(content_type: str, subdir: str = "") -> str:
+def new_object_key(content_type: str, folder: str | None = None, subdir: str = "") -> str:
     now = datetime.now(timezone.utc)
-    ext = IMAGE_EXTENSIONS.get(content_type) or DOCUMENT_EXTENSIONS[content_type]
-    prefix = settings.R2_KEY_PREFIX.strip("/")
+    ext = IMAGE_EXTENSIONS.get(content_type) or VIDEO_EXTENSIONS.get(content_type) or DOCUMENT_EXTENSIONS[content_type]
+    prefix = "/".join(p for p in (settings.R2_KEY_PREFIX.strip("/"), folder) if p)
     subdir = subdir.strip("/")
     name = f"{subdir}/{now:%Y/%m}/{uuid.uuid4().hex}.{ext}" if subdir else f"{now:%Y/%m}/{uuid.uuid4().hex}.{ext}"
     return f"{prefix}/{name}" if prefix else name
@@ -70,6 +76,12 @@ def new_object_key(content_type: str, subdir: str = "") -> str:
 
 def public_url(key: str) -> str:
     return f"{settings.R2_PUBLIC_BASE_URL.rstrip('/')}/{key}"
+
+
+def is_public_url(url: str) -> bool:
+    """URL servida pelo próprio bucket (não um link qualquer da internet)."""
+    base = settings.R2_PUBLIC_BASE_URL.rstrip("/")
+    return bool(base) and url.startswith(base + "/")
 
 
 def presign_put(key: str, content_type: str, size: int) -> str:
