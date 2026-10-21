@@ -1,4 +1,9 @@
-import type { CalendarApprovalPublic, CalendarPeriod, CalendarPeriodStatus } from "@/types/calendarPeriod";
+import type {
+  CalendarApprovalPublic,
+  CalendarPeriod,
+  CalendarPeriodPending,
+  CalendarPeriodStatus,
+} from "@/types/calendarPeriod";
 
 async function parseErrorMessage(res: Response, fallback: string) {
   const data = await res.json().catch(() => ({}));
@@ -57,6 +62,13 @@ export async function decidirComoAmanda(
     body: JSON.stringify({ client_id: clientId, year, month, decision, reason }),
   });
   if (!res.ok) throw new Error(await parseErrorMessage(res, "Não foi possível registrar a decisão."));
+  return res.json();
+}
+
+/** Caixa de entrada central — todo período em qualquer etapa da cadeia de aprovação. */
+export async function fetchPendingApprovals(): Promise<CalendarPeriodPending[]> {
+  const res = await fetch("/api/calendar-periods/pending-approval");
+  if (!res.ok) throw new Error(await parseErrorMessage(res, "Não foi possível carregar as aprovações pendentes."));
   return res.json();
 }
 

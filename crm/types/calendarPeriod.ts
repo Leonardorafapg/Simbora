@@ -41,3 +41,14 @@ export type CalendarApprovalPublic = {
   status: CalendarPeriodStatus;
   pdf_url: string | null;
 };
+
+/** Item da caixa de entrada central de aprovações (tela /aprovacoes). */
+export type CalendarPeriodPending = {
+  client_id: number;
+  client_name: string;
+  year: number;
+  month: number;
+  status: CalendarPeriodStatus;
+  pdf_url: string | null;
+  updated_at: string;
+};
