@@ -265,7 +265,7 @@ export default function CalendarEntryDialog({
                 <Clock className="h-4 w-4 text-white/40" />
                 Prazo de entrega
               </div>
-              {clients && !entry ? (
+              {(clients && !entry) || entry?.from_production ? (
                 <>
                   <input
                     type="date"
@@ -273,9 +273,23 @@ export default function CalendarEntryDialog({
                     onChange={(e) => update("custom_deadline", e.target.value)}
                     className="glass-input w-full rounded-lg px-3 py-2 text-sm outline-none"
                   />
-                  <p className="text-xs text-white/40">
-                    Demanda fora do calendário — ajuste o prazo manualmente (sugestão: quinta da semana anterior).
-                  </p>
+                  {entry ? (
+                    (() => {
+                      const info = deadlineInfo({ ...entry, scheduled_date: form.scheduled_date, custom_deadline: form.custom_deadline });
+                      return (
+                        <div className="flex flex-wrap items-center gap-2 text-sm text-white/80">
+                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${DEADLINE_CLASSES[info.state]}`}>
+                            {DEADLINE_LABELS[info.state]}
+                            {info.daysLate > 0 ? ` (${info.daysLate}d)` : ""}
+                          </span>
+                        </div>
+                      );
+                    })()
+                  ) : (
+                    <p className="text-xs text-white/40">
+                      Demanda fora do calendário — ajuste o prazo manualmente (sugestão: quinta da semana anterior).
+                    </p>
+                  )}
                 </>
               ) : (
                 (() => {
