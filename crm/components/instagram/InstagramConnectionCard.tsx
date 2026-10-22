@@ -89,23 +89,23 @@ export default function InstagramConnectionCard({
           <img src={account.profile_picture_url} alt="" className="h-11 w-11 rounded-full object-cover" />
         ) : (
           <div className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-pink-500 to-amber-400">
-            <Camera className="h-5 w-5 text-white" />
+            <Camera className="h-5 w-5 text-text" />
           </div>
         )}
         <div className="min-w-0 flex-1">
           {loading ? (
-            <p className="text-sm text-white/50">Carregando...</p>
+            <p className="text-sm text-text-muted">Carregando...</p>
           ) : connected ? (
             <>
-              <p className="text-sm font-semibold text-white">@{account?.username ?? "conta conectada"}</p>
-              <p className="text-xs text-white/50">
+              <p className="text-sm font-semibold text-text">@{account?.username ?? "conta conectada"}</p>
+              <p className="text-xs text-text-muted">
                 Conectado em {formatBrt(account?.connected_at)} · renovação automática
               </p>
             </>
           ) : (
             <>
-              <p className="text-sm font-semibold text-white">Instagram</p>
-              <p className={`text-xs ${account && account.status !== "nao_conectado" && account.status !== "desconectado" ? "text-danger" : "text-white/50"}`}>
+              <p className="text-sm font-semibold text-text">Instagram</p>
+              <p className={`text-xs ${account && account.status !== "nao_conectado" && account.status !== "desconectado" ? "text-danger" : "text-text-muted"}`}>
                 {STATUS_TEXT[account?.status ?? "nao_conectado"]}
               </p>
             </>
@@ -129,7 +129,7 @@ export default function InstagramConnectionCard({
                 type="button"
                 disabled={busy || configured === false}
                 onClick={handleCopyLink}
-                className="rounded-lg border border-white/15 px-3 py-2 text-sm text-white hover:border-cyan/50 disabled:opacity-60"
+                className="rounded-lg border border-border px-3 py-2 text-sm text-text hover:border-cyan/50 disabled:opacity-60"
               >
                 {copied ? "Link copiado" : "Copiar link pro cliente"}
               </button>
@@ -148,10 +148,10 @@ export default function InstagramConnectionCard({
       </div>
 
       {waiting && (
-        <div className="mt-3 flex items-center gap-2 rounded-lg bg-white/5 px-3 py-2 text-xs text-white/70">
+        <div className="mt-3 flex items-center gap-2 rounded-lg bg-surface-2 px-3 py-2 text-xs text-text">
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
           Aguardando a autorização no Instagram (quem autoriza é o dono da conta)...
-          <button type="button" onClick={onCancelWaiting} className="ml-auto text-white/50 hover:text-white">
+          <button type="button" onClick={onCancelWaiting} className="ml-auto text-text-muted hover:text-text">
             Cancelar
           </button>
         </div>
@@ -162,7 +162,7 @@ export default function InstagramConnectionCard({
         </p>
       )}
       {!connected && !loading && canManage && configured !== false && (
-        <p className="mt-3 text-xs text-white/40">
+        <p className="mt-3 text-xs text-text-faint">
           Precisa ser uma conta profissional (Empresa ou Criador de conteúdo). Se quem tem a senha é o cliente, copie o link e
           mande pra ele (vale 15 minutos) — ele autoriza no celular dele e o CRM nunca vê a senha.
         </p>

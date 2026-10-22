@@ -5,6 +5,8 @@ import { useSearchParams } from "next/navigation";
 import { useTeamMembers } from "@/hooks/useTeamMembers";
 import type { TeamMember } from "@/types/team";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import PageHeader from "@/components/ui/PageHeader";
+import Button from "@/components/ui/Button";
 import TeamMemberGrid from "./TeamMemberGrid";
 import TeamMemberDrawer from "./TeamMemberDrawer";
 import NewTeamMemberDialog from "./NewTeamMemberDialog";
@@ -53,21 +55,20 @@ export default function TeamPageClient({ canManage, currentUserId }: Props) {
   return (
     <div className="relative h-full overflow-x-clip">
       {/* A página rola aqui dentro; o painel (drawer) fica fora da rolagem para sempre cobrir a área visível. */}
-      <div className="h-full overflow-y-auto p-6 sm:p-8">
-        <div className="flex items-center justify-between gap-3 flex-wrap mb-6">
-          <h1 className="text-2xl font-semibold text-white">Equipe</h1>
+      <div className="h-full overflow-y-auto p-4 sm:p-8">
+        <PageHeader
+          title="Equipe"
+          description="Membros, cargos e permissões de acesso."
+          actions={
+            <>
           {canManage && (
-            <button
-              type="button"
-              onClick={() => setAddOpen(true)}
-              className="rounded-lg bg-cyan px-4 py-2 text-sm font-semibold text-black transition hover:bg-cyan-dark"
-            >
-              + Novo membro
-            </button>
+            <Button onClick={() => setAddOpen(true)}>+ Novo membro</Button>
           )}
-        </div>
+            </>
+          }
+        />
 
-        {loading && <p className="text-sm text-white/50">Carregando...</p>}
+        {loading && <p className="text-sm text-text-muted">Carregando...</p>}
         {error && <p className="text-sm text-danger">{error}</p>}
         {deleteError && <p className="mb-4 text-sm text-danger">{deleteError}</p>}
 

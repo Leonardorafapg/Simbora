@@ -48,20 +48,20 @@ export default function WhatsAppConnectScreen({ onConnected }: Props) {
 
   return (
     <div className="flex flex-1 items-center justify-center p-6">
-      <div className="glass-card rounded-2xl p-8 flex flex-col items-center gap-4 max-w-sm w-full text-center">
+      <div className="glass-card rounded-2xl p-6 sm:p-8 flex flex-col items-center gap-4 max-w-sm w-full text-center">
         <div className="h-12 w-12 rounded-full bg-cyan/10 flex items-center justify-center text-cyan">
           <Smartphone className="h-6 w-6" />
         </div>
 
         <div>
-          <h2 className="text-lg font-semibold text-white">Conectar WhatsApp</h2>
-          <p className="text-sm text-white/60 mt-1">
+          <h2 className="text-lg font-semibold text-text">Conectar WhatsApp</h2>
+          <p className="text-sm text-text-muted mt-1">
             Abra o WhatsApp no celular, vá em Aparelhos conectados e escaneie o código abaixo.
           </p>
         </div>
 
         {loading && (
-          <div className="h-56 w-56 rounded-xl bg-white/5 animate-pulse flex items-center justify-center text-white/40 text-sm">
+          <div className="h-56 w-56 rounded-xl bg-surface-2 animate-pulse flex items-center justify-center text-text-faint text-sm">
             Gerando QR code...
           </div>
         )}
@@ -98,7 +98,7 @@ export default function WhatsAppConnectScreen({ onConnected }: Props) {
                 Gerar novo QR code
               </button>
             ) : (
-              <p className="text-xs text-white/40">Aguardando leitura do código...</p>
+              <p className="text-xs text-text-faint">Aguardando leitura do código...</p>
             )}
           </div>
         )}

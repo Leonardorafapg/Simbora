@@ -74,14 +74,14 @@ export default function InstagramPostItem({ post, canManage, onUpdate, onPublish
 
   if (editing) {
     return (
-      <div className="rounded-xl border border-cyan/30 bg-white/5 p-4">
+      <div className="rounded-xl border border-cyan/30 bg-surface-2 p-4">
         <InstagramPostForm post={post} submitLabel="Salvar" onSubmit={handleEdit} onCancel={() => setEditing(false)} />
       </div>
     );
   }
 
   return (
-    <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+    <div className="rounded-xl border border-border bg-surface-2 p-3">
       <div className="flex gap-3">
         <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-black/30">
           {thumb &&
@@ -91,20 +91,20 @@ export default function InstagramPostItem({ post, canManage, onUpdate, onPublish
               // eslint-disable-next-line @next/next/no-img-element -- URL externa (R2), sem loader configurado
               <img src={thumb} alt="" className="h-full w-full object-cover" />
             ))}
-          {thumb && isVideoUrl(thumb) && <Film className="absolute left-1 top-1 h-3.5 w-3.5 text-white drop-shadow" />}
+          {thumb && isVideoUrl(thumb) && <Film className="absolute left-1 top-1 h-3.5 w-3.5 text-text drop-shadow" />}
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-1.5">
             <InstagramStatusBadge post={post} />
-            <span className="text-xs text-white/50">
+            <span className="text-xs text-text-muted">
               {INSTAGRAM_MEDIA_TYPE_LABELS[post.media_type]}
               {post.media_urls.length > 1 ? ` · ${post.media_urls.length} mídias` : ""}
             </span>
           </div>
-          <p className="mt-1 text-xs text-white/70">
+          <p className="mt-1 text-xs text-text">
             {post.status === "publicado" ? `Publicado em ${formatBrt(post.published_at)}` : `Agendado para ${formatBrt(post.scheduled_at)}`}
           </p>
-          {post.caption && <p className="mt-1 line-clamp-2 text-xs text-white/50">{post.caption}</p>}
+          {post.caption && <p className="mt-1 line-clamp-2 text-xs text-text-muted">{post.caption}</p>}
           {post.error_message && (
             <p className={`mt-1 text-xs ${post.status === "erro" ? "text-danger" : "text-amber-300"}`}>{post.error_message}</p>
           )}
@@ -113,28 +113,28 @@ export default function InstagramPostItem({ post, canManage, onUpdate, onPublish
 
       <div className="mt-2 flex flex-wrap items-center gap-1">
         {post.permalink && (
-          <a href={post.permalink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-cyan hover:bg-white/5">
+          <a href={post.permalink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-cyan hover:bg-surface-2">
             <ExternalLink className="h-3.5 w-3.5" /> Ver no Instagram
           </a>
         )}
         {post.status === "publicado" && post.ig_media_id && (
-          <button type="button" onClick={loadMetrics} className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-white/70 hover:bg-white/5">
+          <button type="button" onClick={loadMetrics} className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-text hover:bg-surface-2">
             <BarChart3 className="h-3.5 w-3.5" /> {metricsLoading ? "Carregando..." : metrics ? "Ocultar métricas" : "Métricas"}
           </button>
         )}
         {canManage && editable && (
           <>
-            <button type="button" disabled={busy} onClick={() => setEditing(true)} className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-white/70 hover:bg-white/5">
+            <button type="button" disabled={busy} onClick={() => setEditing(true)} className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-text hover:bg-surface-2">
               <Pencil className="h-3.5 w-3.5" /> Editar
             </button>
-            <button type="button" disabled={busy} onClick={() => setConfirmPublish(true)} className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-white/70 hover:bg-white/5">
+            <button type="button" disabled={busy} onClick={() => setConfirmPublish(true)} className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-text hover:bg-surface-2">
               {post.status === "erro" ? <RotateCw className="h-3.5 w-3.5" /> : <Send className="h-3.5 w-3.5" />}
               {post.status === "erro" ? "Tentar de novo" : "Publicar agora"}
             </button>
           </>
         )}
         {canManage && post.status !== "publicando" && (
-          <button type="button" disabled={busy} onClick={() => setConfirmRemove(true)} className="ml-auto flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-danger hover:bg-white/5">
+          <button type="button" disabled={busy} onClick={() => setConfirmRemove(true)} className="ml-auto flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-danger hover:bg-surface-2">
             <Trash2 className="h-3.5 w-3.5" /> Remover
           </button>
         )}
@@ -144,8 +144,8 @@ export default function InstagramPostItem({ post, canManage, onUpdate, onPublish
         <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
           {Object.entries(metrics).map(([key, value]) => (
             <div key={key} className="rounded-lg bg-black/20 px-2 py-1.5">
-              <p className="text-[10px] text-white/40">{METRIC_LABELS[key] ?? key}</p>
-              <p className="text-sm font-semibold text-white">{formatMetric(key, value)}</p>
+              <p className="text-[10px] text-text-faint">{METRIC_LABELS[key] ?? key}</p>
+              <p className="text-sm font-semibold text-text">{formatMetric(key, value)}</p>
             </div>
           ))}
         </div>

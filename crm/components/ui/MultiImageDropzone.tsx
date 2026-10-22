@@ -55,7 +55,7 @@ export default function MultiImageDropzone({ value, onChange }: Props) {
       {value.length > 0 && (
         <div className="grid grid-cols-3 gap-2">
           {value.map((url, index) => (
-            <div key={url} className="relative group rounded-lg overflow-hidden border border-white/10">
+            <div key={url} className="relative group rounded-lg overflow-hidden border border-border">
               <button type="button" onClick={() => setPreview(url)} className="block w-full h-20">
                 {/* eslint-disable-next-line @next/next/no-img-element -- URL externa (R2), sem loader configurado */}
                 <img src={url} alt="Material" className="w-full h-full object-cover" />
@@ -63,7 +63,7 @@ export default function MultiImageDropzone({ value, onChange }: Props) {
               <button
                 type="button"
                 onClick={() => removeAt(index)}
-                className="absolute top-1 right-1 rounded-full bg-black/70 p-1 text-white/80 opacity-0 group-hover:opacity-100 hover:text-danger transition-opacity"
+                className="absolute top-1 right-1 rounded-full bg-black/70 p-1 text-text opacity-0 group-hover:opacity-100 hover:text-danger transition-opacity"
                 aria-label="Remover"
               >
                 <X className="h-3 w-3" />
@@ -91,10 +91,10 @@ export default function MultiImageDropzone({ value, onChange }: Props) {
         }}
         className={`rounded-lg border border-dashed px-3 py-4 text-center text-xs transition-colors ${
           uploading
-            ? "border-white/10 text-white/30 cursor-wait"
+            ? "border-border text-text-faint cursor-wait"
             : dragOver
               ? "border-cyan bg-cyan/5 text-cyan cursor-pointer"
-              : "border-white/15 text-white/40 hover:border-white/25 cursor-pointer"
+              : "border-border text-text-faint hover:border-border-hover cursor-pointer"
         }`}
       >
         {uploading ? "Enviando..." : "Arraste imagens aqui ou clique para selecionar (pode escolher várias)"}
@@ -118,7 +118,7 @@ export default function MultiImageDropzone({ value, onChange }: Props) {
           <button
             type="button"
             onClick={() => setPreview(null)}
-            className="absolute top-4 right-4 text-white/70 hover:text-white"
+            className="absolute top-4 right-4 text-text hover:text-text"
             aria-label="Fechar"
           >
             <X className="h-6 w-6" />

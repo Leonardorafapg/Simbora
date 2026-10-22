@@ -79,7 +79,7 @@ export default function GlobalSearch() {
   return (
     <div ref={containerRef} className="relative flex-1 max-w-sm">
       <label className="relative block">
-        <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
+        <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-faint" />
         <input
           type="search"
           value={query}
@@ -92,10 +92,10 @@ export default function GlobalSearch() {
 
       {showDropdown && (
         <div className="glass-modal absolute left-0 right-0 top-full mt-2 rounded-lg z-50 max-h-96 overflow-y-auto">
-          {loading && <p className="px-4 py-3 text-sm text-white/40">Buscando...</p>}
+          {loading && <p className="px-4 py-3 text-sm text-text-faint">Buscando...</p>}
 
           {!loading && results.length === 0 && (
-            <p className="px-4 py-3 text-sm text-white/40">Nenhum resultado para &quot;{query.trim()}&quot;.</p>
+            <p className="px-4 py-3 text-sm text-text-faint">Nenhum resultado para &quot;{query.trim()}&quot;.</p>
           )}
 
           {!loading &&
@@ -106,13 +106,13 @@ export default function GlobalSearch() {
                   key={`${result.type}-${result.id}`}
                   type="button"
                   onClick={() => handleSelect(result)}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-white/5 transition"
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-surface-2 transition"
                 >
                   <Icon className="h-4 w-4 shrink-0 text-cyan" />
                   <span className="min-w-0">
-                    <span className="block text-sm text-white truncate">{result.title}</span>
+                    <span className="block text-sm text-text truncate">{result.title}</span>
                     {result.subtitle && (
-                      <span className="block text-xs text-white/40 truncate">{result.subtitle}</span>
+                      <span className="block text-xs text-text-faint truncate">{result.subtitle}</span>
                     )}
                   </span>
                 </button>

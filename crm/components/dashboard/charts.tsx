@@ -4,7 +4,8 @@
 // tokens do tema (--accent, --surface-2, --text-faint...), então funcionam no
 // tema claro e no escuro.
 
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
+import { useCountUp } from "@/components/ui/CountUp";
 
 /** Tom da cor de destaque (--accent) com `pct`% de opacidade. */
 export const tom = (pct: number) => `color-mix(in srgb, var(--accent) ${pct}%, transparent)`;
@@ -57,6 +58,13 @@ export function Donut({
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
   const f = Math.max(0, Math.min(1, fracao ?? 0));
+  // O arco cresce de 0 até o valor enquanto a rosca dá uma volta (e o número sobe junto).
+  const [armed, setArmed] = useState(false);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setArmed(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
+  const pct = useCountUp(f * 100, 1100);
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="shrink-0" role="img" aria-label={`${Math.round(f * 100)}%`}>
       <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={COR_TRILHO} strokeWidth={stroke} />
@@ -68,11 +76,15 @@ export function Donut({
         stroke={color}
         strokeWidth={stroke}
         strokeLinecap="round"
-        strokeDasharray={`${c * f} ${c}`}
-        transform={`rotate(-90 ${size / 2} ${size / 2})`}
+        strokeDasharray={`${armed ? c * f : 0} ${c}`}
+        style={{
+          transformOrigin: "50% 50%",
+          transform: `rotate(${armed ? -90 : -270}deg)`,
+          transition: "stroke-dasharray 1.1s cubic-bezier(0.22, 1, 0.36, 1), transform 1.1s cubic-bezier(0.22, 1, 0.36, 1)",
+        }}
       />
       <text x="50%" y="50%" dominantBaseline="central" textAnchor="middle" className="fill-text text-[15px] font-semibold">
-        {fracao == null ? "—" : `${Math.round(f * 100)}%`}
+        {fracao == null ? "—" : `${Math.round(pct)}%`}
       </text>
     </svg>
   );
@@ -122,6 +134,7 @@ export function StackedBars({
   ariaLabel?: string;
 }) {
   const { setEl, width, height } = useCaixa(640, minHeight);
+  const gid = useId().replace(/:/g, "");
   const padL = 34;
   const padB = 26;
   const padT = 8;
@@ -134,6 +147,14 @@ export function StackedBars({
   return (
     <div ref={setEl} className="relative w-full min-w-0 flex-1" style={{ minHeight }}>
       <svg viewBox={`0 0 ${width} ${height}`} width={width} height={height} role="img" aria-label={ariaLabel} className="absolute inset-0 block">
+        <defs>
+          {series.map((s) => (
+            <linearGradient key={s.key} id={`bar-${gid}-${s.key}`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" style={{ stopColor: s.color }} stopOpacity="1" />
+              <stop offset="1" style={{ stopColor: s.color }} stopOpacity="0.55" />
+            </linearGradient>
+          ))}
+        </defs>
         {ticks.map((t) => {
           const y = padT + h - (t / max) * h;
           return (
@@ -157,7 +178,7 @@ export function StackedBars({
                 topo -= bh;
                 const ultima = series.slice(si + 1).every((s2) => !Number(d[s2.key] || 0));
                 return v > 0 ? (
-                  <rect key={s.key} x={cx - larg / 2} y={topo} width={larg} height={bh} rx={ultima ? 4 : 0} fill={s.color} />
+                  <rect key={s.key} className="grow-y transition-opacity hover:opacity-75" style={{ animationDelay: `${i * 90 + si * 40}ms` }} x={cx - larg / 2} y={topo} width={larg} height={bh} rx={ultima ? 4 : 0} fill={`url(#bar-${gid}-${s.key})`} />
                 ) : null;
               })}
               <text x={cx} y={height - 8} textAnchor="middle" className="fill-text-muted text-[11px]">
@@ -184,6 +205,7 @@ export function AreaLine({
   ariaLabel?: string;
 }) {
   const { setEl, width, height } = useCaixa(420, minHeight);
+  const gid = useId().replace(/:/g, "");
   const padB = 22;
   const padT = 10;
   if (!data.length) return null;
@@ -208,7 +230,13 @@ export function AreaLine({
             <title>{`${p.label}: ${format ? format(p.value) : p.value}`}</title>
           </g>
         ))}
-        <path d={area} fill={tom(12)} />
+        <defs>
+          <linearGradient id={`area-${gid}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" style={{ stopColor: "var(--accent)" }} stopOpacity="0.35" />
+            <stop offset="1" style={{ stopColor: "var(--accent)" }} stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <path d={area} fill={`url(#area-${gid})`} />
         <path d={d} fill="none" stroke={COR_ACCENT} strokeWidth={2} strokeLinejoin="round" />
         <circle cx={x(data.length - 1)} cy={y(data[data.length - 1].value)} r={3.5} fill={COR_ACCENT} />
       </svg>
@@ -223,13 +251,13 @@ export function HBars({ data, emptyText = "Sem dados no período." }: { data: { 
   const ticks = eixoTicks(max);
   return (
     <div className="flex flex-col gap-3">
-      {data.map((d) => (
+      {data.map((d, index) => (
         <div key={d.label} className="grid grid-cols-[140px_1fr_36px] items-center gap-2">
           <span className="truncate text-[12px] text-text-muted" title={d.label}>
             {d.label}
           </span>
           <div className="h-3 overflow-hidden rounded-[3px] sm:h-4" style={{ background: COR_TRILHO }}>
-            <div className="h-full rounded-[3px]" style={{ width: `${(d.value / max) * 100}%`, background: COR_ACCENT }} />
+            <div className="grow-x h-full rounded-[3px]" style={{ width: `${(d.value / max) * 100}%`, background: COR_ACCENT, animationDelay: `${index * 80}ms` }} />
           </div>
           <span className="text-right text-[12px] font-medium text-text">{d.value}</span>
         </div>
@@ -281,10 +309,11 @@ export function CalendarHeatmap({
             <div
               key={c.dia}
               title={`Dia ${c.dia}: ${c.value} ${c.value === 1 ? itemLabel[0] : itemLabel[1]}`}
-              className={`flex aspect-square items-center justify-center rounded-[5px] text-[10px] ${
+              className={`pop-in flex aspect-square items-center justify-center rounded-[5px] text-[10px] ${
                 hoje === c.dia ? "ring-2 ring-accent ring-offset-1 ring-offset-[var(--surface)]" : ""
               }`}
               style={{
+                animationDelay: `${i * 18}ms`,
                 background: nivel(c.value) ? tom(NIVEIS[nivel(c.value)]) : COR_TRILHO,
                 color: nivel(c.value) >= 3 ? "#fff" : "var(--text-faint)",
               }}

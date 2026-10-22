@@ -114,7 +114,7 @@ export default function TagPicker({ selectedIds, onChange }: Props) {
 
   return (
     <div ref={rootRef} className="relative space-y-2">
-      <div className="text-xs font-semibold text-white/50">Etiquetas</div>
+      <div className="text-xs font-semibold text-text-muted">Etiquetas</div>
       <div className="flex flex-wrap items-center gap-2">
         {selected.map((tag) => (
           <button
@@ -129,7 +129,7 @@ export default function TagPicker({ selectedIds, onChange }: Props) {
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          className="flex h-8 w-8 items-center justify-center rounded bg-white/10 text-white/70 transition hover:bg-white/20 hover:text-white"
+          className="flex h-8 w-8 items-center justify-center rounded bg-surface-2 text-text transition hover:bg-white/20 hover:text-text"
           aria-label="Adicionar etiqueta"
           title="Adicionar etiqueta"
         >
@@ -138,16 +138,16 @@ export default function TagPicker({ selectedIds, onChange }: Props) {
       </div>
 
       {open && (
-        <div className="absolute left-0 top-full z-30 mt-2 w-80 max-w-[calc(100vw-3rem)] rounded-xl border border-white/10 bg-[#1f2023] p-3 shadow-2xl">
+        <div className="absolute left-0 top-full z-30 mt-2 w-80 max-w-[calc(100vw-3rem)] rounded-xl border border-border bg-[#1f2023] p-3 shadow-2xl">
           <div className="mb-2 flex items-center justify-between">
-            <span className="flex items-center gap-2 text-sm font-semibold text-white">
-              <TagIcon className="h-4 w-4 text-white/40" />
+            <span className="flex items-center gap-2 text-sm font-semibold text-text">
+              <TagIcon className="h-4 w-4 text-text-faint" />
               {editing ? "Editar etiqueta" : "Etiquetas"}
             </span>
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="rounded-full p-1 text-white/50 hover:bg-white/10 hover:text-white"
+              className="rounded-full p-1 text-text-muted hover:bg-surface-2 hover:text-text"
               aria-label="Fechar"
             >
               <X className="h-4 w-4" />
@@ -179,7 +179,7 @@ export default function TagPicker({ selectedIds, onChange }: Props) {
                   <button
                     type="button"
                     onClick={() => setEditing(null)}
-                    className="rounded-lg px-3 py-1.5 text-xs text-white/60 hover:text-white"
+                    className="rounded-lg px-3 py-1.5 text-xs text-text-muted hover:text-text"
                   >
                     Voltar
                   </button>
@@ -212,7 +212,7 @@ export default function TagPicker({ selectedIds, onChange }: Props) {
 
               <div className="max-h-52 space-y-1.5 overflow-y-auto">
                 {visible.length === 0 && (
-                  <p className="px-1 text-xs text-white/40">
+                  <p className="px-1 text-xs text-text-faint">
                     {tags.length === 0 ? "Nenhuma etiqueta criada ainda." : "Nenhuma etiqueta encontrada."}
                   </p>
                 )}
@@ -231,7 +231,7 @@ export default function TagPicker({ selectedIds, onChange }: Props) {
                       <button
                         type="button"
                         onClick={() => startEdit(tag)}
-                        className="rounded p-1.5 text-white/40 hover:bg-white/10 hover:text-white"
+                        className="rounded p-1.5 text-text-faint hover:bg-surface-2 hover:text-text"
                         aria-label={`Editar etiqueta ${tag.name}`}
                       >
                         <Pencil className="h-3.5 w-3.5" />
@@ -242,13 +242,13 @@ export default function TagPicker({ selectedIds, onChange }: Props) {
               </div>
 
               {trimmed && !exactExists && (
-                <div className="space-y-2 border-t border-white/10 pt-3">
+                <div className="space-y-2 border-t border-border pt-3">
                   <ColorSwatches value={newColor} onChange={setNewColor} />
                   <button
                     type="button"
                     onClick={handleCreate}
                     disabled={busy}
-                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-white/10 px-3 py-2 text-xs font-semibold text-white hover:bg-white/20 disabled:opacity-60"
+                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-surface-2 px-3 py-2 text-xs font-semibold text-text hover:bg-white/20 disabled:opacity-60"
                   >
                     <Plus className="h-3.5 w-3.5" />
                     Criar &ldquo;{trimmed}&rdquo;

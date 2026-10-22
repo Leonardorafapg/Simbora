@@ -4,11 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ChevronsUpDown, LogOut, Moon, PanelLeftClose, PanelLeftOpen, Sun, X } from "lucide-react";
+import { ChevronsUpDown, LogOut, PanelLeftClose, PanelLeftOpen, Rows3, X } from "lucide-react";
 import { NAV_ITEMS } from "@/lib/nav";
 import { logout } from "@/services/client/authApi";
 import Avatar from "@/components/ui/Avatar";
-import { useThemeToggle } from "@/components/layout/ThemeToggle";
+import { NEXT_THEME_LABEL, ThemeIcon, useDensity, useThemeToggle } from "@/components/layout/ThemeToggle";
 import type { SessionUser } from "@/types/auth";
 
 type Props = {
@@ -33,6 +33,7 @@ export default function Sidebar({ user, mobileOpen, onClose, collapsed, onToggle
   const pathname = usePathname();
   const router = useRouter();
   const { theme, toggle: toggleTheme } = useThemeToggle();
+  const { density, toggleDensity } = useDensity();
   const [menuOpen, setMenuOpen] = useState(false);
   const accountRef = useRef<HTMLDivElement>(null);
   const c = collapsed;
@@ -77,7 +78,7 @@ export default function Sidebar({ user, mobileOpen, onClose, collapsed, onToggle
           active
             ? c
               ? "text-accent max-lg:bg-accent-soft"
-              : "bg-accent-soft text-accent"
+              : "bg-accent-soft text-accent shadow-[inset_2px_0_0_var(--accent)]"
             : c
               ? "text-text-muted hover:text-text max-lg:hover:bg-surface-2"
               : "text-text-muted hover:bg-surface-2 hover:text-text"
@@ -99,14 +100,18 @@ export default function Sidebar({ user, mobileOpen, onClose, collapsed, onToggle
   }
 
   return (
-    <>
+    <div
+      className={`contents lg:block lg:sticky lg:top-0 lg:z-30 lg:h-screen lg:shrink-0 lg:transition-[width] lg:duration-200 ${
+        collapsed ? "lg:w-[63px]" : "lg:w-60"
+      }`}
+    >
       {/* Backdrop — só existe no mobile, enquanto o drawer está aberto. */}
       {mobileOpen && (
         <div className="fixed inset-0 z-40 bg-black/60 lg:hidden" onClick={onClose} aria-hidden="true" />
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-64 transform flex-col border-r border-border bg-surface transition-[transform,width] duration-200 ease-out lg:sticky lg:top-0 lg:z-auto lg:h-screen lg:shrink-0 lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-64 transform flex-col border-r border-border bg-surface transition-[transform,width,box-shadow] duration-200 ease-out lg:absolute lg:z-auto lg:h-full lg:translate-x-0 ${
           c ? "lg:w-[63px]" : "lg:w-60"
         } ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
@@ -129,10 +134,10 @@ export default function Sidebar({ user, mobileOpen, onClose, collapsed, onToggle
             type="button"
             onClick={onToggleCollapsed}
             className="hidden rounded-md p-1.5 text-text-muted transition-colors hover:bg-surface-2 hover:text-text lg:block"
-            aria-label={c ? "Expandir menu" : "Recolher menu"}
-            title={c ? "Expandir menu" : "Recolher menu"}
+            aria-label={collapsed ? "Expandir menu" : "Recolher menu"}
+            title={collapsed ? "Expandir menu" : "Recolher menu"}
           >
-            {c ? <PanelLeftOpen className="h-[18px] w-[18px]" /> : <PanelLeftClose className="h-[18px] w-[18px]" />}
+            {collapsed ? <PanelLeftOpen className="h-[18px] w-[18px]" /> : <PanelLeftClose className="h-[18px] w-[18px]" />}
           </button>
         </div>
 
@@ -142,7 +147,7 @@ export default function Sidebar({ user, mobileOpen, onClose, collapsed, onToggle
             c ? "lg:gap-1.5 lg:px-0.5 lg:py-2.5" : ""
           }`}
         >
-          {NAV_ITEMS.map((item) => renderItem(item.href))}
+          {NAV_ITEMS.filter((item) => !item.hideInSidebar).map((item) => renderItem(item.href))}
         </nav>
 
         {/* Conta */}
@@ -170,8 +175,17 @@ export default function Sidebar({ user, mobileOpen, onClose, collapsed, onToggle
                 onClick={toggleTheme}
                 className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2.5 text-left text-[13px] text-text-muted transition-colors hover:bg-surface-2 hover:text-text"
               >
-                {theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
-                {theme === "light" ? "Tema escuro" : "Tema claro"}
+                <ThemeIcon theme={theme} />
+                {NEXT_THEME_LABEL[theme ?? "dark"]}
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={toggleDensity}
+                className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2.5 text-left text-[13px] text-text-muted transition-colors hover:bg-surface-2 hover:text-text"
+              >
+                <Rows3 className="h-4 w-4" />
+                {density === "compact" ? "Densidade confortável" : "Densidade compacta"}
               </button>
               <div className="my-0.5 h-px bg-border" />
               <button
@@ -216,6 +230,6 @@ export default function Sidebar({ user, mobileOpen, onClose, collapsed, onToggle
           )}
         </div>
       </aside>
-    </>
+    </div>
   );
 }

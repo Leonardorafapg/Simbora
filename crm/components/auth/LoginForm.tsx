@@ -10,7 +10,7 @@ export default function LoginForm() {
     <form onSubmit={submit} className="w-full flex flex-col gap-4">
       {showSplash && <LoginSplash />}
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="email" className="text-sm text-white/70">
+        <label htmlFor="email" className="text-sm text-text">
           Email
         </label>
         <input
@@ -26,7 +26,7 @@ export default function LoginForm() {
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="password" className="text-sm text-white/70">
+        <label htmlFor="password" className="text-sm text-text">
           Senha
         </label>
         <input

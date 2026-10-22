@@ -91,7 +91,7 @@ export default function InstagramPostForm({ post, initial, submitLabel, onSubmit
             type="button"
             onClick={() => setMediaType(type)}
             className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
-              mediaType === type ? "bg-cyan text-black" : "bg-white/10 text-white/60 hover:text-white"
+              mediaType === type ? "bg-cyan text-black" : "bg-surface-2 text-text-muted hover:text-text"
             }`}
           >
             {INSTAGRAM_MEDIA_TYPE_LABELS[type]}
@@ -102,7 +102,7 @@ export default function InstagramPostForm({ post, initial, submitLabel, onSubmit
       <InstagramMediaPicker mediaType={mediaType} value={mediaUrls} onChange={setMediaUrls} disabled={saving} />
 
       {isStory ? (
-        <p className="text-xs text-white/40">Story não tem legenda no Instagram.</p>
+        <p className="text-xs text-text-faint">Story não tem legenda no Instagram.</p>
       ) : (
         <div>
           <textarea
@@ -111,21 +111,21 @@ export default function InstagramPostForm({ post, initial, submitLabel, onSubmit
             placeholder="Legenda"
             className="glass-input min-h-[120px] w-full rounded-lg px-3 py-2 text-sm outline-none"
           />
-          <p className={`text-right text-[11px] ${caption.length > CAPTION_MAX || hashtags > 30 ? "text-danger" : "text-white/40"}`}>
+          <p className={`text-right text-[11px] ${caption.length > CAPTION_MAX || hashtags > 30 ? "text-danger" : "text-text-faint"}`}>
             {caption.length}/{CAPTION_MAX} · {hashtags}/30 hashtags
           </p>
         </div>
       )}
 
       {!post && (
-        <label className="flex items-center gap-2 text-sm text-white/70">
+        <label className="flex items-center gap-2 text-sm text-text">
           <input type="checkbox" checked={publishNow} onChange={(e) => setPublishNow(e.target.checked)} />
           Publicar agora
         </label>
       )}
       {!publishNow && (
         <div>
-          <p className="mb-1 text-xs text-white/50">Data e horário (Brasília)</p>
+          <p className="mb-1 text-xs text-text-muted">Data e horário (Brasília)</p>
           <input
             type="datetime-local"
             value={when}
@@ -139,7 +139,7 @@ export default function InstagramPostForm({ post, initial, submitLabel, onSubmit
 
       <div className="flex items-center justify-end gap-2">
         {onCancel && (
-          <button type="button" onClick={onCancel} className="rounded-lg px-3 py-2 text-sm text-white/60 hover:text-white">
+          <button type="button" onClick={onCancel} className="rounded-lg px-3 py-2 text-sm text-text-muted hover:text-text">
             Cancelar
           </button>
         )}

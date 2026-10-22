@@ -61,9 +61,9 @@ export default function NewClientDialog({ open, onClose, onCreate, teamMembers }
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6">
-      <div className="glass-modal w-full max-w-md rounded-2xl p-6 max-h-[90vh] overflow-y-auto">
-        <h2 className="text-lg font-semibold text-white mb-4">Novo cliente</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 sm:p-6">
+      <div className="glass-modal w-full max-w-md rounded-2xl p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
+        <h2 className="text-lg font-semibold text-text mb-4">Novo cliente</h2>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
           <Field label="Foto do cliente">
@@ -154,7 +154,7 @@ export default function NewClientDialog({ open, onClose, onCreate, teamMembers }
             <button
               type="button"
               onClick={handleClose}
-              className="rounded-lg px-4 py-2 text-sm text-white/70 hover:text-white"
+              className="rounded-lg px-4 py-2 text-sm text-text hover:text-text"
             >
               Cancelar
             </button>

@@ -40,7 +40,7 @@ export default function ClientDrawer({
         client ? "translate-x-0" : "translate-x-full pointer-events-none"
       }`}
     >
-      <div className="glass-modal h-full w-full rounded-2xl p-6 overflow-y-auto">
+      <div className="glass-modal h-full w-full rounded-2xl p-4 sm:p-6 overflow-y-auto">
         {client && (
           <ClientDetail
             key={client.id}

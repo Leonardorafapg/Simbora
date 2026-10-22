@@ -70,6 +70,8 @@ def run_light_migrations():
         add_column_if_missing(conn, "calendar_entries", "material_files", "material_files TEXT DEFAULT '[]'")
         add_column_if_missing(conn, "calendar_entries", "final_image", "final_image TEXT")
         add_column_if_missing(conn, "calendar_entries", "final_image_story", "final_image_story TEXT")
+        add_column_if_missing(conn, "calendar_entries", "post_type", "post_type VARCHAR(20) DEFAULT 'feed' NOT NULL")
+        add_column_if_missing(conn, "calendar_entries", "final_images", "final_images TEXT DEFAULT '[]'")
         add_column_if_missing(conn, "calendar_entries", "title", "title VARCHAR(200)")
         add_column_if_missing(conn, "calendar_entries", "requester_id", "requester_id INTEGER REFERENCES users(id)")
         add_column_if_missing(conn, "calendar_entries", "assignee_id", "assignee_id INTEGER REFERENCES users(id)")
@@ -98,6 +100,12 @@ def run_light_migrations():
                 ("concluido", "finalizados"),
             ):
                 conn.exec_driver_sql(f"UPDATE calendar_entries SET status = '{new}' WHERE status = '{old}'")
+            conn.commit()
+        # Status intermediário "aprovado_amanda" saiu do fluxo: o cronograma já segue direto para o cliente.
+        if inspector.has_table("calendar_periods"):
+            conn.exec_driver_sql(
+                "UPDATE calendar_periods SET status = 'enviado_aprovacao_cliente' WHERE status = 'aprovado_amanda'"
+            )
             conn.commit()
         add_column_if_missing(conn, "whatsapp_messages", "media_type", "media_type VARCHAR(20)")
         add_column_if_missing(conn, "whatsapp_messages", "media_mimetype", "media_mimetype VARCHAR(100)")

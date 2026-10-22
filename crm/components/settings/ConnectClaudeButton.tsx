@@ -35,30 +35,30 @@ export default function ConnectClaudeButton({ className = "" }: { className?: st
       {open &&
         createPortal(
           <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 sm:p-6"
             onClick={() => setOpen(false)}
           >
             <div
               role="dialog"
               aria-modal="true"
               aria-label="Conectar com o Claude"
-              className="glass-modal w-full max-w-md rounded-2xl p-6"
+              className="glass-modal w-full max-w-md rounded-2xl p-4 sm:p-6"
               onClick={(event) => event.stopPropagation()}
             >
-              <h2 className="text-base font-semibold text-white">Conectar com o Claude</h2>
-              <p className="mt-1 text-sm text-white/60">
+              <h2 className="text-base font-semibold text-text">Conectar com o Claude</h2>
+              <p className="mt-1 text-sm text-text-muted">
                 O Claude vai abrir a tela de login do Simbora. Entre com o seu email e senha: ele só faz o que as suas
                 permissões no CRM permitem.
               </p>
 
-              <ol className="mt-5 space-y-4 text-sm text-white/80">
+              <ol className="mt-5 space-y-4 text-sm text-text">
                 <li>
-                  <p className="font-medium text-white">1. Copie a URL do conector</p>
+                  <p className="font-medium text-text">1. Copie a URL do conector</p>
                   <CopyRow value={MCP_URL} state={copied?.key === "url" ? copied : null} onCopy={() => copy("url", MCP_URL)} />
                 </li>
                 <li>
-                  <p className="font-medium text-white">2. Adicione no Claude</p>
-                  <p className="mt-1 text-white/60">
+                  <p className="font-medium text-text">2. Adicione no Claude</p>
+                  <p className="mt-1 text-text-muted">
                     Em Conectores, clique em <strong>Adicionar conector personalizado</strong>, cole a URL e clique em
                     Conectar.
                   </p>
@@ -66,20 +66,20 @@ export default function ConnectClaudeButton({ className = "" }: { className?: st
                     href={CLAUDE_CONNECTORS_URL}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-white/15 px-3 py-1.5 text-xs text-white hover:border-cyan/50"
+                    className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs text-text hover:border-cyan/50"
                   >
                     Abrir Conectores do Claude
                     <ExternalLink className="h-3.5 w-3.5" />
                   </a>
                 </li>
                 <li>
-                  <p className="font-medium text-white">Usa o Claude Code?</p>
+                  <p className="font-medium text-text">Usa o Claude Code?</p>
                   <CopyRow
                     value={CLAUDE_CODE_COMMAND}
                     state={copied?.key === "command" ? copied : null}
                     onCopy={() => copy("command", CLAUDE_CODE_COMMAND)}
                   />
-                  <p className="mt-1 text-xs text-white/50">
+                  <p className="mt-1 text-xs text-text-muted">
                     Depois rode <code>/mcp</code> no Claude Code e escolha simbora → Authenticate.
                   </p>
                 </li>
@@ -89,7 +89,7 @@ export default function ConnectClaudeButton({ className = "" }: { className?: st
                 <button
                   type="button"
                   onClick={() => setOpen(false)}
-                  className="rounded-lg px-4 py-2 text-sm text-white/70 hover:text-white"
+                  className="rounded-lg px-4 py-2 text-sm text-text hover:text-text"
                 >
                   Fechar
                 </button>
@@ -138,14 +138,14 @@ function CopyRow({
   const failed = state?.ok === false;
   return (
     <div className="mt-1 flex items-center gap-2">
-      <code className="min-w-0 flex-1 select-all truncate rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-xs text-white/80">
+      <code className="min-w-0 flex-1 select-all truncate rounded-lg border border-border bg-black/20 px-3 py-2 text-xs text-text">
         {value}
       </code>
       <button
         type="button"
         onClick={onCopy}
         aria-label="Copiar"
-        className="flex shrink-0 items-center gap-1.5 rounded-lg border border-white/15 px-3 py-2 text-xs text-white hover:border-cyan/50"
+        className="flex shrink-0 items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-xs text-text hover:border-cyan/50"
       >
         {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
         {copied ? "Copiado" : failed ? "Selecione e copie" : "Copiar"}

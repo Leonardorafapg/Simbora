@@ -115,7 +115,7 @@ export default function ClientDetail({
       <button
         type="button"
         onClick={onBack}
-        className="text-sm text-white/60 hover:text-white flex items-center gap-1 mb-6"
+        className="text-sm text-text-muted hover:text-text flex items-center gap-1 mb-6"
       >
         ‹ Voltar
       </button>
@@ -123,7 +123,7 @@ export default function ClientDetail({
       <div className="flex items-center gap-4 mb-8">
         <Avatar name={client.name} photoUrl={client.photo_url} size="lg" />
         <div>
-          <p className="text-lg font-semibold text-white">{client.name}</p>
+          <p className="text-lg font-semibold text-text">{client.name}</p>
           <p className="text-sm text-cyan">
             {client.contact_name || client.email || "—"}
           </p>
@@ -217,7 +217,7 @@ export default function ClientDetail({
                   />
                 </Field>
 
-                <label className="flex items-center gap-2 text-sm text-white/70">
+                <label className="flex items-center gap-2 text-sm text-text">
                   <input
                     type="checkbox"
                     checked={form.is_active ?? true}
@@ -269,7 +269,7 @@ export default function ClientDetail({
                   <button
                     type="button"
                     onClick={cancelEdit}
-                    className="rounded-lg px-4 py-2 text-sm text-white/70 hover:text-white"
+                    className="rounded-lg px-4 py-2 text-sm text-text hover:text-text"
                   >
                     Cancelar
                   </button>
@@ -279,7 +279,7 @@ export default function ClientDetail({
                   <button
                     type="button"
                     onClick={() => setEditing(true)}
-                    className="rounded-lg border border-white/15 px-4 py-2 text-sm text-white hover:border-cyan/50"
+                    className="rounded-lg border border-border px-4 py-2 text-sm text-text hover:border-cyan/50"
                   >
                     Editar
                   </button>
@@ -301,14 +301,14 @@ export default function ClientDetail({
 
         <div className="w-full min-w-0">
           {instagramPermissions.canView && (
-            <div className="mb-4 flex w-fit gap-1 rounded-xl bg-white/5 p-1 text-sm">
+            <div className="mb-4 flex w-fit gap-1 rounded-xl bg-surface-2 p-1 text-sm">
               {(["calendar", "instagram"] as const).map((key) => (
                 <button
                   key={key}
                   type="button"
                   onClick={() => setRightTab(key)}
                   className={`rounded-lg px-4 py-1.5 font-semibold transition ${
-                    rightTab === key ? "bg-white/15 text-white" : "text-white/50 hover:text-white"
+                    rightTab === key ? "bg-white/15 text-text" : "text-text-muted hover:text-text"
                   }`}
                 >
                   {key === "calendar" ? "Calendário" : "Instagram"}
@@ -343,8 +343,8 @@ export default function ClientDetail({
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-xs text-white/40">{label}</p>
-      <p className="text-sm text-white">{value}</p>
+      <p className="text-xs text-text-faint">{label}</p>
+      <p className="text-sm text-text">{value}</p>
     </div>
   );
 }

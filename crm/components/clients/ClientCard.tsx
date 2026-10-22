@@ -21,14 +21,14 @@ export default function ClientCard({ client, social, designer, onClick }: Props)
       <div className="flex items-start justify-between gap-2">
         <Avatar name={client.name} photoUrl={client.photo_url} />
         {!client.is_active && (
-          <span className="text-[10px] rounded-full border border-white/20 px-2 py-0.5 text-white/50">
+          <span className="text-[10px] rounded-full border border-border-hover px-2 py-0.5 text-text-muted">
             Inativo
           </span>
         )}
       </div>
 
       <div className="min-w-0">
-        <p className="font-semibold text-white truncate">{client.name}</p>
+        <p className="font-semibold text-text truncate">{client.name}</p>
         <p className="text-xs text-cyan truncate">{client.contact_name || client.email || "—"}</p>
       </div>
 
@@ -37,7 +37,7 @@ export default function ClientCard({ client, social, designer, onClick }: Props)
         <span
           title={social ? `Social media: ${social.full_name}` : "Sem social media padrão"}
           className={`max-w-full truncate rounded px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide ${
-            social ? tagChipClass("yellow") : "bg-white/10 text-white/40"
+            social ? tagChipClass("yellow") : "bg-surface-2 text-text-faint"
           }`}
         >
           Social: {social?.full_name ?? "—"}
@@ -45,7 +45,7 @@ export default function ClientCard({ client, social, designer, onClick }: Props)
         <span
           title={designer ? `Designer: ${designer.full_name}` : "Sem designer padrão"}
           className={`max-w-full truncate rounded px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide ${
-            designer ? tagChipClass("purple") : "bg-white/10 text-white/40"
+            designer ? tagChipClass("purple") : "bg-surface-2 text-text-faint"
           }`}
         >
           Designer: {designer?.full_name ?? "—"}

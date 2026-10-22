@@ -7,6 +7,9 @@ import { DEADLINE_CLASSES, DEADLINE_LABELS, deadlineInfo, formatDeadline } from 
 import { tagChipClass } from "@/lib/tagColors";
 import { POST_STATUS_CLASSES, formatBrt } from "@/lib/instagram";
 import type { InstagramPost } from "@/types/instagram";
+import { isImageUrl } from "@/lib/artwork";
+import type { TeamMember } from "@/types/team";
+import { getInitials } from "@/lib/format";
 
 const IG_BADGE: Record<InstagramPost["status"], string> = {
   pendente: "IG agendado",
@@ -17,7 +20,7 @@ const IG_BADGE: Record<InstagramPost["status"], string> = {
 
 /** Capa do card: a arte final, senão a referência, senão o primeiro material. */
 function coverOf(entry: CalendarEntry): string | null {
-  return entry.final_image || entry.reference_image || entry.material_files[0] || null;
+  return [entry.final_image, entry.reference_image, ...entry.material_files].find((url) => isImageUrl(url)) ?? null;
 }
 
 /** Quantidade de arquivos anexados à postagem (referência + material + arte final). */
@@ -28,12 +31,14 @@ function attachmentCount(entry: CalendarEntry): number {
 type ContentProps = {
   entry: CalendarEntry;
   client?: Client;
+  requester?: TeamMember;
+  assignee?: TeamMember;
   onSelect?: (entry: CalendarEntry) => void;
   instagramPost?: InstagramPost;
 };
 
 /** Conteúdo do card no estilo Trello: capa em largura total, etiquetas, título e rodapé com ícones. */
-function PostCardContent({ entry, client, onSelect, instagramPost }: ContentProps) {
+function PostCardContent({ entry, client, requester, assignee, onSelect, instagramPost }: ContentProps) {
   const deadline = deadlineInfo(entry);
   const cover = coverOf(entry);
   const attachments = attachmentCount(entry);
@@ -47,11 +52,11 @@ function PostCardContent({ entry, client, onSelect, instagramPost }: ContentProp
           alt=""
           loading="lazy"
           draggable={false}
-          className="max-h-64 w-full object-cover"
+          className="post-cover max-h-64 w-full object-cover"
         />
       )}
 
-      <div className="space-y-2 p-3">
+      <div className="space-y-[var(--gap-card)] p-[var(--pad-card)]">
         {entry.tags.length > 0 && (
           <div className="flex flex-wrap gap-1">
             {entry.tags.map((tag) => (
@@ -85,9 +90,10 @@ function PostCardContent({ entry, client, onSelect, instagramPost }: ContentProp
             Post {formatDate(entry.scheduled_date)}
           </span>
           <span
-            className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${DEADLINE_CLASSES[deadline.state]}`}
+            className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold ${DEADLINE_CLASSES[deadline.state]}`}
             title={`Entregar até ${formatDeadline(deadline.deadline)}`}
           >
+            {deadline.state === "atrasado" && <span className="pulse-dot" aria-hidden="true" />}
             {deadline.state === "atrasado"
               ? `Atrasado ${deadline.daysLate}d`
               : deadline.state === "entregue_atrasado"
@@ -108,6 +114,26 @@ function PostCardContent({ entry, client, onSelect, instagramPost }: ContentProp
           </span>
         )}
         </div>
+          {(requester || assignee) && (
+            <span className="ml-auto flex -space-x-1.5">
+              {[requester, assignee]
+                .filter((p, i, arr): p is TeamMember => !!p && arr.findIndex((q) => q?.id === p.id) === i)
+                .map((person) => (
+                  <span
+                    key={person.id}
+                    title={`${person.id === assignee?.id ? "Responsável" : "Solicitante"}: ${person.full_name}`}
+                    className="flex h-6 w-6 items-center justify-center overflow-hidden rounded-full bg-accent-soft text-[9px] font-bold text-accent ring-2 ring-surface-2"
+                  >
+                    {person.photo_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element -- URL externa sem loader
+                      <img src={person.photo_url} alt={person.full_name} className="h-full w-full object-cover" />
+                    ) : (
+                      getInitials(person.full_name)
+                    )}
+                  </span>
+                ))}
+            </span>
+          )}
       </div>
     </button>
   );
@@ -116,12 +142,14 @@ function PostCardContent({ entry, client, onSelect, instagramPost }: ContentProp
 type Props = {
   entry: CalendarEntry;
   client?: Client;
+  requester?: TeamMember;
+  assignee?: TeamMember;
   canEdit: boolean;
   onSelect: (entry: CalendarEntry) => void;
   instagramPost?: InstagramPost;
 };
 
-export default function PostCard({ entry, client, canEdit, onSelect, instagramPost }: Props) {
+export default function PostCard({ entry, client, requester, assignee, canEdit, onSelect, instagramPost }: Props) {
   // O movimento durante o arraste é do DragOverlay (a coluna tem overflow, que
   // cortaria o card): aqui o original só fica esmaecido no lugar.
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
@@ -133,13 +161,20 @@ export default function PostCard({ entry, client, canEdit, onSelect, instagramPo
   return (
     <div
       ref={setNodeRef}
-      className={`overflow-hidden rounded-xl border border-border bg-surface-2 shadow-[var(--elev-card)] ${isDragging ? "opacity-40" : ""}`}
+      className={`animate-fade-up stagger overflow-hidden rounded-xl border border-border bg-surface-2 shadow-[var(--elev-card)] transition-[border-color,box-shadow] duration-200 hover:border-accent-border hover:shadow-[0_0_20px_color-mix(in_srgb,var(--accent)_18%,transparent)] ${isDragging ? "opacity-40" : ""}`}
     >
       <div
         {...(canEdit ? { ...attributes, ...listeners } : {})}
         className={canEdit ? "cursor-grab active:cursor-grabbing" : ""}
       >
-        <PostCardContent entry={entry} client={client} onSelect={onSelect} instagramPost={instagramPost} />
+        <PostCardContent
+          entry={entry}
+          client={client}
+          requester={requester}
+          assignee={assignee}
+          onSelect={onSelect}
+          instagramPost={instagramPost}
+        />
       </div>
     </div>
   );
@@ -148,7 +183,7 @@ export default function PostCard({ entry, client, canEdit, onSelect, instagramPo
 /** Cartão que acompanha o ponteiro durante o arraste (renderizado no DragOverlay). */
 export function PostCardOverlay({ entry, client }: { entry: CalendarEntry; client?: Client }) {
   return (
-    <div className="cursor-grabbing overflow-hidden rounded-xl border border-accent-border bg-surface-2 shadow-2xl">
+    <div className="rotate-2 cursor-grabbing overflow-hidden rounded-xl border border-accent bg-surface-2 shadow-[0_0_32px_color-mix(in_srgb,var(--accent)_35%,transparent)]">
       <PostCardContent entry={entry} client={client} />
     </div>
   );

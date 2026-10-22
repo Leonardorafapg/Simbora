@@ -13,8 +13,12 @@ interface PresignedUpload {
  * Envia o arquivo direto pro R2 por URL pré-assinada (o arquivo não passa pelo
  * Next nem pelo backend) e devolve a URL pública definitiva.
  */
-async function uploadFile(file: File, noun: "a imagem" | "o arquivo"): Promise<string> {
-  const presignRes = await fetch("/api/uploads/presign", {
+async function uploadFile(
+  file: File,
+  noun: "a imagem" | "o arquivo",
+  presignPath = "/api/uploads/presign",
+): Promise<string> {
+  const presignRes = await fetch(presignPath, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ content_type: file.type, size: file.size }),
@@ -43,6 +47,11 @@ async function uploadFile(file: File, noun: "a imagem" | "o arquivo"): Promise<s
 
 export function uploadImage(file: File): Promise<string> {
   return uploadFile(file, "a imagem");
+}
+
+/** Arte finalizada do post: imagem ou documento (PDF, Word, Excel, PowerPoint, ZIP). */
+export function uploadArtwork(file: File): Promise<string> {
+  return uploadFile(file, "o arquivo", "/api/uploads/presign-artwork");
 }
 
 /** Imagem ou vídeo (MP4/MOV) — usado no agendamento do Instagram. */

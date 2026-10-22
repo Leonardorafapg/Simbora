@@ -151,25 +151,25 @@ export default function WhatsAppChatLayout({ onDisconnected }: Props) {
     <div className="flex flex-1 min-h-0 overflow-hidden">
       {/* No mobile é lista OU conversa, nunca as duas colunas ao mesmo tempo — no desktop (md+) ambas ficam visíveis lado a lado. */}
       <div
-        className={`w-full md:w-80 shrink-0 border-r border-white/10 flex-col min-h-0 ${
+        className={`w-full md:w-80 shrink-0 border-r border-border flex-col min-h-0 ${
           selectedChat ? "hidden md:flex" : "flex"
         }`}
       >
-        <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-white/10">
-          <p className="text-sm font-semibold text-white">Conversas</p>
+        <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-border">
+          <p className="text-sm font-semibold text-text">Conversas</p>
           <button
             type="button"
             onClick={handleDisconnect}
-            className="flex items-center gap-1.5 text-xs text-white/50 hover:text-danger transition-colors"
+            className="flex items-center gap-1.5 text-xs text-text-muted hover:text-danger transition-colors"
           >
             <LogOut className="h-3.5 w-3.5" />
             Desconectar
           </button>
         </div>
 
-        <div className="shrink-0 px-3 py-2 border-b border-white/10">
+        <div className="shrink-0 px-3 py-2 border-b border-border">
           <label className="relative block">
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/40" />
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-text-faint" />
             <input
               type="search"
               value={searchQuery}
@@ -214,7 +214,7 @@ export default function WhatsAppChatLayout({ onDisconnected }: Props) {
           <button
             type="button"
             onClick={() => setSelectedChat(null)}
-            className="shrink-0 flex md:hidden items-center gap-1.5 px-4 py-2 text-xs text-white/60 hover:text-white border-b border-white/10"
+            className="shrink-0 flex md:hidden items-center gap-1.5 px-4 py-2 text-xs text-text-muted hover:text-text border-b border-border"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
             Conversas
@@ -228,7 +228,7 @@ export default function WhatsAppChatLayout({ onDisconnected }: Props) {
           />
         </div>
       ) : (
-        <div className="hidden md:flex flex-1 items-center justify-center text-white/30 flex-col gap-2">
+        <div className="hidden md:flex flex-1 items-center justify-center text-text-faint flex-col gap-2">
           <MessageCircle className="h-10 w-10" />
           <p className="text-sm">Selecione uma conversa para começar</p>
         </div>

@@ -9,6 +9,8 @@ import { useTeamDirectory } from "@/hooks/useTeamDirectory";
 import { MONTH_LABELS, CALENDAR_ENTRY_STATUSES, CALENDAR_ENTRY_STATUS_LABELS } from "@/types/calendar";
 import { deadlineInfo } from "@/lib/deadline";
 import { todayLocalISO } from "@/lib/format";
+import CountUp from "@/components/ui/CountUp";
+import DashboardSkeleton from "./DashboardSkeleton";
 import { BigNumber, DashCard, Delta, Legend } from "./DashCard";
 import { CalendarHeatmap, COR_ACCENT, COR_NEUTRA, Donut, HBars, StackedBars, tom } from "./charts";
 
@@ -140,27 +142,30 @@ export default function PostsDashboard() {
         >
           <ChevronRight size={14} />
         </button>
-        {loading && <span className="text-xs text-text-faint">Carregando...</span>}
+        {loading && <span className="skeleton inline-block h-3 w-20 rounded-md" aria-label="Carregando" />}
         {error && <span className="text-xs text-danger">{error}</span>}
       </div>
 
-      <div className="dash-grid">
+      {loading && entries.length === 0 ? (
+        <DashboardSkeleton />
+      ) : (
+      <div key={month} className="dash-grid">
         <DashCard
-          area="kpi1"
+          area="kpi1" index={0}
           title="Entregues no prazo"
           info="Das postagens do mês que já foram entregues (em aprovação, modificações, aprovadas ou publicadas), quantas chegaram até a quinta-feira da semana anterior à data do post."
         >
           <div className="flex items-center gap-4">
             <Donut fracao={stats.pctNoPrazo} />
             <BigNumber sub="entregas do mês">
-              {stats.noPrazo}
-              <span className="text-[18px] font-normal text-text-faint">/{stats.entregues}</span>
+              <CountUp value={stats.noPrazo} />
+              <span className="text-[18px] font-normal text-text-faint">/<CountUp value={stats.entregues} /></span>
             </BigNumber>
           </div>
         </DashCard>
 
         <DashCard
-          area="kpi2"
+          area="kpi2" index={1}
           title="Entregas atrasadas"
           info="Postagens que passaram do prazo de entrega e ainda estão em produção."
         >
@@ -172,37 +177,39 @@ export default function PostsDashboard() {
               </>
             }
           >
-            {stats.atrasadas}
+            <CountUp value={stats.atrasadas} />
           </BigNumber>
         </DashCard>
 
-        <DashCard area="cal" title="Calendário de postagens" info="Quantidade de postagens por dia de publicação.">
-          <BigNumber sub={<span>{monthLabel}</span>}>{stats.total} postagens</BigNumber>
+        <DashCard area="cal" index={2} title="Calendário de postagens" info="Quantidade de postagens por dia de publicação.">
+          <BigNumber sub={<span>{monthLabel}</span>}>
+            <CountUp value={stats.total} /> postagens
+          </BigNumber>
           <CalendarHeatmap dias={stats.dias} offset={stats.primeiroDia} max={stats.diasMax} hoje={stats.hoje} />
         </DashCard>
 
-        <DashCard area="main" title="Postagens por semana" info="Postagens do mês por faixa de dias, separadas por etapa.">
+        <DashCard area="main" index={3} title="Postagens por semana" info="Postagens do mês por faixa de dias, separadas por etapa.">
           <BigNumber sub="no mês">
-            {stats.total}
+            <CountUp value={stats.total} />
             <Delta value={delta} suffix="vs mês anterior" />
           </BigNumber>
           <Legend items={SERIES.map(({ label, color }) => ({ label, color }))} />
           <StackedBars data={stats.semanas} series={SERIES} ariaLabel="Postagens por semana" />
         </DashCard>
 
-        <DashCard area="dest" title="Por responsável" info="Postagens do mês por responsável (as 6 maiores cargas).">
+        <DashCard area="dest" index={4} title="Por responsável" info="Postagens do mês por responsável (as 6 maiores cargas).">
           <HBars data={stats.porResponsavel} emptyText="Nenhuma postagem neste mês." />
         </DashCard>
 
-        <DashCard area="linha" title="Por cliente" info="Postagens do mês por cliente (os 6 com mais postagens).">
+        <DashCard area="linha" index={5} title="Por cliente" info="Postagens do mês por cliente (os 6 com mais postagens).">
           <HBars data={stats.porCliente} emptyText="Nenhuma postagem neste mês." />
         </DashCard>
 
-        <DashCard area="barras" title="Por etapa" info="Quantas postagens do mês estão em cada etapa da Produção.">
+        <DashCard area="barras" index={6} title="Por etapa" info="Quantas postagens do mês estão em cada etapa da Produção.">
           <HBars data={stats.porStatus} />
         </DashCard>
 
-        <DashCard area="link" title="Produção">
+        <DashCard area="link" index={7} title="Produção">
           <Link
             href="/production"
             className="group flex flex-1 items-center justify-between gap-3 rounded-lg bg-accent-soft px-4 py-3 text-[13px] font-medium text-accent transition-colors hover:bg-accent-soft/70"
@@ -212,6 +219,7 @@ export default function PostsDashboard() {
           </Link>
         </DashCard>
       </div>
+      )}
     </div>
   );
 }

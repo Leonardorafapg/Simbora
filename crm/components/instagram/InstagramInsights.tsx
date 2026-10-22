@@ -21,12 +21,12 @@ const TYPE_LABELS: Record<string, string> = { IMAGE: "Imagem", CAROUSEL: "Carros
 
 function MetricTile({ label, value, approximate }: { label: string; value: string; approximate?: boolean }) {
   return (
-    <div className="rounded-xl bg-white/5 px-3 py-2.5">
+    <div className="rounded-xl bg-surface-2 px-3 py-2.5">
       <p className="text-[11px] text-white/45">{label}</p>
-      <p className="text-lg font-semibold text-white">
+      <p className="text-lg font-semibold text-text">
         {value}
         {approximate && (
-          <span title="Soma de janelas de 30 dias: a mesma pessoa pode ter sido contada mais de uma vez" className="ml-1 cursor-help text-sm text-white/40">
+          <span title="Soma de janelas de 30 dias: a mesma pessoa pode ter sido contada mais de uma vez" className="ml-1 cursor-help text-sm text-text-faint">
             ≈
           </span>
         )}
@@ -121,16 +121,16 @@ export default function InstagramInsights({ clientId }: { clientId: number }) {
             <input type="date" value={customUntil} onChange={(e) => setCustomUntil(e.target.value)} className="glass-input rounded-lg px-3 py-2 text-sm outline-none" aria-label="Até" />
           </>
         )}
-        {loading && <span className="text-xs text-white/50">Carregando...</span>}
+        {loading && <span className="text-xs text-text-muted">Carregando...</span>}
       </div>
       {period === "custom" && range === undefined && (
-        <p className="text-xs text-white/40">Escolha as duas datas (a final não pode ser no futuro).</p>
+        <p className="text-xs text-text-faint">Escolha as duas datas (a final não pode ser no futuro).</p>
       )}
       {error && <p className="text-sm text-danger">{error}</p>}
 
       {account && (
         <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-white/40">Conta</p>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-faint">Conta</p>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-5">
             {ACCOUNT_ORDER.filter((key) => key in account.metrics).map((key) => (
               <MetricTile
@@ -147,10 +147,10 @@ export default function InstagramInsights({ clientId }: { clientId: number }) {
       {posts && (
         <div>
           <div className="mb-2 flex flex-wrap items-center gap-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-white/40">
+            <p className="text-xs font-semibold uppercase tracking-wide text-text-faint">
               Posts do período ({posts.total_posts})
             </p>
-            <span className="text-xs text-white/40">
+            <span className="text-xs text-text-faint">
               {Object.entries(posts.by_type).map(([type, count]) => `${TYPE_LABELS[type] ?? type}: ${count}`).join(" · ")}
             </span>
             <select
@@ -167,7 +167,7 @@ export default function InstagramInsights({ clientId }: { clientId: number }) {
             </select>
           </div>
           {posts.truncated && (
-            <p className="mb-2 text-xs text-white/40">Mostrando os 60 mais recentes; os totais abaixo somam só esses.</p>
+            <p className="mb-2 text-xs text-text-faint">Mostrando os 60 mais recentes; os totais abaixo somam só esses.</p>
           )}
           <div className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
             {(["views", "reach", "likes", "comments", "saved", "shares", "total_interactions"] as const).map((key) => (
@@ -175,11 +175,11 @@ export default function InstagramInsights({ clientId }: { clientId: number }) {
             ))}
           </div>
           {sortedPosts.length === 0 ? (
-            <p className="text-sm text-white/50">Nenhum post no período.</p>
+            <p className="text-sm text-text-muted">Nenhum post no período.</p>
           ) : (
             <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
               {sortedPosts.map((post) => (
-                <div key={post.id} className="flex gap-3 rounded-xl border border-white/10 bg-white/5 p-3">
+                <div key={post.id} className="flex gap-3 rounded-xl border border-border bg-surface-2 p-3">
                   {post.thumbnail_url ? (
                     // eslint-disable-next-line @next/next/no-img-element -- URL externa (CDN da Meta)
                     <img src={post.thumbnail_url} alt="" className="h-16 w-16 shrink-0 rounded-lg object-cover" />
@@ -187,7 +187,7 @@ export default function InstagramInsights({ clientId }: { clientId: number }) {
                     <div className="h-16 w-16 shrink-0 rounded-lg bg-black/30" />
                   )}
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5 text-[11px] text-white/50">
+                    <div className="flex items-center gap-1.5 text-[11px] text-text-muted">
                       <span>{TYPE_LABELS[post.media_type] ?? post.media_type}</span>
                       <span>· {formatBrt(post.posted_at)}</span>
                       {post.permalink && (
@@ -196,15 +196,15 @@ export default function InstagramInsights({ clientId }: { clientId: number }) {
                         </a>
                       )}
                     </div>
-                    {post.caption && <p className="mt-0.5 line-clamp-1 text-xs text-white/70">{post.caption}</p>}
-                    <p className="mt-1 text-xs text-white/60">
+                    {post.caption && <p className="mt-0.5 line-clamp-1 text-xs text-text">{post.caption}</p>}
+                    <p className="mt-1 text-xs text-text-muted">
                       {(["views", "reach", "likes", "comments", "saved", "shares"] as const)
                         .filter((key) => post.metrics[key] !== undefined)
                         .map((key) => `${METRIC_LABELS[key]}: ${formatMetric(key, post.metrics[key])}`)
                         .join(" · ")}
                     </p>
                     {!post.insights_available && (
-                      <p className="mt-0.5 text-[10px] text-white/35">Métricas detalhadas indisponíveis para esse post.</p>
+                      <p className="mt-0.5 text-[10px] text-text-faint">Métricas detalhadas indisponíveis para esse post.</p>
                     )}
                   </div>
                 </div>

@@ -8,7 +8,8 @@ import {
   DragOverlay,
   type DragEndEvent,
   type DragStartEvent,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
@@ -20,6 +21,9 @@ import { useInstagramByEntries } from "@/hooks/useInstagram";
 import type { CalendarEntry, CalendarEntryCreateInput, CalendarEntryStatus } from "@/types/calendar";
 import { CALENDAR_ENTRY_STATUSES } from "@/types/calendar";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import PageHeader from "@/components/ui/PageHeader";
+import Button from "@/components/ui/Button";
+import { TopProgress } from "@/components/ui/Skeleton";
 import MultiSelect from "@/components/ui/MultiSelect";
 import CalendarEntryDialog from "@/components/calendar/CalendarEntryDialog";
 import KanbanColumn from "./KanbanColumn";
@@ -126,7 +130,11 @@ export default function ProductionBoard({ canEdit, canCreate, canDelete, canView
 
   // Distância mínima antes de considerar "arrastando" — sem isso, todo
   // clique no card (pra abrir o drawer) seria capturado como um drag.
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
+  // No celular o arrasto só começa após segurar o card (250ms), pra não brigar com a rolagem.
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 8 } }),
+  );
 
   function handleDragStart(event: DragStartEvent) {
     setActiveEntry((event.active.data.current?.entry as CalendarEntry | undefined) ?? null);
@@ -176,24 +184,25 @@ export default function ProductionBoard({ canEdit, canCreate, canDelete, canView
   }
 
   return (
-    <div className="relative flex min-h-0 flex-1 flex-col gap-4 overflow-hidden p-6 sm:p-8">
-      <div className="flex shrink-0 items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold text-white">Produção</h1>
-        {canCreate && (
-          <button
-            type="button"
-            onClick={() => setCreating(true)}
-            disabled={clients.length === 0}
-            className="flex items-center gap-2 rounded-lg bg-cyan px-4 py-2 text-sm font-semibold text-black transition hover:bg-cyan-dark disabled:opacity-60"
-          >
-            <Plus className="h-4 w-4" />
-            Nova demanda
-          </button>
-        )}
-      </div>
+    <div className="relative flex min-h-0 flex-1 flex-col gap-4 overflow-hidden p-4 sm:p-8">
+      <PageHeader
+        className="mb-0"
+        title="Produção"
+        description="Acompanhe cada postagem do briefing à publicação."
+        actions={
+          <>
+            {canCreate && (
+                      <Button onClick={() => setCreating(true)} disabled={clients.length === 0}>
+                <Plus className="h-4 w-4" />
+                Nova demanda
+              </Button>
+                    )}
+          </>
+        }
+      />
 
       <div className="flex shrink-0 items-center gap-2 flex-wrap">
-        <div className="relative w-full max-w-sm">
+        <div className="relative w-full sm:max-w-sm">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-faint" />
           <input
             type="search"
@@ -326,7 +335,7 @@ export default function ProductionBoard({ canEdit, canCreate, canDelete, canView
         </div>
       </div>
 
-      {loading && <p className="text-sm text-white/50">Carregando...</p>}
+      {loading && <TopProgress />}
       {error && <p className="text-sm text-danger">{error}</p>}
       {actionError && <p className="text-sm text-danger">{actionError}</p>}
 
@@ -338,13 +347,14 @@ export default function ProductionBoard({ canEdit, canCreate, canDelete, canView
       >
         {/* Colunas largas (380px) de largura fixa: rola pro lado quando não cabem, nunca pra baixo —
             a altura é a da tela e cada coluna rola por dentro. */}
-        <div className="flex min-h-0 flex-1 gap-4 overflow-x-auto overflow-y-hidden pb-2">
+        <div className="flex min-h-0 flex-1 snap-x snap-mandatory gap-3 overflow-x-auto overflow-y-hidden pb-2 sm:snap-none sm:gap-4">
           {CALENDAR_ENTRY_STATUSES.map((status) => (
-            <div key={status} className="h-full w-[380px] shrink-0">
+            <div key={status} className="h-full w-[calc(100vw-3.5rem)] max-w-[380px] shrink-0 snap-start sm:w-[380px]">
               <KanbanColumn
                 status={status}
                 entries={visibleEntries.filter((e) => e.status === status)}
                 clients={clients}
+                members={members}
                 canEdit={canEdit}
                 onSelect={setSelected}
                 instagramByEntry={instagramByEntry}

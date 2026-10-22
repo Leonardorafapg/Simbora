@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { SessionUser } from "@/types/auth";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
+import CommandPalette from "./CommandPalette";
 
 type Props = {
   user: SessionUser | null;
@@ -17,12 +18,13 @@ type Props = {
  */
 export default function AppShell({ user, children }: Props) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const [collapsed, setCollapsed] = useState(false);
+  // Padrão: recolhida. Só abre se a pessoa tiver escolhido expandir ("0" salvo no navegador).
+  const [collapsed, setCollapsed] = useState(true);
 
   // Lê a preferência só depois de montar, para não divergir do HTML do servidor.
   useEffect(() => {
     try {
-      if (localStorage.getItem("sidebar-collapsed") === "1") setCollapsed(true);
+      if (localStorage.getItem("sidebar-collapsed") === "0") setCollapsed(false);
     } catch {}
   }, []);
 
@@ -49,6 +51,7 @@ export default function AppShell({ user, children }: Props) {
         <Topbar user={user} onMenuClick={() => setMobileNavOpen(true)} />
         <main className="flex-1 relative min-w-0 min-h-0 overflow-auto flex flex-col">{children}</main>
       </div>
+      <CommandPalette />
     </div>
   );
 }

@@ -55,13 +55,13 @@ export default function AprovacaoPage({ params }: { params: Promise<{ token: str
 
   const monthLabel = MONTH_LABELS[data.month - 1] ?? String(data.month);
   const awaitingDecision = data.status === "enviado_aprovacao_cliente";
-  const alreadyDecided = data.status === "finalizado" || data.status === "em_andamento";
+  const alreadyDecided = data.status === "finalizado" || data.status === "em_andamento" || data.status === "reprovado";
 
   return (
-    <div className="min-h-screen bg-dark flex items-center justify-center p-6">
-      <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-white/5 p-8 text-white">
+    <div className="min-h-screen bg-dark flex items-center justify-center p-4 sm:p-6">
+      <div className="w-full max-w-lg rounded-2xl border border-border bg-surface-2 p-5 sm:p-8 text-text">
         <h1 className="text-xl font-bricolage font-semibold">Aprovação de calendário</h1>
-        <p className="mt-1 text-white/70">
+        <p className="mt-1 text-text">
           {data.client_name} — {monthLabel}/{data.year}
         </p>
 
@@ -70,7 +70,7 @@ export default function AprovacaoPage({ params }: { params: Promise<{ token: str
             href={data.pdf_url}
             target="_blank"
             rel="noreferrer"
-            className="mt-4 inline-block rounded-lg border border-white/15 px-4 py-2 text-sm hover:bg-white/10"
+            className="mt-4 inline-block rounded-lg border border-border px-4 py-2 text-sm hover:bg-surface-2"
           >
             Ver PDF do calendário
           </a>
@@ -103,7 +103,7 @@ export default function AprovacaoPage({ params }: { params: Promise<{ token: str
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
                   placeholder="O que precisa ajustar?"
-                  className="w-full rounded-lg bg-white/10 p-3 text-sm outline-none"
+                  className="w-full rounded-lg bg-surface-2 p-3 text-sm outline-none"
                   rows={3}
                 />
                 <div className="flex gap-3">
@@ -117,7 +117,7 @@ export default function AprovacaoPage({ params }: { params: Promise<{ token: str
                   <button
                     disabled={submitting}
                     onClick={() => setShowReject(false)}
-                    className="rounded-lg border border-white/15 px-4 py-2 text-sm"
+                    className="rounded-lg border border-border px-4 py-2 text-sm"
                   >
                     Cancelar
                   </button>
@@ -126,7 +126,7 @@ export default function AprovacaoPage({ params }: { params: Promise<{ token: str
             )}
           </div>
         ) : (
-          <p className="mt-6 rounded-lg bg-white/10 px-4 py-3 text-sm">
+          <p className="mt-6 rounded-lg bg-surface-2 px-4 py-3 text-sm">
             {alreadyDecided
               ? `Status atual: ${CALENDAR_PERIOD_STATUS_LABELS[data.status]}.`
               : "Este calendário ainda não está disponível para aprovação."}
@@ -139,7 +139,7 @@ export default function AprovacaoPage({ params }: { params: Promise<{ token: str
 
 function CenteredMessage({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-dark flex items-center justify-center p-6 text-white/70">
+    <div className="min-h-screen bg-dark flex items-center justify-center p-4 sm:p-6 text-text">
       {children}
     </div>
   );

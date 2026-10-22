@@ -18,9 +18,11 @@ type Props = {
   monthLabel: string;
   entries: CalendarEntry[];
   onClose: () => void;
+  /** Visão reduzida (ex.: tela de aprovações): sem logo/título e com tabela mais densa. */
+  compact?: boolean;
 };
 
-export default function CalendarReport({ clientName, monthLabel, entries, onClose }: Props) {
+export default function CalendarReport({ clientName, monthLabel, entries, onClose, compact = false }: Props) {
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
 
@@ -39,21 +41,26 @@ export default function CalendarReport({ clientName, monthLabel, entries, onClos
   }
 
   return (
-    <div data-print-area className="glass-card rounded-2xl p-5 space-y-4">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <button
-          type="button"
-          onClick={onClose}
-          className="text-sm text-white/60 hover:text-white flex items-center gap-1"
-        >
-          <ArrowLeft className="h-4 w-4" /> Voltar ao calendário
-        </button>
+    <div
+      data-print-area
+      className={compact ? "space-y-3 rounded-xl border border-border p-3" : "glass-card rounded-2xl p-5 space-y-4"}
+    >
+      <div className={`flex items-center gap-3 flex-wrap ${compact ? "justify-end" : "justify-between"}`}>
+        {!compact && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-sm text-text-muted hover:text-text flex items-center gap-1"
+          >
+            <ArrowLeft className="h-4 w-4" /> Voltar ao calendário
+          </button>
+        )}
 
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => window.print()}
-            className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-white hover:border-white/20 flex items-center gap-1.5"
+            className="rounded-lg border border-border bg-surface-2 px-3 py-2 text-xs font-semibold text-text hover:border-border-hover flex items-center gap-1.5"
           >
             <Printer className="h-3.5 w-3.5" /> Imprimir
           </button>
@@ -70,37 +77,39 @@ export default function CalendarReport({ clientName, monthLabel, entries, onClos
 
       {exportError && <p className="text-sm text-danger">{exportError}</p>}
 
-      <div className="flex flex-col items-center text-center gap-3">
-        {/* eslint-disable-next-line @next/next/no-img-element -- asset estático simples, sem necessidade de otimização */}
-        <img src="/logo.png" alt="Simbora" className="h-10 w-auto" />
-        <div>
-          <h3 className="font-semibold text-white">Cronograma de Postagem</h3>
-          <p className="text-xs uppercase tracking-wider text-white/40 mt-0.5">
-            {clientName}, {monthLabel}
-          </p>
+      {!compact && (
+        <div className="flex flex-col items-center text-center gap-3">
+          {/* eslint-disable-next-line @next/next/no-img-element -- asset estático simples, sem necessidade de otimização */}
+          <img src="/logo.png" alt="Simbora" className="h-10 w-auto" />
+          <div>
+            <h3 className="font-semibold text-text">Cronograma de Postagem</h3>
+            <p className="text-xs uppercase tracking-wider text-text-faint mt-0.5">
+              {clientName}, {monthLabel}
+            </p>
+          </div>
         </div>
-      </div>
+      )}
 
       {ordenados.length === 0 ? (
-        <p className="text-sm text-white/50">Nenhuma postagem planejada neste mês.</p>
+        <p className="text-sm text-text-muted">Nenhuma postagem planejada neste mês.</p>
       ) : (
-        <div className="rounded-xl border border-white/10 overflow-hidden overflow-x-auto">
-          <table className="w-full text-sm">
+        <div className="rounded-xl border border-border overflow-hidden overflow-x-auto">
+          <table className={`w-full ${compact ? "text-xs" : "text-sm"}`}>
             <thead>
-              <tr className="bg-white/5 text-left text-[11px] uppercase tracking-wider text-white/40">
-                <th className="px-3 py-2 font-medium w-[160px]">Data</th>
-                <th className="px-3 py-2 font-medium">Título</th>
-                <th className="px-3 py-2 font-medium">Descrição</th>
+              <tr className="bg-surface-2 text-left text-[11px] uppercase tracking-wider text-text-faint">
+                <th className={`font-medium w-[160px] ${compact ? "px-2.5 py-1.5" : "px-3 py-2"}`}>Data</th>
+                <th className={`font-medium ${compact ? "px-2.5 py-1.5" : "px-3 py-2"}`}>Título</th>
+                <th className={`font-medium ${compact ? "px-2.5 py-1.5" : "px-3 py-2"}`}>Descrição</th>
               </tr>
             </thead>
             <tbody>
               {ordenados.map((entry) => (
-                <tr key={entry.id} className="border-t border-white/5">
-                  <td className="px-3 py-2 align-top text-white/70 whitespace-nowrap">
+                <tr key={entry.id} className="border-t border-border">
+                  <td className={`align-top text-text whitespace-nowrap ${compact ? "px-2.5 py-1.5" : "px-3 py-2"}`}>
                     {formatDateCell(entry.scheduled_date)}
                   </td>
-                  <td className="px-3 py-2 align-top text-white">{entry.title}</td>
-                  <td className="px-3 py-2 align-top text-white/70">{entry.theme}</td>
+                  <td className={`align-top text-text ${compact ? "px-2.5 py-1.5" : "px-3 py-2"}`}>{entry.title}</td>
+                  <td className={`align-top text-text ${compact ? "px-2.5 py-1.5" : "px-3 py-2"}`}>{entry.theme}</td>
                 </tr>
               ))}
             </tbody>

@@ -29,6 +29,19 @@ DOCUMENT_EXTENSIONS = {
     "application/pdf": "pdf",
 }
 
+# Documentos aceitos como arte finalizada do post (além de imagem) — upload via
+# /uploads/presign-artwork. Separado de DOCUMENT_EXTENSIONS, que é só o PDF do calendário.
+ARTWORK_DOCUMENT_EXTENSIONS = {
+    "application/pdf": "pdf",
+    "application/msword": "doc",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
+    "application/vnd.ms-excel": "xls",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "xlsx",
+    "application/vnd.ms-powerpoint": "ppt",
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation": "pptx",
+    "application/zip": "zip",
+}
+
 _client = None
 
 
@@ -67,7 +80,7 @@ def get_client():
 
 def new_object_key(content_type: str, folder: str | None = None, subdir: str = "") -> str:
     now = datetime.now(timezone.utc)
-    ext = IMAGE_EXTENSIONS.get(content_type) or VIDEO_EXTENSIONS.get(content_type) or DOCUMENT_EXTENSIONS[content_type]
+    ext = IMAGE_EXTENSIONS.get(content_type) or VIDEO_EXTENSIONS.get(content_type) or DOCUMENT_EXTENSIONS.get(content_type) or ARTWORK_DOCUMENT_EXTENSIONS[content_type]
     prefix = "/".join(p for p in (settings.R2_KEY_PREFIX.strip("/"), folder) if p)
     subdir = subdir.strip("/")
     name = f"{subdir}/{now:%Y/%m}/{uuid.uuid4().hex}.{ext}" if subdir else f"{now:%Y/%m}/{uuid.uuid4().hex}.{ext}"

@@ -1,9 +1,11 @@
 # backend/app/schemas/calendar_entry.py
 from datetime import date, datetime
+from typing import Literal
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 from app.schemas.tag import TagOut
+from app.services.calendar_media import MAX_CAROUSEL_SLIDES
 
 # Quadros do fluxo de produção, na ordem do kanban.
 CALENDAR_STATUSES = ["producao", "andamento", "modificacoes", "checagem_aprovacao", "finalizados", "publicados"]
@@ -50,6 +52,8 @@ class CalendarEntryCreate(BaseModel):
     material_files: list[str] = []
     final_image: str | None = None
     final_image_story: str | None = None
+    post_type: Literal["feed", "carousel"] = "feed"
+    final_images: list[str] = Field(default_factory=list, max_length=MAX_CAROUSEL_SLIDES)
     caption: str | None = None
     material_notes: str | None = None
     status: str = "producao"
@@ -86,6 +90,8 @@ class CalendarEntryUpdate(BaseModel):
     material_files: list[str] | None = None
     final_image: str | None = None
     final_image_story: str | None = None
+    post_type: Literal["feed", "carousel"] | None = None
+    final_images: list[str] | None = Field(default=None, max_length=MAX_CAROUSEL_SLIDES)
     caption: str | None = None
     material_notes: str | None = None
     status: str | None = None
@@ -123,6 +129,8 @@ class CalendarEntryOut(BaseModel):
     material_files: list[str]
     final_image: str | None
     final_image_story: str | None
+    post_type: str
+    final_images: list[str]
     caption: str | None
     material_notes: str | None
     status: str

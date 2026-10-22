@@ -62,6 +62,24 @@
         "set BACKEND_URL=http://127.0.0.1:8020&& cd /d C:\\Users\\Leonardo\\Desktop\\Simbora-approval-flow\\crm && npm run dev -- -p 3021"
       ],
       "port": 3021
+    },
+    {
+      "name": "backend-dev",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": [
+        "/c",
+        "cd backend && python -m uvicorn app.main:app --port 8031"
+      ],
+      "port": 8031
+    },
+    {
+      "name": "crm-dev",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": [
+        "/c",
+        "set BACKEND_URL=http://127.0.0.1:8031&& npm --prefix crm run dev -- -p 3031"
+      ],
+      "port": 3031
     }
   ]
 }

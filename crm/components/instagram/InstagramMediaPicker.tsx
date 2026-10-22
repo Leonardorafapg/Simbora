@@ -75,33 +75,33 @@ export default function InstagramMediaPicker({ mediaType, value, onChange, disab
       {value.length > 0 && (
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
           {value.map((url, index) => (
-            <div key={`${url}-${index}`} className="group relative aspect-square overflow-hidden rounded-lg border border-white/10 bg-black/30">
+            <div key={`${url}-${index}`} className="group relative aspect-square overflow-hidden rounded-lg border border-border bg-black/30">
               {isVideoUrl(url) ? (
                 <video src={url} className="h-full w-full object-cover" muted playsInline preload="metadata" />
               ) : (
                 // eslint-disable-next-line @next/next/no-img-element -- URL externa (R2), sem loader configurado
                 <img src={url} alt={`Mídia ${index + 1}`} className="h-full w-full object-cover" />
               )}
-              {isVideoUrl(url) && <Film className="absolute left-1 top-1 h-3.5 w-3.5 text-white drop-shadow" />}
+              {isVideoUrl(url) && <Film className="absolute left-1 top-1 h-3.5 w-3.5 text-text drop-shadow" />}
               {value.length > 1 && (
-                <span className="absolute bottom-1 left-1 rounded bg-black/70 px-1 text-[10px] text-white">{index + 1}</span>
+                <span className="absolute bottom-1 left-1 rounded bg-black/70 px-1 text-[10px] text-text">{index + 1}</span>
               )}
               {!disabled && (
                 <div className="absolute inset-x-0 top-0 flex justify-end gap-0.5 p-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
                   {index > 0 && (
-                    <button type="button" onClick={() => move(index, -1)} className="rounded bg-black/70 p-0.5 text-white" aria-label="Mover para antes">
+                    <button type="button" onClick={() => move(index, -1)} className="rounded bg-black/70 p-0.5 text-text" aria-label="Mover para antes">
                       <ChevronLeft className="h-3.5 w-3.5" />
                     </button>
                   )}
                   {index < value.length - 1 && (
-                    <button type="button" onClick={() => move(index, 1)} className="rounded bg-black/70 p-0.5 text-white" aria-label="Mover para depois">
+                    <button type="button" onClick={() => move(index, 1)} className="rounded bg-black/70 p-0.5 text-text" aria-label="Mover para depois">
                       <ChevronRight className="h-3.5 w-3.5" />
                     </button>
                   )}
                   <button
                     type="button"
                     onClick={() => onChange(value.filter((_, i) => i !== index))}
-                    className="rounded bg-black/70 p-0.5 text-white hover:text-danger"
+                    className="rounded bg-black/70 p-0.5 text-text hover:text-danger"
                     aria-label="Remover"
                   >
                     <X className="h-3.5 w-3.5" />
@@ -118,7 +118,7 @@ export default function InstagramMediaPicker({ mediaType, value, onChange, disab
           type="button"
           disabled={uploading}
           onClick={() => inputRef.current?.click()}
-          className="w-full rounded-lg border border-dashed border-white/15 px-3 py-3 text-center text-xs text-white/50 transition hover:border-white/30 disabled:cursor-wait disabled:text-white/30"
+          className="w-full rounded-lg border border-dashed border-border px-3 py-3 text-center text-xs text-text-muted transition hover:border-border-hover disabled:cursor-wait disabled:text-text-faint"
         >
           {uploading ? "Enviando..." : "Clique para adicionar mídia"}
         </button>
@@ -131,7 +131,7 @@ export default function InstagramMediaPicker({ mediaType, value, onChange, disab
         className="hidden"
         onChange={(e) => handleFiles(e.target.files)}
       />
-      <p className="text-[11px] text-white/40">{HINT[mediaType]}</p>
+      <p className="text-[11px] text-text-faint">{HINT[mediaType]}</p>
       {error && <p className="text-xs text-danger">{error}</p>}
     </div>
   );

@@ -10,23 +10,16 @@ type Props = {
 
 /**
  * Status do cronograma do mês inteiro (cliente + mês), não de uma postagem
- * isolada. "Finalizado" trava criação/edição/remoção de todas as entradas
- * daquele mês no backend. O seletor permite ir pra qualquer um dos três
- * estados livremente (inclusive voltar pra "Em andamento" se finalizar foi
- * sem querer) — não é um fluxo travado em uma única direção.
+ * isolada. É informativo: não bloqueia criar, editar ou remover postagens. O
+ * seletor permite ir pra qualquer status livremente.
  */
 export default function CalendarPeriodControl({ status, canManage, saving, onChange }: Props) {
-  const isFinalized = status === "finalizado";
-
   return (
     <div className="glass-card rounded-2xl px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
       <div className="flex items-center gap-2">
         <span className={`rounded-full px-3 py-1 text-xs font-semibold ${CALENDAR_PERIOD_STATUS_COLORS[status]}`}>
           {CALENDAR_PERIOD_STATUS_LABELS[status]}
         </span>
-        {isFinalized && (
-          <span className="text-xs text-white/40">Cronograma travado — mude o status para editar de novo.</span>
-        )}
       </div>
 
       {canManage && (

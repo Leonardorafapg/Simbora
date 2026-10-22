@@ -27,7 +27,7 @@ function MessageMedia({ chat, message }: { chat: WhatsAppChat; message: WhatsApp
             className="absolute top-1.5 right-1.5 h-7 w-7 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
             title="Baixar imagem"
           >
-            <Download className="h-3.5 w-3.5 text-white" />
+            <Download className="h-3.5 w-3.5 text-text" />
           </a>
         </div>
       );
@@ -40,7 +40,7 @@ function MessageMedia({ chat, message }: { chat: WhatsAppChat; message: WhatsApp
             className="absolute top-1.5 right-1.5 h-7 w-7 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
             title="Baixar vídeo"
           >
-            <Download className="h-3.5 w-3.5 text-white" />
+            <Download className="h-3.5 w-3.5 text-text" />
           </a>
         </div>
       );
@@ -54,7 +54,7 @@ function MessageMedia({ chat, message }: { chat: WhatsAppChat; message: WhatsApp
         >
           <FileText className="h-5 w-5 shrink-0 text-cyan" />
           <span className="text-sm truncate flex-1">{message.text || "Documento"}</span>
-          <Download className="h-4 w-4 shrink-0 text-white/50" />
+          <Download className="h-4 w-4 shrink-0 text-text-muted" />
         </a>
       );
     default:
@@ -159,14 +159,14 @@ export default function WhatsAppChatWindow({ chat, messages, loading, typingPres
 
   return (
     <div className="flex flex-col flex-1 min-w-0 min-h-0">
-      <div className="shrink-0 flex items-center gap-3 px-4 py-3 border-b border-white/10">
+      <div className="shrink-0 flex items-center gap-3 px-4 py-3 border-b border-border">
         <Avatar name={chat.name ?? chat.remote_jid} photoUrl={chat.profile_pic_url} size="sm" />
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium text-white truncate">{chat.name ?? chat.remote_jid}</p>
+          <p className="text-sm font-medium text-text truncate">{chat.name ?? chat.remote_jid}</p>
           {typingPresence && TYPING_PRESENCE_LABELS[typingPresence] ? (
             <p className="text-xs text-cyan">{TYPING_PRESENCE_LABELS[typingPresence]}</p>
           ) : (
-            <p className="text-xs text-white/40 truncate" title={chat.group_description ?? undefined}>
+            <p className="text-xs text-text-faint truncate" title={chat.group_description ?? undefined}>
               {[
                 chat.is_group ? (chat.group_size ? `Grupo · ${chat.group_size} participantes` : "Grupo") : chat.phone,
                 chat.client_name && `Cliente: ${chat.client_name}${chat.client_linked ? "" : " (pelo nome)"}`,
@@ -191,27 +191,27 @@ export default function WhatsAppChatWindow({ chat, messages, loading, typingPres
             {Array.from({ length: 4 }).map((_, i) => (
               <div
                 key={i}
-                className={`h-10 rounded-2xl bg-white/5 animate-pulse ${i % 2 === 0 ? "w-2/3 self-start" : "w-1/2 self-end"}`}
+                className={`h-10 rounded-2xl bg-surface-2 animate-pulse ${i % 2 === 0 ? "w-2/3 self-start" : "w-1/2 self-end"}`}
               />
             ))}
           </div>
         )}
 
         {!loading && messages.length === 0 && (
-          <p className="text-sm text-white/40 text-center mt-8">Nenhuma mensagem ainda.</p>
+          <p className="text-sm text-text-faint text-center mt-8">Nenhuma mensagem ainda.</p>
         )}
 
         {!loading &&
           groupByDay(messages).map((row, index) =>
             row.type === "day" ? (
-              <div key={`day-${index}`} className="self-center my-2 px-3 py-1 rounded-full bg-white/5 text-xs text-white/50">
+              <div key={`day-${index}`} className="self-center my-2 px-3 py-1 rounded-full bg-surface-2 text-xs text-text-muted">
                 {row.label}
               </div>
             ) : (
               <div
                 key={row.message.id ?? index}
                 className={`max-w-[70%] rounded-2xl px-3 py-2 text-sm ${
-                  row.message.from_me ? "self-end bg-cyan/20 text-white" : "self-start bg-white/5 text-white"
+                  row.message.from_me ? "self-end bg-cyan/20 text-text" : "self-start bg-surface-2 text-text"
                 }`}
               >
                 {chat.is_group && !row.message.from_me && row.message.sender_name && (
@@ -227,7 +227,7 @@ export default function WhatsAppChatWindow({ chat, messages, loading, typingPres
                 {row.message.media_type === "image" || row.message.media_type === "video" ? (
                   row.message.text && <p className="mt-1">{row.message.text}</p>
                 ) : row.message.media_type === "document" ? null : (
-                  row.message.text ?? <span className="italic text-white/40">Mensagem sem texto</span>
+                  row.message.text ?? <span className="italic text-text-faint">Mensagem sem texto</span>
                 )}
               </div>
             ),
@@ -236,7 +236,7 @@ export default function WhatsAppChatWindow({ chat, messages, loading, typingPres
         <div ref={bottomRef} />
       </div>
 
-      <div className="shrink-0 p-3 border-t border-white/10">
+      <div className="shrink-0 p-3 border-t border-border">
         {error && <p className="text-xs text-danger mb-2">{error}</p>}
         <div className="flex items-center gap-2">
           <input

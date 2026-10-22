@@ -94,7 +94,7 @@ export default function TeamMemberDetail({
       <button
         type="button"
         onClick={onBack}
-        className="text-sm text-white/60 hover:text-white flex items-center gap-1 mb-6"
+        className="text-sm text-text-muted hover:text-text flex items-center gap-1 mb-6"
       >
         ‹ Voltar
       </button>
@@ -102,7 +102,7 @@ export default function TeamMemberDetail({
       <div className="flex items-center gap-4 mb-8">
         <Avatar name={member.full_name} photoUrl={member.photo_url} size="lg" />
         <div>
-          <p className="text-lg font-semibold text-white">{member.full_name}</p>
+          <p className="text-lg font-semibold text-text">{member.full_name}</p>
           <p className="text-sm text-cyan">{member.cargo}</p>
         </div>
       </div>
@@ -159,7 +159,7 @@ export default function TeamMemberDetail({
                   />
                 </Field>
 
-                <label className="flex items-center gap-2 text-sm text-white/70">
+                <label className="flex items-center gap-2 text-sm text-text">
                   <input
                     type="checkbox"
                     checked={form.is_admin ?? false}
@@ -168,7 +168,7 @@ export default function TeamMemberDetail({
                   Acesso de administrador
                 </label>
 
-                <label className="flex items-center gap-2 text-sm text-white/70">
+                <label className="flex items-center gap-2 text-sm text-text">
                   <input
                     type="checkbox"
                     checked={form.is_active ?? true}
@@ -191,8 +191,8 @@ export default function TeamMemberDetail({
           {editing && (
             <div className="glass-card w-full max-w-xs rounded-2xl p-5 space-y-4">
               <div>
-                <p className="text-sm font-semibold text-white">Permissões</p>
-                <p className="text-xs text-white/40 mt-1">
+                <p className="text-sm font-semibold text-text">Permissões</p>
+                <p className="text-xs text-text-faint mt-1">
                   {form.is_admin
                     ? "Administrador tem acesso total — as permissões abaixo não se aplicam."
                     : "Conceda acesso pontual a cada recurso."}
@@ -202,7 +202,7 @@ export default function TeamMemberDetail({
               <div className="space-y-3">
                 {PERMISSIONS.map((permission) => (
                   <div key={permission.key} className="flex items-center justify-between gap-3">
-                    <span className="text-sm text-white/70">{permission.label}</span>
+                    <span className="text-sm text-text">{permission.label}</span>
                     <Switch
                       checked={!!form.is_admin || (form.permissions ?? []).includes(permission.key)}
                       disabled={!!form.is_admin}
@@ -219,8 +219,8 @@ export default function TeamMemberDetail({
 
         {isSelf && !editing && (
           <div className="glass-card w-full max-w-md rounded-2xl p-5">
-            <p className="text-sm font-semibold text-white">Conexão com IA</p>
-            <p className="mt-1 mb-4 text-xs text-white/50">
+            <p className="text-sm font-semibold text-text">Conexão com IA</p>
+            <p className="mt-1 mb-4 text-xs text-text-muted">
               Use o Claude para trabalhar no CRM com as suas permissões. Você entra com o seu login e pode desconectar
               quando quiser em Configurações.
             </p>
@@ -245,7 +245,7 @@ export default function TeamMemberDetail({
                 <button
                   type="button"
                   onClick={cancelEdit}
-                  className="rounded-lg px-4 py-2 text-sm text-white/70 hover:text-white"
+                  className="rounded-lg px-4 py-2 text-sm text-text hover:text-text"
                 >
                   Cancelar
                 </button>
@@ -254,7 +254,7 @@ export default function TeamMemberDetail({
               <button
                 type="button"
                 onClick={() => setEditing(true)}
-                className="rounded-lg border border-white/15 px-4 py-2 text-sm text-white hover:border-cyan/50"
+                className="rounded-lg border border-border px-4 py-2 text-sm text-text hover:border-cyan/50"
               >
                 Editar
               </button>
@@ -277,8 +277,8 @@ export default function TeamMemberDetail({
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-xs text-white/40">{label}</p>
-      <p className="text-sm text-white">{value}</p>
+      <p className="text-xs text-text-faint">{label}</p>
+      <p className="text-sm text-text">{value}</p>
     </div>
   );
 }

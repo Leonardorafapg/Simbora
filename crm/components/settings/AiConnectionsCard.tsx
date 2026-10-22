@@ -62,14 +62,14 @@ export default function AiConnectionsCard() {
   }
 
   return (
-    <div className="glass-card rounded-2xl p-6">
+    <div className="glass-card rounded-2xl p-4 sm:p-6">
       <div className="flex items-center gap-3">
         <div className="h-10 w-10 rounded-full bg-cyan/10 flex items-center justify-center text-cyan shrink-0">
           <Bot className="h-5 w-5" />
         </div>
         <div>
-          <h2 className="text-sm font-semibold text-white">Conexões de IA</h2>
-          <p className="text-xs text-white/50">
+          <h2 className="text-sm font-semibold text-text">Conexões de IA</h2>
+          <p className="text-xs text-text-muted">
             Apps como Claude, Codex e Gemini que acessam o CRM em seu nome, com as suas permissões.
           </p>
         </div>
@@ -81,9 +81,9 @@ export default function AiConnectionsCard() {
 
       <div className="mt-5 flex flex-col gap-2">
         {connections === null ? (
-          <p className="text-sm text-white/50">Carregando...</p>
+          <p className="text-sm text-text-muted">Carregando...</p>
         ) : connections.length === 0 ? (
-          <p className="rounded-xl border border-white/10 px-4 py-3 text-sm text-white/50">
+          <p className="rounded-xl border border-border px-4 py-3 text-sm text-text-muted">
             Nenhuma conexão ativa. Clique em &quot;Conectar com o Claude&quot; e siga os passos; o Claude vai abrir a
             tela de login do Simbora.
           </p>
@@ -91,21 +91,21 @@ export default function AiConnectionsCard() {
           connections.map((connection) => (
             <div
               key={connection.id}
-              className="flex items-center justify-between gap-4 rounded-xl border border-white/10 px-4 py-3"
+              className="flex items-center justify-between gap-4 rounded-xl border border-border px-4 py-3"
             >
               <div className="min-w-0">
-                <p className="truncate text-sm text-white/90">{connection.client_name}</p>
-                <p className="text-xs text-white/50">
+                <p className="truncate text-sm text-text">{connection.client_name}</p>
+                <p className="text-xs text-text-muted">
                   {connection.scopes.map((scope) => SCOPE_LABELS[scope] ?? scope).join(" · ")}
                 </p>
-                <p className="text-xs text-white/40">
+                <p className="text-xs text-text-faint">
                   Conectado em {formatDateTime(connection.created_at)} · último uso {formatDateTime(connection.last_used_at)}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setToRevoke(connection)}
-                className="flex shrink-0 items-center gap-1.5 text-xs text-white/50 hover:text-danger transition-colors"
+                className="flex shrink-0 items-center gap-1.5 text-xs text-text-muted hover:text-danger transition-colors"
               >
                 <Unplug className="h-3.5 w-3.5" />
                 Desconectar

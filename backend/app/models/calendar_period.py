@@ -8,15 +8,14 @@ from app.core.database import Base
 class CalendarPeriod(Base):
     """
     Estado do cronograma de um cliente num mês inteiro — não é por postagem.
-    Enquanto "finalizado", nenhuma entrada desse cliente/mês pode ser
-    criada/editada/removida (ver routers/calendar.py). "reprovado" e
-    "em_andamento" são os dois estados em que dá pra mexer.
+    O status é informativo (fluxo de aprovação): NÃO bloqueia criar, editar ou
+    remover postagens do cliente/mês — o social pode alterar em qualquer etapa.
 
     Cadeia de aprovação (ver docs/plano-aprovacao-calendario.md):
-    em_andamento -> enviado_aprovacao_amanda -> aprovado_amanda ->
-    enviado_aprovacao_cliente -> finalizado. Reprovação em qualquer etapa
-    volta pra em_andamento (histórico de quem/quando/motivo fica em
-    CalendarApproval, não aqui).
+    em_andamento -> enviado_aprovacao_amanda -> enviado_aprovacao_cliente ->
+    finalizado (rótulo "Aprovado"). Reprovação em qualquer etapa leva a
+    "reprovado" (editável, e dá pra reenviar); quem/quando/motivo ficam em
+    CalendarApproval, não aqui.
     """
 
     __tablename__ = "calendar_periods"

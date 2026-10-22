@@ -45,7 +45,7 @@ export default function ImageDropzone({ value, onChange }: Props) {
         <button
           type="button"
           onClick={() => setPreview(true)}
-          className="block w-full rounded-lg overflow-hidden border border-white/10"
+          className="block w-full rounded-lg overflow-hidden border border-border"
         >
           {/* eslint-disable-next-line @next/next/no-img-element -- URL externa (R2), sem loader configurado */}
           <img src={value} alt="Referência" className="w-full max-h-40 object-cover" />
@@ -71,7 +71,7 @@ export default function ImageDropzone({ value, onChange }: Props) {
             <button
               type="button"
               onClick={() => setPreview(false)}
-              className="absolute top-4 right-4 text-white/70 hover:text-white"
+              className="absolute top-4 right-4 text-text hover:text-text"
               aria-label="Fechar"
             >
               <X className="h-6 w-6" />
@@ -104,10 +104,10 @@ export default function ImageDropzone({ value, onChange }: Props) {
         }}
         className={`rounded-lg border border-dashed px-3 py-6 text-center text-xs transition-colors ${
           uploading
-            ? "border-white/10 text-white/30 cursor-wait"
+            ? "border-border text-text-faint cursor-wait"
             : dragOver
               ? "border-cyan bg-cyan/5 text-cyan cursor-pointer"
-              : "border-white/15 text-white/40 hover:border-white/25 cursor-pointer"
+              : "border-border text-text-faint hover:border-border-hover cursor-pointer"
         }`}
       >
         {uploading ? "Enviando imagem..." : "Arraste uma imagem aqui ou clique para selecionar"}

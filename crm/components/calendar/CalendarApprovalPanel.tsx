@@ -85,7 +85,7 @@ export default function CalendarApprovalPanel({
     if (!canSend) return null;
     return (
       <div className="glass-card rounded-2xl px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
-        <p className="text-sm text-white/70">Mês pronto? Envie para a Amanda aprovar antes de ir pro cliente.</p>
+        <p className="text-sm text-text">Mês pronto? Envie para a Amanda aprovar antes de ir pro cliente.</p>
         <div className="flex items-center gap-3">
           {error && <span className="text-sm text-danger">{error}</span>}
           <button
@@ -104,14 +104,14 @@ export default function CalendarApprovalPanel({
   if (status === "enviado_aprovacao_amanda") {
     if (!canApprove) {
       return (
-        <div className="glass-card rounded-2xl px-4 py-3 text-sm text-white/70">
+        <div className="glass-card rounded-2xl px-4 py-3 text-sm text-text">
           Aguardando a aprovação da Amanda.
         </div>
       );
     }
     return (
       <div className="glass-card rounded-2xl px-4 py-3 space-y-3">
-        <p className="text-sm text-white/70">Este mês está aguardando a sua aprovação.</p>
+        <p className="text-sm text-text">Este mês está aguardando a sua aprovação.</p>
         {pdfUrl && (
           <a href={pdfUrl} target="_blank" rel="noreferrer" className="text-sm text-cyan underline">
             Ver PDF do cronograma
@@ -159,7 +159,7 @@ export default function CalendarApprovalPanel({
                 type="button"
                 disabled={working}
                 onClick={() => setShowReject(false)}
-                className="rounded-lg border border-white/15 px-4 py-2 text-sm"
+                className="rounded-lg border border-border px-4 py-2 text-sm"
               >
                 Cancelar
               </button>
@@ -172,7 +172,7 @@ export default function CalendarApprovalPanel({
 
   if (status === "enviado_aprovacao_cliente") {
     return (
-      <div className="glass-card rounded-2xl px-4 py-3 text-sm text-white/70">
+      <div className="glass-card rounded-2xl px-4 py-3 text-sm text-text">
         Aprovado pela Amanda — aguardando aprovação do cliente (PDF enviado no WhatsApp).
       </div>
     );

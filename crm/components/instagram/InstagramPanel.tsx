@@ -48,7 +48,7 @@ export default function InstagramPanel({ clientId, canManage }: Props) {
       />
 
       {(connected || posts.length > 0) && (
-        <div className="flex gap-1 rounded-xl bg-white/5 p-1 text-sm">
+        <div className="flex gap-1 rounded-xl bg-surface-2 p-1 text-sm">
           {(["posts", "metrics"] as const).map((key) => (
             <button
               key={key}
@@ -56,7 +56,7 @@ export default function InstagramPanel({ clientId, canManage }: Props) {
               disabled={key === "metrics" && !connected}
               onClick={() => setView(key)}
               className={`flex-1 rounded-lg px-3 py-1.5 font-semibold transition disabled:opacity-40 ${
-                view === key ? "bg-white/15 text-white" : "text-white/50 hover:text-white"
+                view === key ? "bg-white/15 text-text" : "text-text-muted hover:text-text"
               }`}
             >
               {key === "posts" ? "Agendamentos" : "Métricas"}
@@ -94,15 +94,15 @@ export default function InstagramPanel({ clientId, canManage }: Props) {
 
           {creating && (
             <div className="glass-card rounded-2xl p-4">
-              <p className="mb-3 text-sm font-semibold text-white">Novo post</p>
+              <p className="mb-3 text-sm font-semibold text-text">Novo post</p>
               <InstagramPostForm submitLabel="Agendar" onSubmit={handleCreate} onCancel={() => setCreating(false)} />
             </div>
           )}
 
-          {postsLoading && <p className="text-sm text-white/50">Carregando...</p>}
+          {postsLoading && <p className="text-sm text-text-muted">Carregando...</p>}
           {postsError && <p className="text-sm text-danger">{postsError}</p>}
           {!postsLoading && visible.length === 0 && !creating && (
-            <p className="text-sm text-white/50">
+            <p className="text-sm text-text-muted">
               {posts.length ? "Nenhum post com esse filtro." : "Nenhum post agendado. Agende aqui ou pelo card aprovado na Produção."}
             </p>
           )}

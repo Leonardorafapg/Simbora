@@ -4,6 +4,7 @@ import { Info, TrendingDown, TrendingUp } from "lucide-react";
 /** Moldura comum dos cards do dashboard: título + "i" (como o número é contado) + ação opcional à direita. */
 export function DashCard({
   area,
+  index = 0,
   title,
   info,
   action,
@@ -11,6 +12,8 @@ export function DashCard({
   className = "",
 }: {
   area: string;
+  /** Ordem de entrada: cada card aparece um pouco depois do anterior. */
+  index?: number;
   title: string;
   info?: string;
   action?: ReactNode;
@@ -19,8 +22,8 @@ export function DashCard({
 }) {
   return (
     <section
-      className={`flex min-w-0 flex-col gap-3 rounded-xl border border-border bg-surface p-4 shadow-[var(--elev-card)] ${className}`}
-      style={{ gridArea: area } as CSSProperties}
+      className={`animate-fade-up stagger flex min-w-0 flex-col gap-3 rounded-xl border border-border bg-surface p-4 shadow-[var(--elev-card)] ${className}`}
+      style={{ gridArea: area, "--i": index } as CSSProperties}
     >
       <header className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 items-center gap-1.5">

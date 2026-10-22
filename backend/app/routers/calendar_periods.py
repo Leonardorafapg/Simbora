@@ -187,7 +187,7 @@ async def decidir_amanda(
     )
 
     if payload.decision == "reprovado":
-        period.status = "em_andamento"
+        period.status = "reprovado"
         db.commit()
         db.refresh(period)
         return period
@@ -251,7 +251,7 @@ async def decidir_cliente(token: str, payload: CalendarPeriodDecisaoCliente, db:
         db, period, stage="cliente", decision=payload.decision, reason=payload.reason, decided_by_user_id=None
     )
 
-    period.status = "finalizado" if payload.decision == "aprovado" else "em_andamento"
+    period.status = "finalizado" if payload.decision == "aprovado" else "reprovado"
     db.commit()
     db.refresh(period)
 

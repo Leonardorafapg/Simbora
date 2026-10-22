@@ -7,7 +7,6 @@ CALENDAR_PERIOD_STATUSES = [
     "reprovado",
     # Cadeia de aprovação (ver docs/plano-aprovacao-calendario.md)
     "enviado_aprovacao_amanda",
-    "aprovado_amanda",
     "enviado_aprovacao_cliente",
 ]
 

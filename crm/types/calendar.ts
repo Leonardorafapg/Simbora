@@ -44,6 +44,9 @@ export type CalendarEntry = {
   final_image: string | null;
   /** URL (R2) da versão em formato Stories (vertical) da mesma arte — opcional. */
   final_image_story: string | null;
+  /** "feed" (1 arte) ou "carousel" (final_images, na ordem de publicação). */
+  post_type: "feed" | "carousel";
+  final_images: string[];
   caption: string | null;
   status: CalendarEntryStatus;
   /** Quem pediu a demanda (padrão: social do cliente). */
@@ -73,6 +76,8 @@ export type CalendarEntryCreateInput = {
   material_files?: string[];
   final_image?: string | null;
   final_image_story?: string | null;
+  post_type?: "feed" | "carousel";
+  final_images?: string[];
   caption?: string;
   material_notes?: string | null;
   status?: CalendarEntryStatus;
@@ -93,6 +98,8 @@ export type CalendarEntryUpdateInput = Partial<{
   material_files: string[];
   final_image: string | null;
   final_image_story: string | null;
+  post_type: "feed" | "carousel";
+  final_images: string[];
   caption: string;
   material_notes: string | null;
   status: CalendarEntryStatus;

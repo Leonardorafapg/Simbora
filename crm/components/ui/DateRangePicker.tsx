@@ -97,7 +97,7 @@ function MonthCalendar({
               </option>
             ))}
           </select>
-          <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 text-white/40" />
+          <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 text-text-faint" />
         </div>
         <div className="relative">
           <select
@@ -111,13 +111,13 @@ function MonthCalendar({
               </option>
             ))}
           </select>
-          <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 text-white/40" />
+          <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 text-text-faint" />
         </div>
       </div>
 
       <div className="grid grid-cols-7 gap-y-1 text-center">
         {WEEKDAYS.map((w) => (
-          <span key={w} className="text-xs text-white/40 py-1">
+          <span key={w} className="text-xs text-text-faint py-1">
             {w}
           </span>
         ))}
@@ -140,8 +140,8 @@ function MonthCalendar({
               onMouseEnter={() => onHoverDay(iso)}
               className={`h-8 w-8 mx-auto flex items-center justify-center text-sm rounded-full transition
                 ${isEdge ? "bg-cyan text-black font-semibold" : ""}
-                ${isBetween ? "bg-cyan/15 text-white rounded-none" : ""}
-                ${!isEdge && !isBetween ? "text-white/80 hover:bg-white/10" : ""}
+                ${isBetween ? "bg-cyan/15 text-text rounded-none" : ""}
+                ${!isEdge && !isBetween ? "text-text hover:bg-surface-2" : ""}
                 ${isToday && !isEdge ? "ring-1 ring-cyan/60" : ""}
               `}
             >
@@ -210,9 +210,9 @@ export default function DateRangePicker({ from, to, onChange, placeholder = "Per
         onClick={() => setOpen((v) => !v)}
         className="glass-input flex items-center gap-2 rounded-lg px-3 py-2 text-sm outline-none whitespace-nowrap"
       >
-        <CalendarDays className="h-4 w-4 text-white/40 shrink-0" />
-        <span className={from ? "text-white" : "text-white/40"}>{label}</span>
-        <ChevronDown className="h-3.5 w-3.5 text-white/40 shrink-0" />
+        <CalendarDays className="h-4 w-4 text-text-faint shrink-0" />
+        <span className={from ? "text-text" : "text-text-faint"}>{label}</span>
+        <ChevronDown className="h-3.5 w-3.5 text-text-faint shrink-0" />
       </button>
 
       {open && (
@@ -220,7 +220,7 @@ export default function DateRangePicker({ from, to, onChange, placeholder = "Per
           <button
             type="button"
             onClick={() => setLeftMonth((m) => shiftMonth(m.year, m.month, -1))}
-            className="mt-8 shrink-0 h-7 w-7 flex items-center justify-center rounded-md text-white/50 hover:text-white hover:bg-white/10"
+            className="mt-8 shrink-0 h-7 w-7 flex items-center justify-center rounded-md text-text-muted hover:text-text hover:bg-surface-2"
             aria-label="Mês anterior"
           >
             <ChevronLeft className="h-4 w-4" />
@@ -238,7 +238,7 @@ export default function DateRangePicker({ from, to, onChange, placeholder = "Per
             onSelectYear={(year) => setSideMonth("left", year, leftMonth.month)}
           />
 
-          <div className="w-px self-stretch bg-white/10" />
+          <div className="w-px self-stretch bg-surface-2" />
 
           <MonthCalendar
             year={right.year}
@@ -255,7 +255,7 @@ export default function DateRangePicker({ from, to, onChange, placeholder = "Per
           <button
             type="button"
             onClick={() => setLeftMonth((m) => shiftMonth(m.year, m.month, 1))}
-            className="mt-8 shrink-0 h-7 w-7 flex items-center justify-center rounded-md text-white/50 hover:text-white hover:bg-white/10"
+            className="mt-8 shrink-0 h-7 w-7 flex items-center justify-center rounded-md text-text-muted hover:text-text hover:bg-surface-2"
             aria-label="Próximo mês"
           >
             <ChevronRight className="h-4 w-4" />
@@ -265,7 +265,7 @@ export default function DateRangePicker({ from, to, onChange, placeholder = "Per
             <button
               type="button"
               onClick={handleClear}
-              className="absolute right-3 bottom-3 text-xs text-white/40 hover:text-white transition"
+              className="absolute right-3 bottom-3 text-xs text-text-faint hover:text-text transition"
             >
               Limpar
             </button>

@@ -13,8 +13,8 @@ from app.models.calendar_period import CalendarPeriod
 from app.models.tag import Tag
 from app.models.client import Client
 from app.models.user import User
-from app.routers.calendar_periods import get_period_status
 from app.services import instagram_posts
+from app.services.calendar_media import normalize_post_media
 from app.schemas.calendar_entry import (
     DELIVERED_STATUSES,
     CalendarEntryBulkCreate,
@@ -25,39 +25,6 @@ from app.schemas.calendar_entry import (
 )
 
 router = APIRouter()
-
-
-_LOCKED_PERIOD_STATUSES = {
-    "finalizado",
-    "enviado_aprovacao_amanda",
-    "aprovado_amanda",
-    "enviado_aprovacao_cliente",
-}
-
-
-def _ensure_period_editable(db: Session, client_id: int, entry_date: date) -> None:
-    period_status = get_period_status(db, client_id, entry_date.year, entry_date.month)
-    if period_status in _LOCKED_PERIOD_STATUSES:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Esse cronograma está em aprovação ou já foi finalizado — reprove antes de editar.",
-        )
-
-
-# Campos de planejamento: travados quando o cronograma do mês está finalizado.
-# Status, arte final, legenda e o nome da publicação (título) continuam
-# editáveis — a Produção precisa nomear postagens de cronogramas finalizados.
-PLANNING_FIELDS = (
-    "client_id",
-    "scheduled_date",
-    "custom_deadline",
-    "theme",
-    "execution_notes",
-    "reference_link",
-    "reference_image",
-    "material_files",
-    "material_notes",
-)
 
 
 def _load_tags(db: Session, tag_ids: list[int]) -> list[Tag]:
@@ -145,7 +112,6 @@ async def bulk_create_calendar_entries(
     errors: list[str] = []
     clients_ok: dict[int, bool] = {}
     client_by_id: dict[int, Client] = {}
-    period_ok: dict[tuple[int, int, int], bool] = {}
 
     for index, item in enumerate(payload.entries, start=1):
         if item.client_id not in clients_ok:
@@ -157,15 +123,6 @@ async def bulk_create_calendar_entries(
             errors.append(f"Linha {index}: cliente {item.client_id} inválido")
             continue
 
-        key = (item.client_id, item.scheduled_date.year, item.scheduled_date.month)
-        if key not in period_ok:
-            period_ok[key] = get_period_status(db, *key) != "finalizado"
-        if not period_ok[key]:
-            errors.append(
-                f"Linha {index}: o cronograma {key[2]:02d}/{key[1]} do cliente {item.client_id} "
-                "já foi finalizado — reprove antes de editar"
-            )
-
     if errors:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=errors)
 
@@ -175,6 +132,9 @@ async def bulk_create_calendar_entries(
     created = []
     for item in payload.entries:
         data = item.model_dump(exclude={"tag_ids"})
+        data["final_image"], data["final_images"] = normalize_post_media(
+            data["post_type"], data["final_image"], data["final_images"]
+        )
         client = client_by_id[item.client_id]
         # Mesmo padrão da criação avulsa: solicitante = social do cliente,
         # responsável = designer do cliente (quando não vierem informados).
@@ -196,7 +156,7 @@ async def create_calendar_entry(
     payload: CalendarEntryCreate,
     from_production: bool = Query(
         default=False,
-        description="Demanda criada pelo quadro de Produção: aceita mês já finalizado",
+        description="Marca a postagem como demanda avulsa da Produção (fora do calendário do cliente)",
     ),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_permission("calendar.create")),
@@ -209,12 +169,10 @@ async def create_calendar_entry(
         if user_id is not None and db.get(User, user_id) is None:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Usuário inválido")
 
-    # Cronograma finalizado trava o planejamento, mas o quadro de Produção
-    # pode abrir demandas novas nele.
-    if not from_production:
-        _ensure_period_editable(db, payload.client_id, payload.scheduled_date)
-
     data = payload.model_dump()
+    data["final_image"], data["final_images"] = normalize_post_media(
+        data["post_type"], data["final_image"], data["final_images"]
+    )
     tags = _load_tags(db, data.pop("tag_ids"))
     # Sem escolha explícita: solicitante = social do cliente, responsável = designer do cliente.
     if data["requester_id"] is None:
@@ -249,17 +207,6 @@ async def update_calendar_entry(
     if tag_ids is not None:
         entry.tags = _load_tags(db, tag_ids)
 
-    # Mês finalizado só aceita mudanças do fluxo de produção (status, arte
-    # final, legenda); o planejamento fica travado. Reenviar o mesmo valor
-    # de um campo de planejamento é aceito (o drawer manda o form inteiro).
-    # Demanda avulsa (from_production) nunca depende da aprovação do
-    # cronograma do cliente — nem pra criar, nem pra editar depois.
-    if not entry.from_production and any(
-        field in data and data[field] != getattr(entry, field)
-        for field in PLANNING_FIELDS
-    ):
-        _ensure_period_editable(db, entry.client_id, entry.scheduled_date)
-
     if "client_id" in data and db.get(Client, data["client_id"]) is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cliente inválido")
 
@@ -283,6 +230,10 @@ async def update_calendar_entry(
 
     for field, value in data.items():
         setattr(entry, field, value)
+    if data.keys() & {"post_type", "final_image", "final_images"}:
+        entry.final_image, entry.final_images = normalize_post_media(
+            entry.post_type, entry.final_image, entry.final_images
+        )
 
     db.commit()
     db.refresh(entry)
@@ -298,8 +249,6 @@ async def delete_calendar_entry(
     entry = db.get(CalendarEntry, entry_id)
     if entry is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Entrada não encontrada")
-
-    _ensure_period_editable(db, entry.client_id, entry.scheduled_date)
 
     # A tabela legada `demands` (módulo removido) ainda pode existir no banco
     # com FK pra postagem — solta o vínculo, senão apagar daria IntegrityError.

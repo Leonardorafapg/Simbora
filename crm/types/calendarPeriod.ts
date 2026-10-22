@@ -1,7 +1,6 @@
 export const CALENDAR_PERIOD_STATUSES = [
   "em_andamento",
   "enviado_aprovacao_amanda",
-  "aprovado_amanda",
   "enviado_aprovacao_cliente",
   "finalizado",
   "reprovado",
@@ -10,8 +9,7 @@ export type CalendarPeriodStatus = (typeof CALENDAR_PERIOD_STATUSES)[number];
 
 export const CALENDAR_PERIOD_STATUS_LABELS: Record<CalendarPeriodStatus, string> = {
   em_andamento: "Em andamento",
-  enviado_aprovacao_amanda: "Aguardando aprovação da Amanda",
-  aprovado_amanda: "Aprovado pela Amanda",
+  enviado_aprovacao_amanda: "Aguardando aprovação de Amanda",
   enviado_aprovacao_cliente: "Aguardando aprovação do cliente",
   finalizado: "Aprovado",
   reprovado: "Reprovado",
@@ -20,9 +18,8 @@ export const CALENDAR_PERIOD_STATUS_LABELS: Record<CalendarPeriodStatus, string>
 export const CALENDAR_PERIOD_STATUS_COLORS: Record<CalendarPeriodStatus, string> = {
   em_andamento: "bg-white/10 text-white/70",
   enviado_aprovacao_amanda: "bg-amber-400/15 text-amber-400",
-  aprovado_amanda: "bg-amber-400/15 text-amber-400",
-  enviado_aprovacao_cliente: "bg-amber-400/15 text-amber-400",
-  finalizado: "bg-cyan/15 text-cyan",
+  enviado_aprovacao_cliente: "bg-sky-400/15 text-sky-400",
+  finalizado: "bg-emerald-500/15 text-emerald-400",
   reprovado: "bg-red-400/15 text-red-400",
 };
 

@@ -59,7 +59,7 @@ export default function ChangePasswordForm({ memberId, memberName }: Props) {
             setDone(false);
             setOpen(true);
           }}
-          className="rounded-lg border border-white/15 px-4 py-2 text-sm text-white hover:border-cyan/50"
+          className="rounded-lg border border-border px-4 py-2 text-sm text-text hover:border-cyan/50"
         >
           Alterar senha
         </button>
@@ -71,8 +71,8 @@ export default function ChangePasswordForm({ memberId, memberName }: Props) {
   return (
     <form onSubmit={handleSubmit} className="glass-card w-full max-w-md rounded-2xl p-5 space-y-4">
       <div>
-        <p className="text-sm font-semibold text-white">Alterar senha</p>
-        <p className="text-xs text-white/40 mt-1">
+        <p className="text-sm font-semibold text-text">Alterar senha</p>
+        <p className="text-xs text-text-faint mt-1">
           Nova senha de acesso de {memberName}. Quem estiver logado continua com a sessão atual até ela expirar.
         </p>
       </div>
@@ -111,7 +111,7 @@ export default function ChangePasswordForm({ memberId, memberName }: Props) {
         >
           {saving ? "Salvando..." : "Salvar senha"}
         </button>
-        <button type="button" onClick={close} className="rounded-lg px-4 py-2 text-sm text-white/70 hover:text-white">
+        <button type="button" onClick={close} className="rounded-lg px-4 py-2 text-sm text-text hover:text-text">
           Cancelar
         </button>
       </div>

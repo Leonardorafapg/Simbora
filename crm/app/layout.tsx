@@ -43,7 +43,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR" suppressHydrationWarning className={`${inter.variable} ${bricolage.variable}`}>
-      <body className="bg-dark text-white antialiased">
+      <body className="bg-dark text-text antialiased">
         {/* Inline puro em vez de next/script: precisa rodar antes do paint pra
             evitar flash de tema, e o <Script beforeInteractive> quebra o
             render do RootLayout nessa versão do Next. */}

@@ -127,6 +127,40 @@ async def presign_document_upload(
     )
 
 
+@router.post("/uploads/presign-artwork", response_model=PresignOut)
+async def presign_artwork_upload(
+    payload: PresignRequest,
+    _: User = Depends(get_current_user),
+):
+    """Arte finalizada do post: aceita imagem (como /uploads/presign) ou
+    documento (PDF, Word, Excel, PowerPoint, ZIP)."""
+    _require_configured()
+
+    content_type = _normalize_content_type(payload.content_type)
+    if content_type not in r2_client.IMAGE_EXTENSIONS and content_type not in r2_client.ARTWORK_DOCUMENT_EXTENSIONS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Formato não suportado. Envie uma imagem ou um documento (PDF, Word, Excel, PowerPoint ou ZIP).",
+        )
+    _check_size(payload.size)
+
+    key = r2_client.new_object_key(content_type)
+    try:
+        upload_url = r2_client.presign_put(key, content_type, payload.size)
+    except Exception as exc:
+        logger.exception("Falha ao assinar URL de upload da arte final do R2: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Falha ao preparar o envio do arquivo",
+        )
+
+    return PresignOut(
+        upload_url=upload_url,
+        headers={"Content-Type": content_type},
+        url=r2_client.public_url(key),
+    )
+
+
 async def _assert_public_host(url: str) -> None:
     """Recusa hosts que resolvem pra rede interna (anti-SSRF)."""
     host = urlparse(url).hostname

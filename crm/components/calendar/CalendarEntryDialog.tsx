@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AlignLeft, CalendarDays, Clock, ImagePlus, Paperclip, UserRound, Users, X } from "lucide-react";
 import type { CalendarEntry, CalendarEntryCreateInput, CalendarEntryUpdateInput } from "@/types/calendar";
 import type { Client } from "@/types/client";
@@ -9,8 +9,9 @@ import { useTeamDirectory } from "@/hooks/useTeamDirectory";
 import UserSelect from "@/components/ui/UserSelect";
 import TagPicker from "./TagPicker";
 import { DEADLINE_CLASSES, DEADLINE_LABELS, deadlineFor, deadlineInfo, formatDeadline } from "@/lib/deadline";
-import ImageDropzone from "@/components/ui/ImageDropzone";
-import MultiImageDropzone from "@/components/ui/MultiImageDropzone";
+import AttachmentGrid from "@/components/ui/AttachmentGrid";
+import { isImageUrl } from "@/lib/artwork";
+import { switchPostType, withSlides } from "@/lib/postMedia";
 import EntryInstagramSection from "@/components/instagram/EntryInstagramSection";
 
 type Props = {
@@ -50,6 +51,8 @@ function buildForm(
     material_files: entry?.material_files ?? [],
     final_image: entry?.final_image ?? null,
     final_image_story: entry?.final_image_story ?? null,
+    post_type: entry?.post_type ?? ("feed" as "feed" | "carousel"),
+    final_images: entry?.final_images ?? ([] as string[]),
     caption: entry?.caption ?? "",
   };
 }
@@ -76,13 +79,33 @@ export default function CalendarEntryDialog({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [openKey, setOpenKey] = useState(entry?.id ?? "new");
+  // Foto do formulário ao abrir: serve para avisar antes de descartar alterações não salvas.
+  const [initialJson, setInitialJson] = useState(() => JSON.stringify(buildForm(entry, clientId, defaultDate, findClient(clientId))));
+  const closeRef = useRef<() => void>(() => {});
+  // Slides do carrossel de antes de voltar pro Feed, pra um clique errado não perder o trabalho.
+  const slidesStash = useRef<string[]>([]);
 
   // Reabre o form do zero quando o dialog é reaberto para uma entrada diferente.
   const currentKey = entry?.id ?? "new";
   if (currentKey !== openKey && open) {
-    setForm(buildForm(entry, clientId, defaultDate, findClient(clientId)));
+    const fresh = buildForm(entry, clientId, defaultDate, findClient(clientId));
+    setForm(fresh);
+    setInitialJson(JSON.stringify(fresh));
     setOpenKey(currentKey);
   }
+
+  useEffect(() => {
+    closeRef.current = requestClose;
+  });
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeRef.current();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
 
   if (!open) return null;
 
@@ -90,9 +113,20 @@ export default function CalendarEntryDialog({
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
+  function setPostType(type: "feed" | "carousel") {
+    if (form.post_type === "carousel") slidesStash.current = form.final_images;
+    setForm((prev) => ({ ...prev, ...switchPostType(prev, type, slidesStash.current) }));
+  }
+
   function handleClose() {
     setError(null);
     onClose();
+  }
+
+  /** Fechar por X, Esc ou clique fora: pergunta antes de perder alterações não salvas. */
+  function requestClose() {
+    if (JSON.stringify(form) !== initialJson && !window.confirm("Descartar as alterações não salvas?")) return;
+    handleClose();
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -116,21 +150,26 @@ export default function CalendarEntryDialog({
 
   // Layout em dois painéis (estilo card do Trello): à esquerda o conteúdo da
   // postagem (descrição, execução, anexos); à direita data e entrega.
-  const labelCls = "flex items-center gap-2 text-sm font-semibold text-white";
+  const labelCls = "flex items-center gap-2 text-sm font-semibold text-text";
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6">
+    <div
+      className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-[2px]"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) requestClose();
+      }}
+    >
       <form
         onSubmit={handleSubmit}
-        className="glass-modal flex w-full max-w-6xl max-h-[90vh] h-[90vh] flex-col overflow-hidden rounded-2xl"
+        className="glass-modal animate-slide-in-right flex h-full w-full max-w-6xl flex-col overflow-hidden sm:rounded-l-2xl"
       >
-        <div className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-white/10 px-6">
-          <span className="rounded bg-white/10 px-2.5 py-1 text-xs font-bold uppercase tracking-wide text-white/70">
+        <div className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-border px-4 sm:px-6">
+          <span className="rounded bg-surface-2 px-2.5 py-1 text-xs font-bold uppercase tracking-wide text-text">
             {entry ? "Editar postagem" : clients ? "Nova demanda" : "Nova postagem"}
           </span>
           <button
             type="button"
-            onClick={handleClose}
-            className="shrink-0 rounded-full p-1.5 text-white/50 transition-colors hover:bg-white/10 hover:text-white"
+            onClick={requestClose}
+            className="shrink-0 rounded-full p-1.5 text-text-muted transition-colors hover:bg-surface-2 hover:text-text"
             aria-label="Fechar"
           >
             <X className="h-5 w-5" />
@@ -138,7 +177,7 @@ export default function CalendarEntryDialog({
         </div>
 
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto lg:flex-row lg:overflow-hidden">
-          <div className="min-w-0 space-y-8 p-6 lg:flex-[3] lg:overflow-y-auto">
+          <div className="min-w-0 space-y-4 p-4 sm:p-6 lg:flex-[3] lg:overflow-y-auto">
             <section>
               <input
                 required={!entry}
@@ -147,16 +186,16 @@ export default function CalendarEntryDialog({
                 onChange={(e) => update("title", e.target.value)}
                 placeholder="Nome da publicação"
                 aria-label="Nome da publicação"
-                className="w-full rounded-lg border border-transparent bg-transparent px-2 py-1 -mx-2 text-2xl font-bold text-white outline-none placeholder:text-white/30 hover:border-white/10 focus:border-cyan/50 focus:bg-white/5"
+                className="w-full rounded-lg border border-transparent bg-transparent px-2 py-1 -mx-2 text-xl font-bold sm:text-2xl text-text outline-none placeholder:text-text-faint hover:border-border focus:border-cyan/50 focus:bg-surface-2"
               />
             </section>
 
             <TagPicker selectedIds={form.tag_ids} onChange={(ids) => update("tag_ids", ids)} />
 
-            <section className="grid gap-4 sm:grid-cols-2">
+            <section className="grid gap-4 sm:grid-cols-2 rounded-xl border border-border bg-surface-2/40 p-4">
               <div className="space-y-2">
                 <div className={labelCls}>
-                  <UserRound className="h-4 w-4 text-white/40" />
+                  <UserRound className="h-4 w-4 text-text-faint" />
                   Solicitante
                 </div>
                 <UserSelect
@@ -167,7 +206,7 @@ export default function CalendarEntryDialog({
               </div>
               <div className="space-y-2">
                 <div className={labelCls}>
-                  <UserRound className="h-4 w-4 text-white/40" />
+                  <UserRound className="h-4 w-4 text-text-faint" />
                   Responsável
                 </div>
                 <UserSelect
@@ -178,9 +217,9 @@ export default function CalendarEntryDialog({
               </div>
             </section>
 
-            <section className="space-y-2">
+            <section className="space-y-2 rounded-xl border border-border bg-surface-2/40 p-4">
               <div className={labelCls}>
-                <AlignLeft className="h-4 w-4 text-white/40" />
+                <AlignLeft className="h-4 w-4 text-text-faint" />
                 Descrição
               </div>
               <textarea
@@ -192,22 +231,25 @@ export default function CalendarEntryDialog({
               />
             </section>
 
-            <section className="space-y-3">
+            <section className="space-y-3 rounded-xl border border-border bg-surface-2/40 p-4">
               <div className={labelCls}>
-                <Paperclip className="h-4 w-4 text-white/40" />
+                <Paperclip className="h-4 w-4 text-text-faint" />
                 Anexos
               </div>
               <div className="grid gap-4 xl:grid-cols-2">
                 <div>
-                  <p className="mb-1.5 text-xs text-white/50">Referência</p>
-                  <ImageDropzone
-                    value={form.reference_image}
-                    onChange={(value) => update("reference_image", value)}
+                  <p className="mb-1.5 text-xs text-text-muted">Referência</p>
+                  <AttachmentGrid
+                    max={1}
+                    addLabel="Referência"
+                    value={form.reference_image ? [form.reference_image] : []}
+                    onChange={(urls) => update("reference_image", urls[0] ?? null)}
                   />
                 </div>
                 <div>
-                  <p className="mb-1.5 text-xs text-white/50">Material</p>
-                  <MultiImageDropzone
+                  <p className="mb-1.5 text-xs text-text-muted">Material</p>
+                  <AttachmentGrid
+                    addLabel="Adicionar material"
                     value={form.material_files}
                     onChange={(urls) => update("material_files", urls)}
                   />
@@ -216,11 +258,11 @@ export default function CalendarEntryDialog({
             </section>
           </div>
 
-          <aside className="min-w-0 space-y-6 border-t border-white/10 p-6 lg:flex-[2] lg:overflow-y-auto lg:border-l lg:border-t-0">
+          <aside className="min-w-0 space-y-4 border-t border-border bg-surface-2/20 p-4 sm:p-6 lg:flex-[2] lg:overflow-y-auto lg:border-l lg:border-t-0">
             {clients && !entry && (
-              <section className="space-y-2">
+              <section className="space-y-2 rounded-xl border border-border bg-surface-2/40 p-4">
                 <div className={labelCls}>
-                  <Users className="h-4 w-4 text-white/40" />
+                  <Users className="h-4 w-4 text-text-faint" />
                   Cliente
                 </div>
                 <select
@@ -247,9 +289,9 @@ export default function CalendarEntryDialog({
               </section>
             )}
 
-            <section className="space-y-2">
+            <section className="space-y-2 rounded-xl border border-border bg-surface-2/40 p-4">
               <div className={labelCls}>
-                <CalendarDays className="h-4 w-4 text-white/40" />
+                <CalendarDays className="h-4 w-4 text-text-faint" />
                 Data
               </div>
               <input
@@ -261,9 +303,9 @@ export default function CalendarEntryDialog({
               />
             </section>
 
-            <section className="space-y-2">
+            <section className="space-y-2 rounded-xl border border-border bg-surface-2/40 p-4">
               <div className={labelCls}>
-                <Clock className="h-4 w-4 text-white/40" />
+                <Clock className="h-4 w-4 text-text-faint" />
                 Prazo de entrega
               </div>
               {clients && !entry ? (
@@ -274,7 +316,7 @@ export default function CalendarEntryDialog({
                     onChange={(e) => update("custom_deadline", e.target.value)}
                     className="glass-input w-full rounded-lg px-3 py-2 text-sm outline-none"
                   />
-                  <p className="text-xs text-white/40">
+                  <p className="text-xs text-text-faint">
                     Demanda fora do calendário — ajuste o prazo manualmente (sugestão: quinta da semana anterior).
                   </p>
                 </>
@@ -283,7 +325,7 @@ export default function CalendarEntryDialog({
                   const info = entry ? deadlineInfo({ ...entry, scheduled_date: form.scheduled_date }) : null;
                   return (
                     <>
-                      <div className="flex flex-wrap items-center gap-2 text-sm text-white/80">
+                      <div className="flex flex-wrap items-center gap-2 text-sm text-text">
                         <span>{formatDeadline(info?.deadline ?? deadlineFor(form.scheduled_date))}</span>
                         {info && (
                           <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${DEADLINE_CLASSES[info.state]}`}>
@@ -292,7 +334,7 @@ export default function CalendarEntryDialog({
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-white/40">
+                      <p className="text-xs text-text-faint">
                         {entry?.custom_deadline ? "Prazo customizado." : "Quinta-feira da semana anterior à data da postagem."}
                       </p>
                     </>
@@ -303,26 +345,62 @@ export default function CalendarEntryDialog({
 
             {/* Sempre visível (inclusive ao criar): o post pronto e a legenda
                 podem já existir quando a demanda é cadastrada. */}
-            <section className="space-y-3">
+            <section className="space-y-3 rounded-xl border border-border bg-surface-2/40 p-4">
               <div className={labelCls}>
-                <ImagePlus className="h-4 w-4 text-white/40" />
+                <ImagePlus className="h-4 w-4 text-text-faint" />
                 Post feito
               </div>
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="flex gap-1.5">
+                {([["feed", "Feed"], ["carousel", "Carrossel"]] as const).map(([type, label]) => (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => setPostType(type)}
+                    className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
+                      form.post_type === type ? "bg-cyan text-black" : "bg-surface-2 text-text-muted hover:text-text"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <div className={form.post_type === "carousel" ? "space-y-4" : "grid gap-4 sm:grid-cols-2"}>
                 <div>
-                  <p className="mb-1.5 text-xs text-white/50">Arte final do post</p>
-                  <ImageDropzone value={form.final_image} onChange={(value) => update("final_image", value)} />
+                  {form.post_type === "carousel" ? (
+                    <>
+                      <p className="mb-1.5 text-xs text-text-muted">Slides do carrossel (na ordem de publicação, 2 a 10)</p>
+                      <AttachmentGrid
+                        max={10}
+                        reorderable
+                        addLabel="Adicionar slide"
+                        value={form.final_images}
+                        onChange={(urls) => setForm((prev) => ({ ...prev, ...withSlides(urls) }))}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <p className="mb-1.5 text-xs text-text-muted">Arte final do post (Feed)</p>
+                      <AttachmentGrid
+                        max={1}
+                        addLabel="Arte do Feed"
+                        value={form.final_image ? [form.final_image] : []}
+                        onChange={(urls) => update("final_image", urls[0] ?? null)}
+                      />
+                    </>
+                  )}
                 </div>
                 <div>
-                  <p className="mb-1.5 text-xs text-white/50">Arte para Stories (opcional)</p>
-                  <ImageDropzone
-                    value={form.final_image_story}
-                    onChange={(value) => update("final_image_story", value)}
+                  <p className="mb-1.5 text-xs text-text-muted">Arte para Stories (opcional)</p>
+                  <AttachmentGrid
+                    max={1}
+                    addLabel="Arte do Stories"
+                    value={form.final_image_story ? [form.final_image_story] : []}
+                    onChange={(urls) => update("final_image_story", urls[0] ?? null)}
                   />
                 </div>
               </div>
               <div>
-                <p className="mb-1.5 text-xs text-white/50">Legenda</p>
+                <p className="mb-1.5 text-xs text-text-muted">Legenda</p>
                 <textarea
                   value={form.caption}
                   onChange={(e) => update("caption", e.target.value)}
@@ -335,7 +413,8 @@ export default function CalendarEntryDialog({
             {entry && instagram?.canView && (
               <EntryInstagramSection
                 entry={entry}
-                finalImage={form.final_image}
+                finalImage={isImageUrl(form.final_image) ? form.final_image : null}
+                carouselImages={form.post_type === "carousel" ? form.final_images.filter((u) => isImageUrl(u)) : null}
                 caption={form.caption}
                 canManage={instagram.canManage}
                 onChanged={instagram.onChanged}
@@ -344,7 +423,7 @@ export default function CalendarEntryDialog({
           </aside>
         </div>
 
-        <div className="flex shrink-0 items-center justify-end gap-3 border-t border-white/10 px-6 py-3">
+        <div className="flex shrink-0 items-center justify-end gap-3 border-t border-border px-6 py-3">
           {error && <p className="mr-auto text-sm text-danger">{error}</p>}
           {entry && canDelete && onRequestDelete && (
             <button

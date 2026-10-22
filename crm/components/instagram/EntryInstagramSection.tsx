@@ -13,6 +13,8 @@ type Props = {
   entry: CalendarEntry;
   /** Arte e legenda que estão no formulário agora (podem ainda não ter sido salvas). */
   finalImage: string | null;
+  /** Slides ordenados quando a postagem é carrossel (null = post de feed comum). */
+  carouselImages?: string[] | null;
   caption: string;
   canManage: boolean;
   /** Avisa o quadro pra atualizar o badge do card. */
@@ -20,7 +22,7 @@ type Props = {
 };
 
 /** Agendamento no Instagram de uma postagem aprovada, dentro do drawer da Produção. */
-export default function EntryInstagramSection({ entry, finalImage, caption, canManage, onChanged }: Props) {
+export default function EntryInstagramSection({ entry, finalImage, carouselImages, caption, canManage, onChanged }: Props) {
   const { account, loading: accountLoading } = useInstagramAccount(entry.client_id);
   const [post, setPost] = useState<InstagramPost | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -78,8 +80,8 @@ export default function EntryInstagramSection({ entry, finalImage, caption, canM
         if (e.key === "Enter" && (e.target as HTMLElement).tagName === "INPUT") e.preventDefault();
       }}
     >
-      <div className="flex items-center gap-2 text-sm font-semibold text-white">
-        <Send className="h-4 w-4 text-white/40" />
+      <div className="flex items-center gap-2 text-sm font-semibold text-text">
+        <Send className="h-4 w-4 text-text-faint" />
         Instagram
       </div>
 
@@ -92,17 +94,20 @@ export default function EntryInstagramSection({ entry, finalImage, caption, canM
           onRemove={(id: number) => after(() => deletePost(id))}
         />
       ) : accountLoading ? (
-        <p className="text-xs text-white/50">Carregando...</p>
+        <p className="text-xs text-text-muted">Carregando...</p>
       ) : !connected ? (
-        <p className="text-xs text-white/50">
+        <p className="text-xs text-text-muted">
           O Instagram desse cliente não está conectado. Conecte em Clientes → aba Instagram.
         </p>
       ) : !canManage ? (
-        <p className="text-xs text-white/50">Ainda não agendado no Instagram.</p>
+        <p className="text-xs text-text-muted">Ainda não agendado no Instagram.</p>
       ) : creating ? (
-        <div className="rounded-xl border border-cyan/30 bg-white/5 p-3">
+        <div className="rounded-xl border border-cyan/30 bg-surface-2 p-3">
           <InstagramPostForm
-            initial={{ mediaUrls: finalImage ? [finalImage] : [], caption, date: entry.scheduled_date }}
+            initial={{
+              mediaType: carouselImages ? "CAROUSEL" : undefined,
+              mediaUrls: carouselImages ?? (finalImage ? [finalImage] : []),
+              caption, date: entry.scheduled_date }}
             submitLabel="Agendar"
             onSubmit={handleCreate}
             onCancel={() => setCreating(false)}
@@ -112,7 +117,7 @@ export default function EntryInstagramSection({ entry, finalImage, caption, canM
         <button
           type="button"
           onClick={() => setCreating(true)}
-          className="w-full rounded-lg border border-white/15 px-4 py-2 text-sm text-white transition hover:border-cyan/50"
+          className="w-full rounded-lg border border-border px-4 py-2 text-sm text-text transition hover:border-cyan/50"
         >
           Agendar no Instagram{account?.username ? ` (@${account.username})` : ""}
         </button>

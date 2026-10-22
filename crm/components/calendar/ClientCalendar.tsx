@@ -28,13 +28,6 @@ type Props = {
   onChangeMonth: (year: number, month: number) => void;
 };
 
-const LOCKED_STATUSES: CalendarPeriodStatus[] = [
-  "finalizado",
-  "enviado_aprovacao_amanda",
-  "aprovado_amanda",
-  "enviado_aprovacao_cliente",
-];
-
 /** Calendário de postagens de um único cliente — vive dentro do drawer de detalhe. */
 export default function ClientCalendar({
   clientId,
@@ -65,10 +58,6 @@ export default function ClientCalendar({
   const { entries, create, update, remove } = useCalendarEntries(clientId, monthStr);
   const { period, setStatus: setPeriodStatus, refresh: refreshPeriod } = useCalendarPeriod(clientId, year, month);
 
-  // Cronograma em qualquer etapa de aprovação (ou já finalizado) trava o mês
-  // inteiro — a checagem real é sempre no backend, isso aqui só evita abrir
-  // diálogos que vão ser recusados.
-  const locked = LOCKED_STATUSES.includes(period.status);
 
   function openCreateDialog(date: string) {
     setDialogDate(date);
@@ -143,8 +132,8 @@ export default function ClientCalendar({
           year={year}
           month={month}
           entries={entries}
-          canCreate={canCreate && !locked}
-          canEdit={canEdit && !locked}
+          canCreate={canCreate}
+          canEdit={canEdit}
           onCreateDate={openCreateDialog}
           onEditEntry={openEditDialog}
           onChangeMonth={onChangeMonth}
@@ -166,7 +155,7 @@ export default function ClientCalendar({
           clientId={clientId}
           defaultDate={dialogDate}
           entry={dialogEntry}
-          canDelete={canDelete && !locked}
+          canDelete={canDelete}
           onCreate={create}
           onUpdate={update}
           onRequestDelete={requestDelete}

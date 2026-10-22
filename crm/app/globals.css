@@ -59,6 +59,9 @@
   --input-bg: rgba(255, 255, 255, 0.04);
   --elev-card: 0 4px 12px 0 rgba(0, 0, 0, 0.35);
   --elev-menu: 0 2px 8px -2px rgba(0, 0, 0, 0.5), 0 6px 12px -2px rgba(0, 0, 0, 0.5);
+  --inset-highlight: rgba(255, 255, 255, 0.05);
+  --aurora-1: rgba(0, 200, 200, 0.10);
+  --aurora-2: rgba(10, 61, 77, 0.45);
 
   --surface-card: rgba(255, 255, 255, 0.02);
   --surface-input: rgba(255, 255, 255, 0.03);
@@ -100,6 +103,9 @@
   --accent-border: rgba(0, 169, 169, 0.4);
   --input-bg: #f4f6f8;
   --elev-card: 0 4px 12px 0 rgba(22, 24, 29, 0.06);
+  --inset-highlight: rgba(255, 255, 255, 0.8);
+  --aurora-1: rgba(0, 169, 169, 0.10);
+  --aurora-2: rgba(0, 169, 169, 0.05);
   --elev-menu: 0 2px 8px -2px rgba(22, 24, 29, 0.1), 0 6px 12px -2px rgba(22, 24, 29, 0.1);
 
   --surface-card: #FFFFFF;
@@ -139,6 +145,9 @@
   --input-bg: rgba(255, 255, 255, 0.04);
   --elev-card: 0 4px 12px 0 rgba(0, 0, 0, 0.35);
   --elev-menu: 0 2px 8px -2px rgba(0, 0, 0, 0.5), 0 6px 12px -2px rgba(0, 0, 0, 0.5);
+  --inset-highlight: rgba(255, 255, 255, 0.05);
+  --aurora-1: rgba(0, 200, 200, 0.10);
+  --aurora-2: rgba(10, 61, 77, 0.45);
 
   --surface-card: rgba(255, 255, 255, 0.02);
   --surface-input: rgba(255, 255, 255, 0.03);
@@ -307,5 +316,198 @@ body {
       "main main dest"
       "linha barras dest"
       "linha barras link";
+  }
+}
+
+
+/* --- Visual moderno: profundidade, brilho e movimento ------------------------------ */
+body {
+  background-image:
+    radial-gradient(900px 520px at 88% -8%, var(--aurora-1), transparent 62%),
+    radial-gradient(760px 460px at -6% 108%, var(--aurora-2), transparent 62%);
+  background-attachment: fixed;
+}
+
+/* Brilho interno de 1px no topo dos cards (efeito de vidro). */
+.glass-card {
+  box-shadow: var(--shadow-card), inset 0 1px 0 var(--inset-highlight);
+}
+
+/* Botões de ação (fundo ciano): brilho suave no hover. */
+button.bg-cyan,
+a.bg-cyan {
+  transition: box-shadow 0.2s ease, background-color 0.2s ease, transform 0.15s ease;
+}
+button.bg-cyan:hover:not(:disabled),
+a.bg-cyan:hover {
+  box-shadow: 0 0 22px color-mix(in srgb, var(--color-cyan) 40%, transparent);
+}
+button.bg-cyan:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+@keyframes shimmer {
+  from { background-position: -200% 0; }
+  to   { background-position: 200% 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, var(--surface-2) 25%, color-mix(in srgb, var(--surface-2) 60%, var(--text-faint)) 50%, var(--surface-2) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+@keyframes progressSlide {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(300%); }
+}
+.progress-bar {
+  animation: progressSlide 1.1s ease-in-out infinite;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+.animate-fade-up {
+  animation: fadeUp 0.22s ease-out both;
+}
+
+/* Ponto pulsante (prazo atrasado). */
+@keyframes pulseRing {
+  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 55%, transparent); }
+  70%  { box-shadow: 0 0 0 6px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+.pulse-dot {
+  display: inline-block;
+  height: 6px;
+  width: 6px;
+  border-radius: 9999px;
+  background: currentColor;
+  animation: pulseRing 1.6s ease-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton, .progress-bar, .animate-fade-up, .pulse-dot {
+    animation: none !important;
+  }
+}
+
+
+/* --- Tema Neon: escuro profundo, brilho ciano/magenta ------------------------------ */
+:root[data-theme="neon"] {
+  color-scheme: dark;
+  --native-scheme: dark;
+
+  --color-dark: #0a0b12;
+  --color-white: #ffffff;
+  --color-cyan: #22f5ff;
+  --color-cyan-dark: #00c2cc;
+  --color-danger: #ff5d7a;
+
+  --surface-card: rgba(18, 20, 36, 0.72);
+  --surface-input: rgba(255, 255, 255, 0.04);
+  --surface-input-focus: rgba(255, 255, 255, 0.07);
+  --border-subtle: rgba(120, 140, 255, 0.2);
+  --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(34, 245, 255, 0.05);
+
+  --surface: #12131f;
+  --surface-2: #1a1c2e;
+  --border: rgba(120, 140, 255, 0.2);
+  --border-hover: rgba(34, 245, 255, 0.4);
+  --text: #ffffff;
+  --text-muted: rgba(255, 255, 255, 0.68);
+  --text-faint: rgba(255, 255, 255, 0.44);
+  --accent: #22f5ff;
+  --accent-soft: rgba(34, 245, 255, 0.12);
+  --accent-border: rgba(34, 245, 255, 0.5);
+  --input-bg: rgba(255, 255, 255, 0.05);
+  --elev-card: 0 4px 18px 0 rgba(0, 0, 0, 0.5);
+  --elev-menu: 0 2px 8px -2px rgba(0, 0, 0, 0.6), 0 8px 24px -4px rgba(34, 245, 255, 0.12);
+  --inset-highlight: rgba(120, 160, 255, 0.14);
+  --aurora-1: rgba(255, 43, 214, 0.2);
+  --aurora-2: rgba(0, 110, 255, 0.28);
+}
+:root[data-theme="neon"] .glass-card {
+  border-color: rgba(120, 140, 255, 0.22);
+}
+:root[data-theme="neon"] button.bg-cyan:hover:not(:disabled),
+:root[data-theme="neon"] a.bg-cyan:hover {
+  box-shadow: 0 0 28px rgba(34, 245, 255, 0.55);
+}
+
+/* --- Troca de tema: o ThemeToggle anima o clip-path do snapshot novo ---------------- */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+::view-transition-old(root) {
+  z-index: 0;
+}
+::view-transition-new(root) {
+  z-index: 1;
+}
+
+/* --- Densidade: confortável (padrão) ou compacta ----------------------------------- */
+:root {
+  --pad-card: 0.75rem;
+  --gap-card: 0.5rem;
+}
+:root[data-density="compact"] {
+  --pad-card: 0.5rem;
+  --gap-card: 0.25rem;
+}
+:root[data-density="compact"] .post-cover {
+  display: none;
+}
+
+/* --- Drawer lateral ------------------------------------------------------------------ */
+@keyframes slideInRight {
+  from { opacity: 0.6; transform: translateX(32px); }
+  to   { opacity: 1; transform: none; }
+}
+.animate-slide-in-right {
+  animation: slideInRight 0.26s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-slide-in-right {
+    animation: none !important;
+  }
+}
+
+
+/* --- Entradas escalonadas e gráficos que crescem ----------------------------------- */
+/* Use com .animate-fade-up e style={{ "--i": n }}: cada item entra ~70ms depois do anterior. */
+.stagger {
+  animation-delay: calc(min(var(--i, 0), 24) * 70ms);
+}
+@keyframes growY {
+  from { transform: scaleY(0); }
+  to   { transform: scaleY(1); }
+}
+@keyframes growX {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.6); }
+  to   { opacity: 1; transform: none; }
+}
+.grow-y {
+  transform-box: fill-box;
+  transform-origin: bottom;
+  animation: growY 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.grow-x {
+  transform-origin: left;
+  animation: growX 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.pop-in {
+  animation: popIn 0.35s ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .stagger, .grow-y, .grow-x, .pop-in {
+    animation: none !important;
   }
 }

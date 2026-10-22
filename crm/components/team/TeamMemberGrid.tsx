@@ -19,7 +19,7 @@ export default function TeamMemberGrid({ members, canManage, onSelect, onAddClic
         <button
           type="button"
           onClick={onAddClick}
-          className="rounded-2xl border border-dashed border-white/15 min-h-[132px] flex items-center justify-center text-sm text-white/50 hover:border-cyan/50 hover:text-cyan transition-colors"
+          className="rounded-2xl border border-dashed border-border min-h-[132px] flex items-center justify-center text-sm text-text-muted hover:border-cyan/50 hover:text-cyan transition-colors"
         >
           + Novo membro
         </button>

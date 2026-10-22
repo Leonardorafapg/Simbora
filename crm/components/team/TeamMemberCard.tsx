@@ -16,14 +16,14 @@ export default function TeamMemberCard({ member, onClick }: Props) {
       <div className="flex items-start justify-between gap-2">
         <Avatar name={member.full_name} photoUrl={member.photo_url} />
         {!member.is_active && (
-          <span className="text-[10px] rounded-full border border-white/20 px-2 py-0.5 text-white/50">
+          <span className="text-[10px] rounded-full border border-border-hover px-2 py-0.5 text-text-muted">
             Inativo
           </span>
         )}
       </div>
 
       <div className="min-w-0">
-        <p className="font-semibold text-white truncate">{member.full_name}</p>
+        <p className="font-semibold text-text truncate">{member.full_name}</p>
         <p className="text-xs text-cyan truncate">{member.cargo}</p>
       </div>
     </button>
