@@ -3,14 +3,13 @@ import type { CalendarEntry, CalendarEntryStatus } from "@/types/calendar";
 import { CALENDAR_ENTRY_STATUS_LABELS } from "@/types/calendar";
 import type { Client } from "@/types/client";
 import type { InstagramPost } from "@/types/instagram";
-import type { TeamMember } from "@/types/team";
-import PostCard from "./PostCard";
+import PostCard, { type CardPerson } from "./PostCard";
 
 type Props = {
   status: CalendarEntryStatus;
   entries: CalendarEntry[];
   clients: Client[];
-  members: TeamMember[];
+  members: CardPerson[];
   canEdit: boolean;
   onSelect: (entry: CalendarEntry) => void;
   /** Agendamento do Instagram por id de postagem. */

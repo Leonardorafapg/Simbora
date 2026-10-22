@@ -9,6 +9,9 @@ import { POST_STATUS_CLASSES, formatBrt } from "@/lib/instagram";
 import type { InstagramPost } from "@/types/instagram";
 import { isImageUrl } from "@/lib/artwork";
 import type { TeamMember } from "@/types/team";
+
+/** Quem aparece no card: serve tanto o membro completo quanto a entrada do diretório (sem foto). */
+export type CardPerson = Pick<TeamMember, "id" | "full_name"> & { photo_url?: string | null };
 import { getInitials } from "@/lib/format";
 
 const IG_BADGE: Record<InstagramPost["status"], string> = {
@@ -31,8 +34,8 @@ function attachmentCount(entry: CalendarEntry): number {
 type ContentProps = {
   entry: CalendarEntry;
   client?: Client;
-  requester?: TeamMember;
-  assignee?: TeamMember;
+  requester?: CardPerson;
+  assignee?: CardPerson;
   onSelect?: (entry: CalendarEntry) => void;
   instagramPost?: InstagramPost;
 };
@@ -117,7 +120,7 @@ function PostCardContent({ entry, client, requester, assignee, onSelect, instagr
           {(requester || assignee) && (
             <span className="ml-auto flex -space-x-1.5">
               {[requester, assignee]
-                .filter((p, i, arr): p is TeamMember => !!p && arr.findIndex((q) => q?.id === p.id) === i)
+                .filter((p, i, arr): p is CardPerson => !!p && arr.findIndex((q) => q?.id === p.id) === i)
                 .map((person) => (
                   <span
                     key={person.id}
@@ -142,8 +145,8 @@ function PostCardContent({ entry, client, requester, assignee, onSelect, instagr
 type Props = {
   entry: CalendarEntry;
   client?: Client;
-  requester?: TeamMember;
-  assignee?: TeamMember;
+  requester?: CardPerson;
+  assignee?: CardPerson;
   canEdit: boolean;
   onSelect: (entry: CalendarEntry) => void;
   instagramPost?: InstagramPost;
