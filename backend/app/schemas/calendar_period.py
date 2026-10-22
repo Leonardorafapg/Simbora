@@ -117,3 +117,15 @@ class CalendarApprovalPublicOut(BaseModel):
     pdf_url: str | None
 
     model_config = {"from_attributes": True}
+
+
+class CalendarPeriodPendingOut(BaseModel):
+    """Um item da caixa de entrada de aprovações (tela central — ver routers/calendar_periods.py)."""
+
+    client_id: int
+    client_name: str
+    year: int
+    month: int
+    status: str
+    pdf_url: str | None
+    updated_at: str

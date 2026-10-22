@@ -19,6 +19,8 @@ type Props = {
   canSend: boolean;
   /** Pode decidir a etapa interna da Amanda. */
   canApprove: boolean;
+  /** PDF já gerado dessa rodada — mostra um link "Ver PDF" pra revisar antes de decidir. */
+  pdfUrl?: string | null;
   onChanged: () => void;
 };
 
@@ -37,6 +39,7 @@ export default function CalendarApprovalPanel({
   entries,
   canSend,
   canApprove,
+  pdfUrl,
   onChanged,
 }: Props) {
   const [working, setWorking] = useState(false);
@@ -109,6 +112,11 @@ export default function CalendarApprovalPanel({
     return (
       <div className="glass-card rounded-2xl px-4 py-3 space-y-3">
         <p className="text-sm text-white/70">Este mês está aguardando a sua aprovação.</p>
+        {pdfUrl && (
+          <a href={pdfUrl} target="_blank" rel="noreferrer" className="text-sm text-cyan underline">
+            Ver PDF do cronograma
+          </a>
+        )}
         {error && <p className="text-sm text-danger">{error}</p>}
         {!showReject ? (
           <div className="flex gap-3">

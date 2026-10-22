@@ -15,6 +15,7 @@ from app.schemas.calendar_period import (
     CalendarPeriodDecisaoCliente,
     CalendarPeriodEnviarAprovacao,
     CalendarPeriodOut,
+    CalendarPeriodPendingOut,
     CalendarPeriodSetStatus,
 )
 from app.services import calendar_approval
@@ -49,6 +50,42 @@ def _get_or_404(db: Session, client_id: int, year: int, month: int) -> CalendarP
     if period is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cronograma não encontrado")
     return period
+
+
+@router.get("/calendar-periods/pending-approval", response_model=list[CalendarPeriodPendingOut])
+async def listar_aprovacoes_pendentes(
+    db: Session = Depends(get_db),
+    _: User = Depends(require_permission("calendar.approve")),
+):
+    """
+    Caixa de entrada central: todo período que está em qualquer etapa da
+    cadeia de aprovação (ver docs/plano-aprovacao-calendario.md), pra não
+    precisar entrar cliente por cliente pra descobrir o que está pendente.
+    """
+    periods = (
+        db.query(CalendarPeriod)
+        .filter(CalendarPeriod.status.in_(["enviado_aprovacao_amanda", "enviado_aprovacao_cliente"]))
+        .order_by(CalendarPeriod.updated_at.desc())
+        .all()
+    )
+    if not periods:
+        return []
+
+    client_ids = {p.client_id for p in periods}
+    clients_by_id = {c.id: c for c in db.query(Client).filter(Client.id.in_(client_ids)).all()}
+
+    return [
+        CalendarPeriodPendingOut(
+            client_id=p.client_id,
+            client_name=clients_by_id[p.client_id].name if p.client_id in clients_by_id else "Cliente removido",
+            year=p.year,
+            month=p.month,
+            status=p.status,
+            pdf_url=p.pdf_url,
+            updated_at=p.updated_at.isoformat(),
+        )
+        for p in periods
+    ]
 
 
 @router.get("/calendar-periods", response_model=CalendarPeriodOut)
