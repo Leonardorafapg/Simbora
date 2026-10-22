@@ -53,3 +53,13 @@ def test_media_kind_for_upload():
     assert media_kind_for_upload("video/mp4") == "video"
     assert media_kind_for_upload("application/pdf") == "document"
     assert media_kind_for_upload("image/gif") == "document"
+
+
+def test_pick_group_name_prefers_subject_and_rejects_sender_names():
+    from app.services.whatsapp_format import pick_group_name
+
+    assert pick_group_name("Equipe MKT", "Maria", {"Maria"}) == "Equipe MKT"
+    # Nome da agenda igual ao de quem fala no grupo = é o último remetente, não o assunto.
+    assert pick_group_name(None, "Maria", {"Maria", "João"}) is None
+    assert pick_group_name(None, "Equipe MKT", {"Maria"}) == "Equipe MKT"
+    assert pick_group_name("  ", "120363@g.us", set()) is None

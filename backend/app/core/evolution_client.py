@@ -246,6 +246,17 @@ async def fetch_all_groups() -> list[dict[str, Any]]:
     return data if isinstance(data, list) else data.get("groups", [])
 
 
+async def find_group_info(group_jid: str) -> dict[str, Any]:
+    """Dados de UM grupo (`subject` = nome de verdade). Bem mais rápido que o
+    `fetchAllGroups`, serve pra completar os grupos que ele ainda não trouxe."""
+    instance = _instance_name()
+    response = await _request(
+        "GET", f"/group/findGroupInfos/{instance}", timeout=12.0, params={"groupJid": group_jid}
+    )
+    data = response.json()
+    return data if isinstance(data, dict) else {}
+
+
 async def find_labels() -> list[dict[str, Any]]:
     """Etiquetas do WhatsApp Business (id, name, color 0-19) — só o catálogo;
     quem tem cada etiqueta chega pelo webhook LABELS_ASSOCIATION."""

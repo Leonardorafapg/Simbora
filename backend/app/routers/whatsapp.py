@@ -45,6 +45,7 @@ from app.services.whatsapp_format import (
     media_kind_for_upload,
     message_preview,
     phone_from_jid,
+    pick_group_name,
 )
 
 logger = logging.getLogger("whatsapp_router")
@@ -75,7 +76,6 @@ async def _refresh_group_info() -> None:
             jid = group.get("id") or group.get("remoteJid") or ""
             if jid:
                 info[jid] = group
-        _group_info.clear()
         _group_info.update(info)
         _groups_next_refresh = time.monotonic() + _GROUPS_TTL_SECONDS
     except Exception as exc:
@@ -84,6 +84,41 @@ async def _refresh_group_info() -> None:
         detail = getattr(exc, "detail", None) or repr(exc)
         logger.warning("Não foi possível buscar grupos na Evolution (mantendo cache): %s", detail)
         _groups_next_refresh = time.monotonic() + _GROUPS_RETRY_SECONDS
+
+
+# Grupos que a consulta individual não achou: não tenta de novo antes disso.
+_GROUP_LOOKUP_RETRY_SECONDS = 120
+_group_lookup_retry_at: dict[str, float] = {}
+_GROUP_LOOKUP_MAX_PER_REQUEST = 40
+_GROUP_LOOKUP_BUDGET_SECONDS = 8.0
+
+
+async def _lookup_missing_groups(jids: list[str]) -> None:
+    """Completa o cache com os grupos que o `fetchAllGroups` (lento) ainda não trouxe,
+    um a um e em paralelo, com teto de tempo — a lista nunca fica presa nisso."""
+    now = time.monotonic()
+    pending = [
+        j for j in jids if j not in _group_info and _group_lookup_retry_at.get(j, 0) <= now
+    ][:_GROUP_LOOKUP_MAX_PER_REQUEST]
+    if not pending:
+        return
+    gate = asyncio.Semaphore(6)
+
+    async def one(jid: str) -> None:
+        async with gate:
+            try:
+                info = await evolution_client.find_group_info(jid)
+            except Exception:
+                info = {}
+        if info.get("subject"):
+            _group_info[jid] = info
+        else:
+            _group_lookup_retry_at[jid] = time.monotonic() + _GROUP_LOOKUP_RETRY_SECONDS
+
+    try:
+        await asyncio.wait_for(asyncio.gather(*(one(j) for j in pending)), timeout=_GROUP_LOOKUP_BUDGET_SECONDS)
+    except asyncio.TimeoutError:
+        logger.warning("Busca individual de grupos passou do tempo — o resto fica pra próxima.")
 
 
 def _group_info_snapshot() -> dict[str, dict]:
@@ -312,6 +347,10 @@ async def list_chats(
     }
     label_ids_by_jid = whatsapp_store.chat_label_ids(db)
     group_info = _group_info_snapshot()
+    group_jids = {j for j in [*db_by_jid, *raw_by_jid] if j.endswith("@g.us")}
+    await _lookup_missing_groups(sorted(group_jids))
+    group_info = {**group_info, **{j: _group_info[j] for j in group_jids if j in _group_info}}
+    sender_names = whatsapp_store.group_sender_names(db)
     matcher = _ClientMatcher(db.query(Client).filter(Client.is_active.is_(True)).all())
 
     def _contact_name(jid: str) -> str | None:
@@ -325,8 +364,15 @@ async def list_chats(
         contact = contact_by_jid.get(jid) or {}
         if chat.is_group:
             info = group_info.get(jid) or {}
+            # `chat.name` e o nome da agenda podem ser o de quem mandou a última mensagem —
+            # só entram se não forem o nome de alguém do grupo (ver pick_group_name).
             own_name = chat.name if chat.name and chat.name != jid else None
-            chat.name = info.get("subject") or _contact_name(jid) or own_name or jid
+            names = sender_names.get(jid, set())
+            chat.name = (
+                pick_group_name(info.get("subject"), _contact_name(jid), names)
+                or pick_group_name(None, own_name, names)
+                or jid
+            )
             chat.group_size = info.get("size")
             chat.group_description = info.get("desc")
             chat.profile_pic_url = chat.profile_pic_url or info.get("pictureUrl") or contact.get("profilePicUrl")

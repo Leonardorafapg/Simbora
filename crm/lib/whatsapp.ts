@@ -18,6 +18,14 @@ export function previewOf(message: Pick<WhatsAppMessage, "text" | "media_type">)
   return message.media_type ? (MEDIA_PREVIEW[message.media_type] ?? null) : null;
 }
 
+/** Nome a mostrar: nunca o JID cru (120363…@g.us, 4574…@lid). */
+export function chatTitle(chat: { name: string | null; remote_jid: string; is_group: boolean; phone?: string | null }): string {
+  const name = chat.name?.trim();
+  if (name && !name.includes("@")) return name;
+  if (chat.is_group) return "Grupo sem nome";
+  return chat.phone || "Contato sem número";
+}
+
 const sameDay = (a: Date, b: Date) =>
   a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 

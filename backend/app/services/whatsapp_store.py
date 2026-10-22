@@ -162,6 +162,24 @@ def list_chats(db: Session) -> list[dict[str, Any]]:
     return chats
 
 
+def group_sender_names(db: Session) -> dict[str, set[str]]:
+    """jid do grupo -> nomes (pushName) de quem já mandou mensagem nele."""
+    rows = (
+        db.query(WhatsAppMessage.remote_jid, WhatsAppMessage.sender_name)
+        .filter(
+            WhatsAppMessage.is_group.is_(True),
+            WhatsAppMessage.from_me.is_(False),
+            WhatsAppMessage.sender_name.is_not(None),
+        )
+        .distinct()
+        .all()
+    )
+    names: dict[str, set[str]] = {}
+    for jid, name in rows:
+        names.setdefault(jid, set()).add(name.strip())
+    return names
+
+
 def set_chat_label(db: Session, remote_jid: str, label_id: str, applied: bool) -> None:
     """Aplica/remove uma etiqueta numa conversa (idempotente nos dois sentidos)."""
     existing = (

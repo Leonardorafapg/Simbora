@@ -2,7 +2,7 @@
 
 import { Building2, Users } from "lucide-react";
 import Avatar from "@/components/ui/Avatar";
-import { formatChatTime } from "@/lib/whatsapp";
+import { chatTitle, formatChatTime } from "@/lib/whatsapp";
 import type { WhatsAppChat } from "@/types/whatsapp";
 import WhatsAppLabelChip from "@/components/whatsapp/WhatsAppLabelChip";
 
@@ -57,7 +57,7 @@ export default function WhatsAppChatList({ chats, loading, selectedJid, onSelect
               }`}
             >
               <div className="relative shrink-0">
-                <Avatar name={chat.name ?? chat.remote_jid} photoUrl={chat.profile_pic_url} size="sm" />
+                <Avatar name={chatTitle(chat)} photoUrl={chat.profile_pic_url} size="sm" />
                 {chat.is_group && (
                   <span className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full border border-border bg-surface">
                     <Users className="h-2.5 w-2.5 text-accent" />
@@ -68,7 +68,7 @@ export default function WhatsAppChatList({ chats, loading, selectedJid, onSelect
               <div className="min-w-0 flex-1">
                 <div className="flex items-baseline justify-between gap-2">
                   <p className={`truncate text-sm ${unread ? "font-semibold text-text" : "font-medium text-text"}`}>
-                    {chat.name ?? chat.remote_jid}
+                    {chatTitle(chat)}
                   </p>
                   <span className={`shrink-0 text-[11px] ${unread ? "font-semibold text-accent" : "text-text-faint"}`}>
                     {formatChatTime(chat.updated_at)}

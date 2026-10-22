@@ -6,7 +6,7 @@ import Avatar from "@/components/ui/Avatar";
 import WhatsAppLabelChip from "@/components/whatsapp/WhatsAppLabelChip";
 import WhatsAppMessageBubble from "@/components/whatsapp/WhatsAppMessageBubble";
 import WhatsAppComposer from "@/components/whatsapp/WhatsAppComposer";
-import { buildRows } from "@/lib/whatsapp";
+import { buildRows, chatTitle } from "@/lib/whatsapp";
 import type { WhatsAppChat, WhatsAppMessage } from "@/types/whatsapp";
 
 const TYPING_PRESENCE_LABELS: Record<string, string> = {
@@ -99,7 +99,7 @@ export default function WhatsAppChatWindow({ chat, messages, loading, typingPres
           <ArrowLeft className="h-5 w-5" />
         </button>
         <div className="relative shrink-0">
-          <Avatar name={chat.name ?? chat.remote_jid} photoUrl={chat.profile_pic_url} size="sm" />
+          <Avatar name={chatTitle(chat)} photoUrl={chat.profile_pic_url} size="sm" />
           {chat.is_group && (
             <span className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full border border-border bg-surface">
               <Users className="h-2.5 w-2.5 text-accent" />
@@ -107,7 +107,7 @@ export default function WhatsAppChatWindow({ chat, messages, loading, typingPres
           )}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-text">{chat.name ?? chat.remote_jid}</p>
+          <p className="truncate text-sm font-semibold text-text">{chatTitle(chat)}</p>
           {typingPresence && TYPING_PRESENCE_LABELS[typingPresence] ? (
             <p className="text-xs text-accent">{TYPING_PRESENCE_LABELS[typingPresence]}</p>
           ) : (

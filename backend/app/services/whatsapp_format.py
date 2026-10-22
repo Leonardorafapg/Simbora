@@ -74,3 +74,15 @@ def extract_media(message: dict) -> tuple[str | None, str | None, str | None]:
         if isinstance(payload, dict):
             return media_type, payload.get("mimetype"), payload.get("fileName")
     return None, None, None
+
+
+def pick_group_name(subject: str | None, contact_name: str | None, sender_names: set[str]) -> str | None:
+    """Nome do grupo: o `subject` do WhatsApp manda. O nome vindo da agenda só vale
+    se NÃO for o de alguém que fala no grupo — a Evolution às vezes devolve ali o
+    pushName de quem mandou a última mensagem, não o assunto do grupo."""
+    if subject and subject.strip():
+        return subject.strip()
+    candidate = (contact_name or "").strip()
+    if candidate and "@" not in candidate and candidate not in sender_names:
+        return candidate
+    return None

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { buildRows, formatChatTime, formatFileSize, previewOf, senderColor, toDate, upsertMessage } from "../lib/whatsapp.ts";
+import { buildRows, chatTitle, formatChatTime, formatFileSize, previewOf, senderColor, toDate, upsertMessage } from "../lib/whatsapp.ts";
 import type { WhatsAppMessage } from "../types/whatsapp.ts";
 
 const msg = (over: Partial<WhatsAppMessage>): WhatsAppMessage => ({
@@ -67,4 +67,11 @@ test("buildRows: intervalo grande quebra o grupo", () => {
 
 test("senderColor é estável", () => {
   assert.equal(senderColor("Ana"), senderColor("Ana"));
+});
+
+test("chatTitle nunca devolve o JID cru", () => {
+  assert.equal(chatTitle({ name: "120363@g.us", remote_jid: "120363@g.us", is_group: true }), "Grupo sem nome");
+  assert.equal(chatTitle({ name: null, remote_jid: "45@lid", is_group: false }), "Contato sem número");
+  assert.equal(chatTitle({ name: null, remote_jid: "55@s.whatsapp.net", is_group: false, phone: "+55 16 3523-0764" }), "+55 16 3523-0764");
+  assert.equal(chatTitle({ name: "Equipe MKT", remote_jid: "1@g.us", is_group: true }), "Equipe MKT");
 });
