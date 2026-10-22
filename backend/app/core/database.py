@@ -109,6 +109,7 @@ def run_light_migrations():
             conn.commit()
         add_column_if_missing(conn, "whatsapp_messages", "media_type", "media_type VARCHAR(20)")
         add_column_if_missing(conn, "whatsapp_messages", "media_mimetype", "media_mimetype VARCHAR(100)")
+        add_column_if_missing(conn, "whatsapp_messages", "media_filename", "media_filename VARCHAR(255)")
         add_column_if_missing(conn, "clients", "photo_url", "photo_url VARCHAR(500)")
         add_column_if_missing(conn, "calendar_periods", "pdf_url", "pdf_url VARCHAR(500)")
         if inspector.has_table("calendar_periods") and not IS_SQLITE:

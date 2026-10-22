@@ -1,110 +1,21 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { Download, FileText, Send } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ArrowDown, ArrowLeft, Building2, Paperclip, Users } from "lucide-react";
 import Avatar from "@/components/ui/Avatar";
 import WhatsAppLabelChip from "@/components/whatsapp/WhatsAppLabelChip";
-import { mediaUrl, sendMessage, sendTyping } from "@/services/client/whatsappApi";
+import WhatsAppMessageBubble from "@/components/whatsapp/WhatsAppMessageBubble";
+import WhatsAppComposer from "@/components/whatsapp/WhatsAppComposer";
+import { buildRows } from "@/lib/whatsapp";
 import type { WhatsAppChat, WhatsAppMessage } from "@/types/whatsapp";
-
-function MessageMedia({ chat, message }: { chat: WhatsAppChat; message: WhatsAppMessage }) {
-  if (!message.media_type || !message.id) return null;
-  const src = mediaUrl(chat.remote_jid, message.id);
-
-  switch (message.media_type) {
-    case "image":
-      return (
-        <div className="relative group">
-          {/* eslint-disable-next-line @next/next/no-img-element -- mídia decodificada sob demanda no backend, sem loader configurado */}
-          <img
-            src={src}
-            alt={message.text || "Imagem"}
-            className="max-w-full max-h-72 rounded-lg object-cover cursor-pointer"
-            onClick={() => window.open(src, "_blank")}
-          />
-          <a
-            href={mediaUrl(chat.remote_jid, message.id, true)}
-            className="absolute top-1.5 right-1.5 h-7 w-7 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-            title="Baixar imagem"
-          >
-            <Download className="h-3.5 w-3.5 text-text" />
-          </a>
-        </div>
-      );
-    case "video":
-      return (
-        <div className="relative group">
-          <video src={src} controls className="max-w-full max-h-72 rounded-lg" />
-          <a
-            href={mediaUrl(chat.remote_jid, message.id, true)}
-            className="absolute top-1.5 right-1.5 h-7 w-7 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-            title="Baixar vídeo"
-          >
-            <Download className="h-3.5 w-3.5 text-text" />
-          </a>
-        </div>
-      );
-    case "audio":
-      return <audio src={src} controls className="max-w-[240px]" />;
-    case "document":
-      return (
-        <a
-          href={mediaUrl(chat.remote_jid, message.id, true)}
-          className="flex items-center gap-2 rounded-lg bg-black/20 px-3 py-2 hover:bg-black/30 transition-colors"
-        >
-          <FileText className="h-5 w-5 shrink-0 text-cyan" />
-          <span className="text-sm truncate flex-1">{message.text || "Documento"}</span>
-          <Download className="h-4 w-4 shrink-0 text-text-muted" />
-        </a>
-      );
-    default:
-      return null;
-  }
-}
 
 const TYPING_PRESENCE_LABELS: Record<string, string> = {
   digitando: "digitando...",
   gravando_audio: "gravando áudio...",
 };
 
-// Não manda um evento por tecla — só no máximo 1 a cada 3s enquanto a pessoa
-// continua digitando (a Evolution já expira o indicador sozinha do lado do
-// contato depois de alguns segundos, então reforçar é o suficiente).
-const TYPING_THROTTLE_MS = 3000;
-
-/** "Hoje" / "Ontem" / "23 de agosto de 2026" — mesmo critério do WhatsApp. */
-function formatDayLabel(date: Date): string {
-  const today = new Date();
-  const yesterday = new Date();
-  yesterday.setDate(today.getDate() - 1);
-
-  const sameDay = (a: Date, b: Date) =>
-    a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
-
-  if (sameDay(date, today)) return "Hoje";
-  if (sameDay(date, yesterday)) return "Ontem";
-  return date.toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric" });
-}
-
-type MessageRow = { type: "message"; message: WhatsAppMessage } | { type: "day"; label: string };
-
-/** Insere um separador de dia antes do primeiro item de cada data — as
- * mensagens já chegam em ordem cronológica (ver evolution_client.find_messages). */
-function groupByDay(messages: WhatsAppMessage[]): MessageRow[] {
-  const rows: MessageRow[] = [];
-  let lastLabel: string | null = null;
-
-  for (const message of messages) {
-    const label = message.timestamp ? formatDayLabel(new Date(message.timestamp * 1000)) : null;
-    if (label && label !== lastLabel) {
-      rows.push({ type: "day", label });
-      lastLabel = label;
-    }
-    rows.push({ type: "message", message });
-  }
-
-  return rows;
-}
+// Distância do fim a partir da qual a conversa não "gruda" mais no fim ao chegar mensagem nova.
+const STICK_TO_BOTTOM_PX = 140;
 
 type Props = {
   chat: WhatsAppChat;
@@ -113,155 +24,168 @@ type Props = {
   /** "digitando" | "gravando_audio" | null — vem do webhook via WebSocket. */
   typingPresence?: string | null;
   onMessageSent: (message: WhatsAppMessage) => void;
+  /** Volta pra lista (só aparece no mobile). */
+  onBack: () => void;
 };
 
-export default function WhatsAppChatWindow({ chat, messages, loading, typingPresence, onMessageSent }: Props) {
-  const [text, setText] = useState("");
-  const [sending, setSending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const lastTypingSentAt = useRef(0);
+export default function WhatsAppChatWindow({ chat, messages, loading, typingPresence, onMessageSent, onBack }: Props) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const stickToBottom = useRef(true);
+  const dragDepth = useRef(0);
+  const [showJump, setShowJump] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const [droppedFile, setDroppedFile] = useState<File | null>(null);
+
+  const rows = useMemo(() => buildRows(messages), [messages]);
+
+  // Conversa nova abre no fim; mensagem nova só puxa pro fim se a pessoa já estava lá embaixo
+  // (ou se a mensagem é dela) — senão atrapalha quem está lendo o histórico.
+  useEffect(() => {
+    stickToBottom.current = true;
+  }, [chat.remote_jid]);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ block: "end" });
-  }, [messages, chat.remote_jid]);
+    const el = scrollRef.current;
+    if (!el) return;
+    const last = messages[messages.length - 1];
+    if (stickToBottom.current || last?.from_me) el.scrollTo({ top: el.scrollHeight });
+  }, [messages, chat.remote_jid, loading]);
 
-  function handleTextChange(value: string) {
-    setText(value);
-    const now = Date.now();
-    if (value.trim() && now - lastTypingSentAt.current > TYPING_THROTTLE_MS) {
-      lastTypingSentAt.current = now;
-      sendTyping(chat.remote_jid, "composing");
-    }
+  function handleScroll() {
+    const el = scrollRef.current;
+    if (!el) return;
+    const distance = el.scrollHeight - el.scrollTop - el.clientHeight;
+    stickToBottom.current = distance < STICK_TO_BOTTOM_PX;
+    setShowJump(distance > 400);
   }
 
-  async function handleSend() {
-    const trimmed = text.trim();
-    if (!trimmed || sending) return;
-
-    setSending(true);
-    setError(null);
-
-    try {
-      const message = await sendMessage(chat.remote_jid, trimmed);
-      onMessageSent(message);
-      setText("");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Não foi possível enviar a mensagem.");
-    } finally {
-      setSending(false);
-      // Clicar no ícone de enviar tira o foco da caixa de texto — devolve pra
-      // continuar digitando a próxima mensagem sem precisar clicar de novo.
-      inputRef.current?.focus();
-    }
-  }
+  const subtitle = [
+    chat.is_group ? (chat.group_size ? `Grupo · ${chat.group_size} participantes` : "Grupo") : chat.phone,
+    chat.client_name && `Cliente: ${chat.client_name}${chat.client_linked ? "" : " (pelo nome)"}`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
-    <div className="flex flex-col flex-1 min-w-0 min-h-0">
-      <div className="shrink-0 flex items-center gap-3 px-4 py-3 border-b border-border">
-        <Avatar name={chat.name ?? chat.remote_jid} photoUrl={chat.profile_pic_url} size="sm" />
+    <div
+      className="relative flex min-h-0 min-w-0 flex-1 flex-col"
+      onDragEnter={(e) => {
+        if (!e.dataTransfer.types.includes("Files")) return;
+        dragDepth.current += 1;
+        setDragging(true);
+      }}
+      onDragOver={(e) => {
+        if (e.dataTransfer.types.includes("Files")) e.preventDefault();
+      }}
+      onDragLeave={() => {
+        dragDepth.current = Math.max(0, dragDepth.current - 1);
+        if (dragDepth.current === 0) setDragging(false);
+      }}
+      onDrop={(e) => {
+        e.preventDefault();
+        dragDepth.current = 0;
+        setDragging(false);
+        const file = e.dataTransfer.files?.[0];
+        if (file) setDroppedFile(file);
+      }}
+    >
+      <header className="flex shrink-0 items-center gap-3 border-b border-border bg-surface px-3 py-2.5 sm:px-4">
+        <button
+          type="button"
+          onClick={onBack}
+          aria-label="Voltar para as conversas"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-text-muted transition-colors hover:bg-surface-2 hover:text-text md:hidden"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </button>
+        <div className="relative shrink-0">
+          <Avatar name={chat.name ?? chat.remote_jid} photoUrl={chat.profile_pic_url} size="sm" />
+          {chat.is_group && (
+            <span className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full border border-border bg-surface">
+              <Users className="h-2.5 w-2.5 text-accent" />
+            </span>
+          )}
+        </div>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium text-text truncate">{chat.name ?? chat.remote_jid}</p>
+          <p className="truncate text-sm font-semibold text-text">{chat.name ?? chat.remote_jid}</p>
           {typingPresence && TYPING_PRESENCE_LABELS[typingPresence] ? (
-            <p className="text-xs text-cyan">{TYPING_PRESENCE_LABELS[typingPresence]}</p>
+            <p className="text-xs text-accent">{TYPING_PRESENCE_LABELS[typingPresence]}</p>
           ) : (
-            <p className="text-xs text-text-faint truncate" title={chat.group_description ?? undefined}>
-              {[
-                chat.is_group ? (chat.group_size ? `Grupo · ${chat.group_size} participantes` : "Grupo") : chat.phone,
-                chat.client_name && `Cliente: ${chat.client_name}${chat.client_linked ? "" : " (pelo nome)"}`,
-              ]
-                .filter(Boolean)
-                .join(" · ")}
+            <p className="flex items-center gap-1 truncate text-xs text-text-faint" title={chat.group_description ?? undefined}>
+              {chat.client_name && <Building2 className="h-3 w-3 shrink-0" />}
+              <span className="truncate">{subtitle}</span>
             </p>
           )}
         </div>
         {chat.labels.length > 0 && (
-          <div className="hidden sm:flex shrink-0 flex-wrap justify-end gap-1 max-w-[50%]">
+          <div className="hidden max-w-[45%] shrink-0 flex-wrap justify-end gap-1 lg:flex">
             {chat.labels.map((label) => (
               <WhatsAppLabelChip key={label.id} label={label} />
             ))}
           </div>
         )}
-      </div>
+      </header>
 
-      <div className="flex-1 min-h-0 overflow-y-auto p-4 flex flex-col gap-2">
-        {loading && (
-          <div className="flex flex-col gap-2">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div
-                key={i}
-                className={`h-10 rounded-2xl bg-surface-2 animate-pulse ${i % 2 === 0 ? "w-2/3 self-start" : "w-1/2 self-end"}`}
-              />
-            ))}
-          </div>
-        )}
-
-        {!loading && messages.length === 0 && (
-          <p className="text-sm text-text-faint text-center mt-8">Nenhuma mensagem ainda.</p>
-        )}
-
-        {!loading &&
-          groupByDay(messages).map((row, index) =>
-            row.type === "day" ? (
-              <div key={`day-${index}`} className="self-center my-2 px-3 py-1 rounded-full bg-surface-2 text-xs text-text-muted">
-                {row.label}
-              </div>
-            ) : (
-              <div
-                key={row.message.id ?? index}
-                className={`max-w-[70%] rounded-2xl px-3 py-2 text-sm ${
-                  row.message.from_me ? "self-end bg-cyan/20 text-text" : "self-start bg-surface-2 text-text"
-                }`}
-              >
-                {chat.is_group && !row.message.from_me && row.message.sender_name && (
-                  <p className="text-xs font-medium text-cyan mb-0.5">{row.message.sender_name}</p>
-                )}
-
-                {row.message.media_type && (
-                  <div className="mb-1">
-                    <MessageMedia chat={chat} message={row.message} />
-                  </div>
-                )}
-
-                {row.message.media_type === "image" || row.message.media_type === "video" ? (
-                  row.message.text && <p className="mt-1">{row.message.text}</p>
-                ) : row.message.media_type === "document" ? null : (
-                  row.message.text ?? <span className="italic text-text-faint">Mensagem sem texto</span>
-                )}
-              </div>
-            ),
+      <div className="relative min-h-0 flex-1">
+        <div
+          ref={scrollRef}
+          onScroll={handleScroll}
+          className="h-full overflow-y-auto bg-surface-2/40 px-3 py-4 [background-image:radial-gradient(var(--border)_1px,transparent_1px)] [background-size:20px_20px] sm:px-6"
+        >
+          {loading && (
+            <div className="flex flex-col gap-2">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div
+                  key={i}
+                  className={`h-10 animate-pulse rounded-2xl bg-surface ${i % 2 === 0 ? "w-2/3 self-start" : "w-1/2 self-end"}`}
+                />
+              ))}
+            </div>
           )}
 
-        <div ref={bottomRef} />
-      </div>
+          {!loading && messages.length === 0 && (
+            <p className="mt-10 text-center text-sm text-text-faint">Nenhuma mensagem ainda. Envie a primeira!</p>
+          )}
 
-      <div className="shrink-0 p-3 border-t border-border">
-        {error && <p className="text-xs text-danger mb-2">{error}</p>}
-        <div className="flex items-center gap-2">
-          <input
-            ref={inputRef}
-            value={text}
-            onChange={(e) => handleTextChange(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                handleSend();
-              }
-            }}
-            placeholder="Digite uma mensagem..."
-            className="glass-input rounded-lg px-3 py-2 text-sm outline-none flex-1"
-          />
+          {!loading &&
+            rows.map((row) =>
+              row.type === "day" ? (
+                <div key={row.key} className="sticky top-0 z-10 my-3 flex justify-center">
+                  <span className="rounded-full bg-surface px-3 py-1 text-[11px] font-medium text-text-muted shadow-sm ring-1 ring-border">
+                    {row.label}
+                  </span>
+                </div>
+              ) : (
+                <WhatsAppMessageBubble key={row.key} chat={chat} message={row.message} first={row.first} last={row.last} />
+              ),
+            )}
+        </div>
+
+        {showJump && (
           <button
             type="button"
-            onClick={handleSend}
-            disabled={sending || !text.trim()}
-            className="h-9 w-9 shrink-0 rounded-lg bg-cyan text-black flex items-center justify-center hover:bg-cyan-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={() => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })}
+            aria-label="Ir para a última mensagem"
+            className="absolute bottom-4 right-4 flex h-9 w-9 items-center justify-center rounded-full bg-surface text-text-muted shadow-md ring-1 ring-border transition-colors hover:text-text"
           >
-            <Send className="h-4 w-4" />
+            <ArrowDown className="h-4 w-4" />
           </button>
-        </div>
+        )}
       </div>
+
+      <WhatsAppComposer
+        remoteJid={chat.remote_jid}
+        onSent={onMessageSent}
+        droppedFile={droppedFile}
+        onDroppedFileHandled={() => setDroppedFile(null)}
+      />
+
+      {dragging && (
+        <div className="pointer-events-none absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 border-2 border-dashed border-accent bg-surface/85 text-accent backdrop-blur-sm">
+          <Paperclip className="h-8 w-8" />
+          <p className="text-sm font-medium">Solte para anexar</p>
+        </div>
+      )}
     </div>
   );
 }

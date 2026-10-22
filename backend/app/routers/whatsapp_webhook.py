@@ -15,6 +15,7 @@ from app.core.config import settings
 from app.core.database import SessionLocal
 from app.core.ws_manager import manager as ws_manager
 from app.services import whatsapp_store
+from app.services.whatsapp_format import extract_media
 
 logger = logging.getLogger("whatsapp_webhook")
 
@@ -46,31 +47,13 @@ def _extract_text(message: dict[str, Any]) -> str | None:
     )
 
 
-# Chave da mensagem (Baileys) -> (tipo pra UI, chave do mimetype dentro dela).
-_MEDIA_KEYS = {
-    "imageMessage": "image",
-    "videoMessage": "video",
-    "audioMessage": "audio",
-    "documentMessage": "document",
-}
-
-
-def _extract_media(message: dict[str, Any]) -> tuple[str | None, str | None]:
-    """(media_type, mimetype) da mensagem, ou (None, None) se for só texto."""
-    for key, media_type in _MEDIA_KEYS.items():
-        payload = message.get(key)
-        if isinstance(payload, dict):
-            return media_type, payload.get("mimetype")
-    return None, None
-
-
 async def _handle_messages_upsert(db: Session, data: dict[str, Any]) -> None:
     key = data.get("key") or {}
     remote_jid = key.get("remoteJid") or ""
     if not remote_jid:
         return
 
-    media_type, media_mimetype = _extract_media(data.get("message") or {})
+    media_type, media_mimetype, media_filename = extract_media(data.get("message") or {})
 
     message = whatsapp_store.save_message(
         db,
@@ -84,6 +67,7 @@ async def _handle_messages_upsert(db: Session, data: dict[str, Any]) -> None:
         timestamp=data.get("messageTimestamp") or 0,
         media_type=media_type,
         media_mimetype=media_mimetype,
+        media_filename=media_filename,
     )
     if message is None:
         return  # já existia (dedup) — nosso próprio envio ecoando de volta
@@ -99,6 +83,7 @@ async def _handle_messages_upsert(db: Session, data: dict[str, Any]) -> None:
             "sender_name": message.sender_name,
             "media_type": message.media_type,
             "media_mimetype": message.media_mimetype,
+            "media_filename": message.media_filename,
         },
     })
 

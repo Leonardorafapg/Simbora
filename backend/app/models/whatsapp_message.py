@@ -28,6 +28,8 @@ class WhatsAppMessage(Base):
     # na Evolution (ver evolution_client.get_media_base64), não duplicado no banco.
     media_type: Mapped[str | None] = mapped_column(String(20), nullable=True)
     media_mimetype: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    # Nome original do arquivo (documentos) — pra mostrar "Contrato.pdf" em vez de "Documento".
+    media_filename: Mapped[str | None] = mapped_column(String(255), nullable=True)
     # pushName de quem mandou — só relevante em grupo (ver WhatsAppChatWindow).
     sender_name: Mapped[str | None] = mapped_column(String(150), nullable=True)
     is_group: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)

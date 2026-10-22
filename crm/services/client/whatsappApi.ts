@@ -59,3 +59,13 @@ export async function sendMessage(remoteJid: string, text: string): Promise<What
   if (!res.ok) throw new Error(await parseErrorMessage(res, "Não foi possível enviar a mensagem."));
   return res.json();
 }
+
+/** Envia imagem, vídeo ou documento (qualquer arquivo) com legenda opcional. */
+export async function sendMedia(remoteJid: string, file: File, caption = ""): Promise<WhatsAppMessage> {
+  const form = new FormData();
+  form.append("file", file);
+  if (caption.trim()) form.append("caption", caption.trim());
+  const res = await fetch(`/api/whatsapp/chats/${encodeURIComponent(remoteJid)}/media`, { method: "POST", body: form });
+  if (!res.ok) throw new Error(await parseErrorMessage(res, "Não foi possível enviar o arquivo."));
+  return res.json();
+}

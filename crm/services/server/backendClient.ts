@@ -87,3 +87,15 @@ export async function proxyJson(res: Response, fallback: string, successStatus =
 
   return NextResponse.json(data, { status: successStatus });
 }
+
+/** Igual ao `backendFetch`, mas pra multipart: sem Content-Type fixo (o boundary vem do FormData). */
+export async function backendFetchForm(path: string, form: FormData, timeoutMs = 60_000) {
+  const cookieStore = await cookies();
+  const token = cookieStore.get(AUTH_COOKIE)?.value;
+
+  return safeFetch(
+    buildUrl(path),
+    { method: "POST", body: form, headers: token ? { Authorization: `Bearer ${token}` } : {} },
+    timeoutMs,
+  );
+}

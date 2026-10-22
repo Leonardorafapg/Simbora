@@ -4,8 +4,21 @@ import logging
 import re
 import time
 import unicodedata
+from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, WebSocket, WebSocketDisconnect, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    Query,
+    Response,
+    UploadFile,
+    WebSocket,
+    WebSocketDisconnect,
+    status,
+)
 from sqlalchemy.orm import Session
 
 from app.core import evolution_client
@@ -26,6 +39,13 @@ from app.schemas.whatsapp import (
     WhatsAppStatus,
 )
 from app.services import whatsapp_store
+from app.services.whatsapp_format import (
+    display_name,
+    extract_media,
+    media_kind_for_upload,
+    message_preview,
+    phone_from_jid,
+)
 
 logger = logging.getLogger("whatsapp_router")
 
@@ -114,14 +134,6 @@ class _ClientMatcher:
         return None, False
 
 
-def _phone_from_jid(jid: str) -> str | None:
-    if not jid.endswith("@s.whatsapp.net"):
-        return None
-    number = jid.split("@", 1)[0]
-    # "0@s.whatsapp.net" e afins são contas de sistema, não telefone.
-    return f"+{number}" if number.isdigit() and len(number) >= 8 else None
-
-
 async def _safe(coro, what: str) -> list[dict]:
     try:
         return await coro
@@ -151,26 +163,8 @@ def _message_out(message) -> WhatsAppMessage:
         sender_name=message.sender_name,
         media_type=message.media_type,
         media_mimetype=message.media_mimetype,
+        media_filename=message.media_filename,
     )
-
-
-# Chave da mensagem (Baileys) -> tipo de mídia pra UI — mesmo mapeamento do
-# webhook (routers/whatsapp_webhook.py), duplicado aqui de propósito: módulos
-# não têm motivo pra depender um do outro só por causa disso.
-_MEDIA_KEYS = {
-    "imageMessage": "image",
-    "videoMessage": "video",
-    "audioMessage": "audio",
-    "documentMessage": "document",
-}
-
-
-def _extract_media(message: dict) -> tuple[str | None, str | None]:
-    for key, media_type in _MEDIA_KEYS.items():
-        payload = message.get(key)
-        if isinstance(payload, dict):
-            return media_type, payload.get("mimetype")
-    return None, None
 
 
 def _resolve_chat_name(raw: dict, is_group: bool, remote_jid: str) -> str:
@@ -196,6 +190,7 @@ def _map_chat_from_evolution(raw: dict) -> WhatsAppChat:
             or (message.get("extendedTextMessage") or {}).get("text")
             or last_message_raw.get("body")
         )
+        last_message_text = message_preview(last_message_text, extract_media(message)[0])
 
     return WhatsAppChat(
         remote_jid=remote_jid,
@@ -218,7 +213,7 @@ def _map_message_from_evolution(raw: dict) -> WhatsAppMessage:
         or (message.get("videoMessage") or {}).get("caption")
         or (message.get("documentMessage") or {}).get("caption")
     )
-    media_type, media_mimetype = _extract_media(message)
+    media_type, media_mimetype, media_filename = extract_media(message)
     return WhatsAppMessage(
         id=key.get("id"),
         remote_jid=key.get("remoteJid", ""),
@@ -228,6 +223,7 @@ def _map_message_from_evolution(raw: dict) -> WhatsAppMessage:
         sender_name=raw.get("pushName"),
         media_type=media_type,
         media_mimetype=media_mimetype,
+        media_filename=media_filename,
     )
 
 
@@ -337,10 +333,9 @@ async def list_chats(
         else:
             if not chat.name or chat.name == jid:
                 chat.name = _contact_name(jid) or jid
-            chat.phone = _phone_from_jid(jid)
-            if chat.name == jid and chat.phone:
-                chat.name = chat.phone
+            chat.phone = phone_from_jid(jid)
             chat.profile_pic_url = chat.profile_pic_url or contact.get("profilePicUrl")
+        chat.name = display_name(jid, chat.name, is_group=chat.is_group, phone=chat.phone)
         chat.labels = [label_by_id[i] for i in label_ids_by_jid.get(jid, []) if i in label_by_id]
         client, linked = matcher.match(jid, chat.name)
         if client:
@@ -359,6 +354,7 @@ async def list_chats(
                     name=None if chat["is_group"] else chat["name"],
                     is_group=chat["is_group"],
                     last_message=chat["last_message"],
+                    last_from_me=chat["last_from_me"],
                     unread_count=chat["unread_count"],
                     profile_pic_url=raw.get("profilePicUrl") or raw.get("profile_pic_url"),
                     updated_at=str(chat["updated_at"]) if chat["updated_at"] else None,
@@ -426,6 +422,7 @@ async def get_messages(
                 timestamp=raw.get("messageTimestamp") or 0,
                 media_type=mapped.media_type,
                 media_mimetype=mapped.media_mimetype,
+                media_filename=mapped.media_filename,
             )
         messages = whatsapp_store.list_messages(db, remote_jid, limit=limit)
 
@@ -471,7 +468,8 @@ async def get_message_media(
     headers = {}
     if download:
         ext = mimetype.split("/")[-1].split(";")[0]
-        headers["Content-Disposition"] = f'attachment; filename="whatsapp-{message_id}.{ext}"'
+        name = message.media_filename or f"whatsapp-{message_id}.{ext}"
+        headers["Content-Disposition"] = "attachment; filename*=UTF-8''" + quote(name)
 
     return Response(content=content, media_type=mimetype, headers=headers)
 
@@ -507,6 +505,68 @@ async def send_message(
     else:
         out = _message_out(message)
         await ws_manager.broadcast({"type": "whatsapp_message", "message": out.model_dump()})
+    return out
+
+
+# WhatsApp aceita até ~100 MB, mas o arquivo passa em base64 pela Evolution — 25 MB
+# cobre PDF/imagem/vídeo curto sem estourar timeout nem memória.
+MAX_UPLOAD_BYTES = 25 * 1024 * 1024
+
+
+@router.post("/whatsapp/chats/{remote_jid}/media", response_model=WhatsAppMessage)
+async def send_media(
+    remote_jid: str,
+    file: UploadFile = File(...),
+    caption: str = Form(default=""),
+    db: Session = Depends(get_db),
+    _: User = Depends(require_permission("whatsapp.send")),
+):
+    """Envia imagem, vídeo ou documento (qualquer outro tipo) com legenda opcional."""
+    content = await file.read(MAX_UPLOAD_BYTES + 1)
+    if not content:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="O arquivo está vazio.")
+    if len(content) > MAX_UPLOAD_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE, detail="Arquivo grande demais (máximo 25 MB)."
+        )
+
+    mimetype = file.content_type or "application/octet-stream"
+    file_name = (file.filename or "arquivo").strip()[:255] or "arquivo"
+    media_kind = media_kind_for_upload(mimetype)
+    caption = caption.strip()
+
+    result = await evolution_client.send_media_base64(
+        remote_jid,
+        media_kind=media_kind,
+        base64_data=base64.b64encode(content).decode(),
+        mimetype=mimetype,
+        file_name=file_name,
+        caption=caption,
+    )
+    key = result.get("key") or {}
+
+    message = whatsapp_store.save_message(
+        db,
+        message_id=key.get("id"),
+        remote_jid=key.get("remoteJid") or remote_jid,
+        from_me=True,
+        text=caption or None,
+        sender_name=None,
+        is_group=remote_jid.endswith("@g.us"),
+        status="enviada",
+        timestamp=result.get("messageTimestamp") or int(time.time()),
+        media_type=media_kind,
+        media_mimetype=mimetype,
+        media_filename=file_name,
+    )
+    if message is None:
+        return WhatsAppMessage(
+            id=key.get("id"), remote_jid=remote_jid, from_me=True, text=caption or None,
+            timestamp=result.get("messageTimestamp"), media_type=media_kind,
+            media_mimetype=mimetype, media_filename=file_name,
+        )
+    out = _message_out(message)
+    await ws_manager.broadcast({"type": "whatsapp_message", "message": out.model_dump()})
     return out
 
 

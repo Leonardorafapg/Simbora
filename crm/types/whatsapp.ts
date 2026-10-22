@@ -22,6 +22,8 @@ export type WhatsAppChat = {
   name: string | null;
   is_group: boolean;
   last_message: string | null;
+  /** A última mensagem da conversa foi enviada por nós. */
+  last_from_me: boolean;
   unread_count: number;
   profile_pic_url: string | null;
   updated_at: string | null;
@@ -35,7 +37,7 @@ export type WhatsAppChat = {
   group_description: string | null;
 };
 
-export type WhatsAppMediaType = "image" | "video" | "audio" | "document";
+export type WhatsAppMediaType = "image" | "video" | "audio" | "document" | "sticker";
 
 export type WhatsAppMessage = {
   id: string | null;
@@ -46,4 +48,6 @@ export type WhatsAppMessage = {
   sender_name: string | null;
   media_type: WhatsAppMediaType | null;
   media_mimetype: string | null;
+  /** Nome original do arquivo (documentos). */
+  media_filename?: string | null;
 };

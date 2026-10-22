@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 
 class WhatsAppStatus(BaseModel):
@@ -25,6 +25,7 @@ class WhatsAppChat(BaseModel):
     name: str | None = None
     is_group: bool
     last_message: str | None = None
+    last_from_me: bool = False
     unread_count: int = 0
     profile_pic_url: str | None = None
     updated_at: str | None = None
@@ -50,10 +51,18 @@ class WhatsAppMessage(BaseModel):
     sender_name: str | None = None
     media_type: str | None = None
     media_mimetype: str | None = None
+    media_filename: str | None = None
 
 
 class SendMessageInput(BaseModel):
     text: str
+
+    @field_validator("text")
+    @classmethod
+    def not_blank(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("A mensagem está vazia.")
+        return value
 
 
 class TypingInput(BaseModel):

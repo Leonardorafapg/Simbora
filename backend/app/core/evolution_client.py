@@ -335,3 +335,24 @@ async def send_document_url(remote_jid: str, media_url: str, file_name: str, cap
         },
     )
     return response.json()
+
+
+async def send_media_base64(
+    remote_jid: str, *, media_kind: str, base64_data: str, mimetype: str, file_name: str, caption: str = ""
+) -> dict[str, Any]:
+    """Manda imagem/vídeo/documento a partir do arquivo em base64 (upload feito pelo CRM)."""
+    instance = _instance_name()
+    response = await _request(
+        "POST",
+        f"/message/sendMedia/{instance}",
+        timeout=120.0,
+        json={
+            "number": remote_jid,
+            "mediatype": media_kind,
+            "mimetype": mimetype,
+            "media": base64_data,
+            "fileName": file_name,
+            "caption": caption,
+        },
+    )
+    return response.json()

@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 
 from app.models.whatsapp_chat_label import WhatsAppChatLabel
 from app.models.whatsapp_message import WhatsAppMessage
+from app.services.whatsapp_format import message_preview
 
 
 def save_message(
@@ -28,6 +29,7 @@ def save_message(
     timestamp: int,
     media_type: str | None = None,
     media_mimetype: str | None = None,
+    media_filename: str | None = None,
 ) -> WhatsAppMessage | None:
     """
     None se a mensagem já existia (dedup por message_id) — acontece quando o
@@ -50,6 +52,7 @@ def save_message(
         timestamp=timestamp,
         media_type=media_type,
         media_mimetype=media_mimetype,
+        media_filename=media_filename,
     )
     db.add(message)
     try:
@@ -148,7 +151,8 @@ def list_chats(db: Session) -> list[dict[str, Any]]:
             "remote_jid": jid,
             "name": contact_name.get(jid),
             "is_group": message.is_group,
-            "last_message": message.text,
+            "last_message": message_preview(message.text, message.media_type),
+            "last_from_me": message.from_me,
             "unread_count": unread.get(jid, 0),
             "updated_at": message.timestamp,
         }
