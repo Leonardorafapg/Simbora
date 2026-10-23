@@ -18,4 +18,5 @@ export type Tag = {
   color: TagColor | string;
 };
 
-export type TagInput = { name: string; color: TagColor };
+/** Cor da paleta fixa (TagColor) ou um hex livre "#rrggbb" (cor customizada). */
+export type TagInput = { name: string; color: TagColor | string };

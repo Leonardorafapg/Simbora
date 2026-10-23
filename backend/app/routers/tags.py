@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.deps import require_permission
+from app.core.tag_colors import color_sort_key
 from app.models.tag import Tag, calendar_entry_tags
 from app.models.user import User
 from app.schemas.tag import TagCreate, TagOut, TagUpdate
@@ -25,7 +26,11 @@ async def list_tags(
     db: Session = Depends(get_db),
     _: User = Depends(require_permission("calendar.view")),
 ):
-    return db.query(Tag).order_by(func.lower(Tag.name)).all()
+    # Ordenado por matiz (roda de cores), não alfabético — cor combina chaves
+    # de paleta e hex customizado, por isso é feito em Python e não em SQL.
+    tags = db.query(Tag).all()
+    tags.sort(key=lambda t: (color_sort_key(t.color), t.name.lower()))
+    return tags
 
 
 @router.post("/tags", response_model=TagOut, status_code=201)

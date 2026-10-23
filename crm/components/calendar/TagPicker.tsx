@@ -3,29 +3,61 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, Pencil, Plus, Tag as TagIcon, Trash2, X } from "lucide-react";
 import { useTags } from "@/hooks/useTags";
-import { TAG_COLOR_CLASSES, tagChipClass } from "@/lib/tagColors";
-import { TAG_COLOR_KEYS, type Tag, type TagColor } from "@/types/tag";
+import { TAG_COLOR_CLASSES, isHexColor, tagChipClass, tagChipStyle } from "@/lib/tagColors";
+import { TAG_COLOR_KEYS, type Tag } from "@/types/tag";
 
 type Props = {
   selectedIds: number[];
   onChange: (ids: number[]) => void;
 };
 
-function ColorSwatches({ value, onChange }: { value: TagColor; onChange: (color: TagColor) => void }) {
+const DEFAULT_CUSTOM_HEX = "#64748b";
+
+/** Paleta fixa + um swatch de cor livre (input nativo type=color, com campo hex ao lado). */
+function ColorSwatches({ value, onChange }: { value: string; onChange: (color: string) => void }) {
+  const custom = isHexColor(value) ? value : DEFAULT_CUSTOM_HEX;
+  const isCustom = isHexColor(value);
+
   return (
-    <div className="flex flex-wrap gap-1.5">
-      {TAG_COLOR_KEYS.map((key) => (
-        <button
-          key={key}
-          type="button"
-          title={TAG_COLOR_CLASSES[key].label}
-          aria-label={TAG_COLOR_CLASSES[key].label}
-          onClick={() => onChange(key)}
-          className={`h-6 w-9 rounded ${TAG_COLOR_CLASSES[key].swatch} ${
-            value === key ? "ring-2 ring-white" : "opacity-80 hover:opacity-100"
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-center gap-1.5">
+        {TAG_COLOR_KEYS.map((key) => (
+          <button
+            key={key}
+            type="button"
+            title={TAG_COLOR_CLASSES[key].label}
+            aria-label={TAG_COLOR_CLASSES[key].label}
+            onClick={() => onChange(key)}
+            className={`h-6 w-9 rounded ${TAG_COLOR_CLASSES[key].swatch} ${
+              value === key ? "ring-2 ring-white" : "opacity-80 hover:opacity-100"
+            }`}
+          />
+        ))}
+        <label
+          title="Cor personalizada"
+          aria-label="Cor personalizada"
+          className={`relative h-6 w-9 cursor-pointer overflow-hidden rounded ${
+            isCustom ? "ring-2 ring-white" : "opacity-80 hover:opacity-100"
           }`}
+          style={{ backgroundColor: custom }}
+        >
+          <input
+            type="color"
+            value={custom}
+            onChange={(e) => onChange(e.target.value)}
+            className="absolute -left-1 -top-1 h-8 w-11 cursor-pointer opacity-0"
+          />
+        </label>
+      </div>
+      {isCustom && (
+        <input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="#rrggbb"
+          maxLength={7}
+          className="glass-input w-28 rounded-lg px-2 py-1 text-xs outline-none"
         />
-      ))}
+      )}
     </div>
   );
 }
@@ -39,10 +71,10 @@ export default function TagPicker({ selectedIds, onChange }: Props) {
   const { tags, create, update, remove } = useTags();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [newColor, setNewColor] = useState<TagColor>("blue");
+  const [newColor, setNewColor] = useState<string>("blue");
   const [editing, setEditing] = useState<Tag | null>(null);
   const [editName, setEditName] = useState("");
-  const [editColor, setEditColor] = useState<TagColor>("gray");
+  const [editColor, setEditColor] = useState<string>("gray");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -89,7 +121,7 @@ export default function TagPicker({ selectedIds, onChange }: Props) {
   function startEdit(tag: Tag) {
     setEditing(tag);
     setEditName(tag.name);
-    setEditColor((TAG_COLOR_KEYS as readonly string[]).includes(tag.color) ? (tag.color as TagColor) : "gray");
+    setEditColor(tag.color);
     setError(null);
   }
 
@@ -121,6 +153,7 @@ export default function TagPicker({ selectedIds, onChange }: Props) {
             key={tag.id}
             type="button"
             onClick={() => setOpen(true)}
+            style={tagChipStyle(tag.color)}
             className={`rounded px-3 py-1.5 text-xs font-bold uppercase tracking-wide ${tagChipClass(tag.color)}`}
           >
             {tag.name}
@@ -223,6 +256,7 @@ export default function TagPicker({ selectedIds, onChange }: Props) {
                       <button
                         type="button"
                         onClick={() => toggle(tag.id)}
+                        style={tagChipStyle(tag.color)}
                         className={`flex min-w-0 flex-1 items-center justify-between rounded px-3 py-1.5 text-left text-xs font-bold uppercase tracking-wide ${tagChipClass(tag.color)}`}
                       >
                         <span className="truncate">{tag.name}</span>
