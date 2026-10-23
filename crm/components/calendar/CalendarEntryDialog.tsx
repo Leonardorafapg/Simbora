@@ -259,7 +259,7 @@ export default function CalendarEntryDialog({
           </div>
 
           <aside className="min-w-0 space-y-4 border-t border-border bg-surface-2/20 p-4 sm:p-6 lg:flex-[2] lg:overflow-y-auto lg:border-l lg:border-t-0">
-            {clients && !entry && (
+            {clients && (
               <section className="space-y-2 rounded-xl border border-border bg-surface-2/40 p-4">
                 <div className={labelCls}>
                   <Users className="h-4 w-4 text-text-faint" />
@@ -269,15 +269,22 @@ export default function CalendarEntryDialog({
                   required
                   value={form.client_id}
                   onChange={(e) => {
-                  const id = Number(e.target.value);
-                  const client = findClient(id);
-                  setForm((prev) => ({
-                    ...prev,
-                    client_id: id,
-                    requester_id: client?.default_social_id ?? null,
-                    assignee_id: client?.default_designer_id ?? null,
-                  }));
-                }}
+                    const id = Number(e.target.value);
+                    const client = findClient(id);
+                    setForm((prev) => ({
+                      ...prev,
+                      client_id: id,
+                      // Só troca solicitante/responsável pro padrão do cliente
+                      // na criação — editando, não mexe em quem já tava
+                      // atribuído (pode ter sido escolhido de propósito).
+                      ...(entry
+                        ? {}
+                        : {
+                            requester_id: client?.default_social_id ?? null,
+                            assignee_id: client?.default_designer_id ?? null,
+                          }),
+                    }));
+                  }}
                   className="glass-input w-full rounded-lg px-3 py-2 text-sm outline-none"
                 >
                   {clients.map((c) => (
