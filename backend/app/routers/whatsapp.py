@@ -108,7 +108,10 @@ async def _lookup_missing_groups(jids: list[str]) -> None:
         async with gate:
             try:
                 info = await evolution_client.find_group_info(jid)
-            except Exception:
+            except Exception as exc:
+                logger.warning(
+                    "findGroupInfos falhou para %s: %s", jid, getattr(exc, "detail", None) or repr(exc)
+                )
                 info = {}
         if info.get("subject"):
             _group_info[jid] = info
@@ -430,6 +433,62 @@ async def list_chats(
 
     result.sort(key=_sort_key, reverse=True)
     return result
+
+
+@router.get("/whatsapp/debug/names")
+async def debug_names(
+    limit: int = Query(default=5, le=20),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission("whatsapp.view")),
+):
+    """Diagnóstico (só admin): o que cada fonte da Evolution devolve pro nome dos grupos
+    e quais conversas individuais parecem duplicadas (mesmo nome, JIDs diferentes)."""
+    if not current_user.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Somente administradores.")
+
+    raw_chats, raw_contacts = await asyncio.gather(
+        _safe(evolution_client.find_chats(), "conversas"),
+        _safe(evolution_client.find_contacts(), "contatos"),
+    )
+    chat_by_jid = {(c.get("remoteJid") or c.get("id") or ""): c for c in raw_chats}
+    contact_by_jid = {(c.get("remoteJid") or c.get("id") or ""): c for c in raw_contacts}
+    db_chats = whatsapp_store.list_chats(db)
+    sender_names = whatsapp_store.group_sender_names(db)
+
+    groups = []
+    for chat in [c for c in db_chats if c["is_group"]][:limit]:
+        jid = chat["remote_jid"]
+        try:
+            live = await evolution_client.find_group_info(jid)
+            live_result: object = {k: live.get(k) for k in ("subject", "size", "owner", "creation")} or live
+        except Exception as exc:
+            live_result = {"erro": str(getattr(exc, "detail", None) or repr(exc))}
+        contact = contact_by_jid.get(jid) or {}
+        raw = chat_by_jid.get(jid) or {}
+        groups.append({
+            "jid": jid,
+            "findGroupInfos": live_result,
+            "cache_fetchAllGroups": (_group_info.get(jid) or {}).get("subject"),
+            "findContacts": {k: contact.get(k) for k in ("pushName", "name", "type")},
+            "findChats": {k: raw.get(k) for k in ("name", "pushName", "subject")},
+            "quem_fala_no_grupo": sorted(sender_names.get(jid, set()))[:8],
+        })
+
+    by_name: dict[str, list[str]] = {}
+    for chat in db_chats:
+        if not chat["is_group"] and chat["name"]:
+            by_name.setdefault(chat["name"].strip().lower(), []).append(chat["remote_jid"])
+    duplicates = [
+        {
+            "nome": name,
+            "jids": jids,
+            "contatos": {j: {k: v for k, v in (contact_by_jid.get(j) or {}).items() if k != "profilePicUrl"} for j in jids},
+        }
+        for name, jids in by_name.items()
+        if len(jids) > 1
+    ][:limit]
+
+    return {"grupos": groups, "conversas_duplicadas": duplicates}
 
 
 @router.get("/whatsapp/chats/{remote_jid}/messages", response_model=list[WhatsAppMessage])

@@ -76,3 +76,33 @@ def test_failed_lookup_is_not_retried_immediately(api, db, evolution):
     _group_name(api)
     _group_name(api)
     assert evolution["lookups"] == 1
+
+
+def test_debug_names_shows_each_source_for_admin(api, db, evolution):
+    _seed(db)
+    body = api.get("/api/v1/whatsapp/debug/names").json()
+    group = body["grupos"][0]
+    assert group["jid"] == GROUP
+    assert group["findGroupInfos"]["subject"] == "Equipe MKT Bangalô"
+    assert group["findContacts"]["pushName"] == "Maria"
+    assert group["quem_fala_no_grupo"] == ["Maria"]
+
+
+def test_debug_names_reports_lookup_error(api, db, evolution, monkeypatch):
+    _seed(db)
+
+    async def boom(jid):
+        raise RuntimeError("404 not found")
+
+    monkeypatch.setattr(evolution_client, "find_group_info", boom)
+    assert "404" in api.get("/api/v1/whatsapp/debug/names").json()["grupos"][0]["findGroupInfos"]["erro"]
+
+
+def test_debug_names_lists_same_name_with_different_jids(api, db, evolution):
+    for jid in ("5516991234567@s.whatsapp.net", "4574123127004@lid"):
+        whatsapp_store.save_message(
+            db, message_id=f"D{jid}", remote_jid=jid, from_me=False, text="oi", sender_name="Matheus",
+            is_group=False, status="recebida", timestamp=1_700_000_000,
+        )
+    dup = api.get("/api/v1/whatsapp/debug/names").json()["conversas_duplicadas"]
+    assert len(dup) == 1 and len(dup[0]["jids"]) == 2
