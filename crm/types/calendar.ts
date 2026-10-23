@@ -40,6 +40,9 @@ export type CalendarEntry = {
   reference_image: string | null;
   /** URLs (R2) do material bruto que o social sobe pro designer usar na arte. */
   material_files: string[];
+  /** Links (pasta do Drive, Figma...) de referência e de material. */
+  reference_links: string[];
+  material_links: string[];
   /** URL (R2) da arte final, entregue pelo designer pelo drawer da postagem. */
   final_image: string | null;
   /** URL (R2) da versão em formato Stories (vertical) da mesma arte — opcional. */
@@ -74,6 +77,8 @@ export type CalendarEntryCreateInput = {
   reference_link?: string;
   reference_image?: string | null;
   material_files?: string[];
+  reference_links?: string[];
+  material_links?: string[];
   final_image?: string | null;
   final_image_story?: string | null;
   post_type?: "feed" | "carousel";
@@ -96,6 +101,8 @@ export type CalendarEntryUpdateInput = Partial<{
   reference_link: string;
   reference_image: string | null;
   material_files: string[];
+  reference_links: string[];
+  material_links: string[];
   final_image: string | null;
   final_image_story: string | null;
   post_type: "feed" | "carousel";

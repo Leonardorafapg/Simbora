@@ -1,5 +1,6 @@
 "use client";
 
+import Linkify from "@/components/ui/Linkify";
 import { useState } from "react";
 import { ArrowLeft, Printer, FileDown } from "lucide-react";
 import type { CalendarEntry } from "@/types/calendar";
@@ -109,7 +110,8 @@ export default function CalendarReport({ clientName, monthLabel, entries, onClos
                     {formatDateCell(entry.scheduled_date)}
                   </td>
                   <td className={`align-top text-text ${compact ? "px-2.5 py-1.5" : "px-3 py-2"}`}>{entry.title}</td>
-                  <td className={`align-top text-text ${compact ? "px-2.5 py-1.5" : "px-3 py-2"}`}>{entry.theme}</td>
+                  <td className={`align-top text-text ${compact ? "px-2.5 py-1.5" : "px-3 py-2"}`}><Linkify text={entry.theme} />
+                  </td>
                 </tr>
               ))}
             </tbody>

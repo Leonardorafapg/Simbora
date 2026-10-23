@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { AlignLeft, CalendarDays, Clock, ImagePlus, Paperclip, UserRound, Users, X } from "lucide-react";
+import { AlignLeft, CalendarDays, Clock, ExternalLink, ImagePlus, Paperclip, UserRound, Users, X } from "lucide-react";
 import type { CalendarEntry, CalendarEntryCreateInput, CalendarEntryUpdateInput } from "@/types/calendar";
 import type { Client } from "@/types/client";
 import { useClients } from "@/hooks/useClients";
@@ -10,6 +10,8 @@ import UserSelect from "@/components/ui/UserSelect";
 import TagPicker from "./TagPicker";
 import { DEADLINE_CLASSES, DEADLINE_LABELS, deadlineFor, deadlineInfo, formatDeadline } from "@/lib/deadline";
 import AttachmentGrid from "@/components/ui/AttachmentGrid";
+import LinkList from "@/components/ui/LinkList";
+import { extractLinks, linkLabel } from "@/lib/links";
 import { isImageUrl } from "@/lib/artwork";
 import { switchPostType, withSlides } from "@/lib/postMedia";
 import EntryInstagramSection from "@/components/instagram/EntryInstagramSection";
@@ -49,6 +51,9 @@ function buildForm(
     theme: entry?.theme ?? "",
     reference_image: entry?.reference_image ?? null,
     material_files: entry?.material_files ?? [],
+    // Postagens antigas guardavam um único link de referência no campo reference_link.
+    reference_links: entry?.reference_links?.length ? entry.reference_links : entry?.reference_link ? [entry.reference_link] : [],
+    material_links: entry?.material_links ?? [],
     final_image: entry?.final_image ?? null,
     final_image_story: entry?.final_image_story ?? null,
     post_type: entry?.post_type ?? ("feed" as "feed" | "carousel"),
@@ -229,6 +234,7 @@ export default function CalendarEntryDialog({
                 placeholder="Tema / chamada do post"
                 className="glass-input min-h-[110px] w-full rounded-lg px-3 py-2 text-base outline-none"
               />
+              <DetectedLinks text={form.theme} />
             </section>
 
             <section className="space-y-3 rounded-xl border border-border bg-surface-2/40 p-4">
@@ -245,6 +251,13 @@ export default function CalendarEntryDialog({
                     value={form.reference_image ? [form.reference_image] : []}
                     onChange={(urls) => update("reference_image", urls[0] ?? null)}
                   />
+                  <div className="mt-3">
+                    <LinkList
+                      value={form.reference_links}
+                      onChange={(links) => update("reference_links", links)}
+                      placeholder="Link de referência (Drive, Figma...)"
+                    />
+                  </div>
                 </div>
                 <div>
                   <p className="mb-1.5 text-xs text-text-muted">Material</p>
@@ -253,6 +266,13 @@ export default function CalendarEntryDialog({
                     value={form.material_files}
                     onChange={(urls) => update("material_files", urls)}
                   />
+                  <div className="mt-3">
+                    <LinkList
+                      value={form.material_links}
+                      onChange={(links) => update("material_links", links)}
+                      placeholder="Link do material (pasta do Drive...)"
+                    />
+                  </div>
                 </div>
               </div>
             </section>
@@ -428,6 +448,7 @@ export default function CalendarEntryDialog({
                   placeholder="Legenda que vai junto com a postagem"
                   className="glass-input min-h-[160px] w-full rounded-lg px-3 py-2 text-sm outline-none"
                 />
+                <DetectedLinks text={form.caption} />
               </div>
             </section>
 
@@ -465,5 +486,29 @@ export default function CalendarEntryDialog({
         </div>
       </form>
     </div>
+  );
+}
+
+/** Links digitados no meio do texto: o campo é editável (não dá pra clicar nele), então aparecem aqui, clicáveis. */
+function DetectedLinks({ text }: { text: string }) {
+  const links = extractLinks(text);
+  if (links.length === 0) return null;
+  return (
+    <ul className="flex flex-wrap gap-1.5 pt-1">
+      {links.map((href) => (
+        <li key={href}>
+          <a
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            title={href}
+            className="inline-flex max-w-[16rem] items-center gap-1 rounded-full bg-accent-soft px-2.5 py-1 text-xs font-medium text-accent hover:underline"
+          >
+            <ExternalLink className="h-3 w-3 shrink-0" />
+            <span className="truncate">{linkLabel(href)}</span>
+          </a>
+        </li>
+      ))}
+    </ul>
   );
 }

@@ -49,6 +49,7 @@ function currentMonth() {
 export default function ProductionBoard({ canEdit, canCreate, canDelete, canViewInstagram, canManageInstagram }: Props) {
   const [clientIds, setClientIds] = useState<number[]>([]);
   const [assigneeIds, setAssigneeIds] = useState<number[]>([]);
+  const [requesterIds, setRequesterIds] = useState<number[]>([]);
   const [tagIds, setTagIds] = useState<number[]>([]);
   const [deadlineFilter, setDeadlineFilter] = useState<"" | "atrasados" | "vencem">("");
   const [month, setMonth] = useState(currentMonth());
@@ -101,6 +102,7 @@ export default function ProductionBoard({ canEdit, canCreate, canDelete, canView
   const activeFilters =
     (clientIds.length ? 1 : 0) +
     (assigneeIds.length ? 1 : 0) +
+    (requesterIds.length ? 1 : 0) +
     (tagIds.length ? 1 : 0) +
     (deadlineFilter ? 1 : 0) +
     (month !== currentMonth() ? 1 : 0);
@@ -108,6 +110,7 @@ export default function ProductionBoard({ canEdit, canCreate, canDelete, canView
   function clearFilters() {
     setClientIds([]);
     setAssigneeIds([]);
+    setRequesterIds([]);
     setTagIds([]);
     setDeadlineFilter("");
     setMonth(currentMonth());
@@ -119,6 +122,7 @@ export default function ProductionBoard({ canEdit, canCreate, canDelete, canView
     .map((entry) => ({ entry, info: deadlineInfo(entry) }))
     .filter(({ entry }) => clientIds.length === 0 || clientIds.includes(entry.client_id))
     .filter(({ entry }) => assigneeIds.length === 0 || (entry.assignee_id !== null && assigneeIds.includes(entry.assignee_id)))
+    .filter(({ entry }) => requesterIds.length === 0 || (entry.requester_id !== null && requesterIds.includes(entry.requester_id)))
     .filter(({ entry }) => tagIds.length === 0 || entry.tags.some((tag) => tagIds.includes(tag.id)))
     .filter(({ info }) => {
       if (deadlineFilter === "atrasados") return info.state === "atrasado";
@@ -165,6 +169,7 @@ export default function ProductionBoard({ canEdit, canCreate, canDelete, canView
     // Filtros que deixariam a demanda nova de fora são limpos, pra ela não sumir da tela.
     if (clientIds.length && !clientIds.includes(entry.client_id)) setClientIds([]);
     if (assigneeIds.length && (entry.assignee_id === null || !assigneeIds.includes(entry.assignee_id))) setAssigneeIds([]);
+    if (requesterIds.length && (entry.requester_id === null || !requesterIds.includes(entry.requester_id))) setRequesterIds([]);
     if (tagIds.length && !entry.tags.some((tag) => tagIds.includes(tag.id))) setTagIds([]);
     return entry;
   }
@@ -268,7 +273,19 @@ export default function ProductionBoard({ canEdit, canCreate, canDelete, canView
                 />
               </div>
               <div className="space-y-1">
-                <p className="text-xs text-text-muted">Responsável</p>
+                <p className="text-xs text-text-muted">Social (solicitante)</p>
+                <MultiSelect
+                  fullWidth
+                  options={members.map((m) => ({ value: m.id, label: m.full_name }))}
+                  value={requesterIds}
+                  onChange={setRequesterIds}
+                  allLabel="Todos os socials"
+                  pluralLabel="socials"
+                  ariaLabel="Filtrar por social"
+                />
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-text-muted">Designer (responsável)</p>
                 <MultiSelect
                   fullWidth
                   options={members.map((m) => ({ value: m.id, label: m.full_name }))}

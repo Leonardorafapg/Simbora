@@ -70,6 +70,8 @@ def run_light_migrations():
         add_column_if_missing(conn, "calendar_entries", "material_files", "material_files TEXT DEFAULT '[]'")
         add_column_if_missing(conn, "calendar_entries", "final_image", "final_image TEXT")
         add_column_if_missing(conn, "calendar_entries", "final_image_story", "final_image_story TEXT")
+        add_column_if_missing(conn, "calendar_entries", "reference_links", "reference_links TEXT DEFAULT '[]'")
+        add_column_if_missing(conn, "calendar_entries", "material_links", "material_links TEXT DEFAULT '[]'")
         add_column_if_missing(conn, "calendar_entries", "post_type", "post_type VARCHAR(20) DEFAULT 'feed' NOT NULL")
         add_column_if_missing(conn, "calendar_entries", "final_images", "final_images TEXT DEFAULT '[]'")
         add_column_if_missing(conn, "calendar_entries", "title", "title VARCHAR(200)")

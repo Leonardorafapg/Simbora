@@ -11,6 +11,8 @@ import { isImageUrl } from "@/lib/artwork";
 import type { TeamMember } from "@/types/team";
 
 /** Quem aparece no card: serve tanto o membro completo quanto a entrada do diretório (sem foto). */
+import Linkify from "@/components/ui/Linkify";
+
 export type CardPerson = Pick<TeamMember, "id" | "full_name"> & { photo_url?: string | null };
 import { getInitials } from "@/lib/format";
 
@@ -28,7 +30,13 @@ function coverOf(entry: CalendarEntry): string | null {
 
 /** Quantidade de arquivos anexados à postagem (referência + material + arte final). */
 function attachmentCount(entry: CalendarEntry): number {
-  return (entry.reference_image ? 1 : 0) + (entry.final_image ? 1 : 0) + entry.material_files.length;
+  return (
+    (entry.reference_image ? 1 : 0) +
+    (entry.final_image ? 1 : 0) +
+    entry.material_files.length +
+    (entry.reference_links?.length ?? 0) +
+    (entry.material_links?.length ?? 0)
+  );
 }
 
 type ContentProps = {
@@ -75,7 +83,9 @@ function PostCardContent({ entry, client, requester, assignee, onSelect, instagr
           </div>
         )}
 
-        <p className="line-clamp-3 text-sm text-text">{entry.title || entry.theme}</p>
+        <p className="line-clamp-3 text-sm text-text">
+          <Linkify text={entry.title || entry.theme} />
+        </p>
         {client && <p className="truncate text-xs text-accent">{client.name}</p>}
 
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-text-muted">

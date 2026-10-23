@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field, field_validator
 
 from app.schemas.tag import TagOut
 from app.services.calendar_media import MAX_CAROUSEL_SLIDES
+from app.services.links import normalize_links
 
 # Quadros do fluxo de produção, na ordem do kanban.
 CALENDAR_STATUSES = ["producao", "andamento", "modificacoes", "checagem_aprovacao", "finalizados", "publicados"]
@@ -50,6 +51,8 @@ class CalendarEntryCreate(BaseModel):
     reference_link: str | None = None
     reference_image: str | None = None
     material_files: list[str] = []
+    reference_links: list[str] = []
+    material_links: list[str] = []
     final_image: str | None = None
     final_image_story: str | None = None
     post_type: Literal["feed", "carousel"] = "feed"
@@ -66,6 +69,11 @@ class CalendarEntryCreate(BaseModel):
     @classmethod
     def validate_title(cls, value: str | None) -> str | None:
         return _clean_title(value)
+
+    @field_validator("reference_links", "material_links")
+    @classmethod
+    def validate_links(cls, value: list[str] | None) -> list[str] | None:
+        return normalize_links(value)
 
     @field_validator("theme")
     @classmethod
@@ -88,6 +96,8 @@ class CalendarEntryUpdate(BaseModel):
     reference_link: str | None = None
     reference_image: str | None = None
     material_files: list[str] | None = None
+    reference_links: list[str] | None = None
+    material_links: list[str] | None = None
     final_image: str | None = None
     final_image_story: str | None = None
     post_type: Literal["feed", "carousel"] | None = None
@@ -103,6 +113,11 @@ class CalendarEntryUpdate(BaseModel):
     @classmethod
     def validate_title(cls, value: str | None) -> str | None:
         return _clean_title(value)
+
+    @field_validator("reference_links", "material_links")
+    @classmethod
+    def validate_links(cls, value: list[str] | None) -> list[str] | None:
+        return normalize_links(value)
 
     @field_validator("theme")
     @classmethod
@@ -127,6 +142,8 @@ class CalendarEntryOut(BaseModel):
     reference_link: str | None
     reference_image: str | None
     material_files: list[str]
+    reference_links: list[str]
+    material_links: list[str]
     final_image: str | None
     final_image_story: str | None
     post_type: str

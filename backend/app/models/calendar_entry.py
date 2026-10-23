@@ -36,6 +36,9 @@ class CalendarEntry(Base):
     # designer usar na arte (fotos, prints, etc.) — diferente de
     # reference_image, que é só inspiração/referência visual.
     material_files: Mapped[list] = mapped_column(JSONText, default=list, nullable=False)
+    # Links (pasta do Drive, Figma, etc.) que o social anexa como referência / material.
+    reference_links: Mapped[list] = mapped_column(JSONText, default=list, nullable=False)
+    material_links: Mapped[list] = mapped_column(JSONText, default=list, nullable=False)
     # URL (R2) da arte finalizada que o designer entrega pelo drawer da postagem.
     final_image: Mapped[str | None] = mapped_column(Text, nullable=True)
     # URL (R2) da versão em formato Stories (vertical) da mesma arte — opcional,
