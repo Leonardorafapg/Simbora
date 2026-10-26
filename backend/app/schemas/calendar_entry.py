@@ -55,7 +55,8 @@ class CalendarEntryCreate(BaseModel):
     material_links: list[str] = []
     final_image: str | None = None
     final_image_story: str | None = None
-    post_type: Literal["feed", "carousel"] = "feed"
+    post_type: Literal["feed", "carousel", "video"] = "feed"
+    final_links: list[str] = []
     final_images: list[str] = Field(default_factory=list, max_length=MAX_CAROUSEL_SLIDES)
     caption: str | None = None
     material_notes: str | None = None
@@ -70,7 +71,7 @@ class CalendarEntryCreate(BaseModel):
     def validate_title(cls, value: str | None) -> str | None:
         return _clean_title(value)
 
-    @field_validator("reference_links", "material_links")
+    @field_validator("reference_links", "material_links", "final_links")
     @classmethod
     def validate_links(cls, value: list[str] | None) -> list[str] | None:
         return normalize_links(value)
@@ -100,7 +101,8 @@ class CalendarEntryUpdate(BaseModel):
     material_links: list[str] | None = None
     final_image: str | None = None
     final_image_story: str | None = None
-    post_type: Literal["feed", "carousel"] | None = None
+    post_type: Literal["feed", "carousel", "video"] | None = None
+    final_links: list[str] | None = None
     final_images: list[str] | None = Field(default=None, max_length=MAX_CAROUSEL_SLIDES)
     caption: str | None = None
     material_notes: str | None = None
@@ -114,7 +116,7 @@ class CalendarEntryUpdate(BaseModel):
     def validate_title(cls, value: str | None) -> str | None:
         return _clean_title(value)
 
-    @field_validator("reference_links", "material_links")
+    @field_validator("reference_links", "material_links", "final_links")
     @classmethod
     def validate_links(cls, value: list[str] | None) -> list[str] | None:
         return normalize_links(value)
@@ -147,6 +149,7 @@ class CalendarEntryOut(BaseModel):
     final_image: str | None
     final_image_story: str | None
     post_type: str
+    final_links: list[str]
     final_images: list[str]
     caption: str | None
     material_notes: str | None

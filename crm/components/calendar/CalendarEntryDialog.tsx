@@ -56,7 +56,8 @@ function buildForm(
     material_links: entry?.material_links ?? [],
     final_image: entry?.final_image ?? null,
     final_image_story: entry?.final_image_story ?? null,
-    post_type: entry?.post_type ?? ("feed" as "feed" | "carousel"),
+    post_type: entry?.post_type ?? ("feed" as "feed" | "carousel" | "video"),
+    final_links: entry?.final_links ?? ([] as string[]),
     final_images: entry?.final_images ?? ([] as string[]),
     caption: entry?.caption ?? "",
   };
@@ -118,7 +119,7 @@ export default function CalendarEntryDialog({
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
-  function setPostType(type: "feed" | "carousel") {
+  function setPostType(type: "feed" | "carousel" | "video") {
     if (form.post_type === "carousel") slidesStash.current = form.final_images;
     setForm((prev) => ({ ...prev, ...switchPostType(prev, type, slidesStash.current) }));
   }
@@ -392,7 +393,7 @@ export default function CalendarEntryDialog({
                 Post feito
               </div>
               <div className="flex gap-1.5">
-                {([["feed", "Feed"], ["carousel", "Carrossel"]] as const).map(([type, label]) => (
+                {([["feed", "Feed"], ["carousel", "Carrossel"], ["video", "Vídeo / link"]] as const).map(([type, label]) => (
                   <button
                     key={type}
                     type="button"
@@ -407,7 +408,16 @@ export default function CalendarEntryDialog({
               </div>
               <div className={form.post_type === "carousel" ? "space-y-4" : "grid gap-4 sm:grid-cols-2"}>
                 <div>
-                  {form.post_type === "carousel" ? (
+                  {form.post_type === "video" ? (
+                    <>
+                      <p className="mb-1.5 text-xs text-text-muted">Link do vídeo pronto (pasta ou arquivo do Drive, WeTransfer...)</p>
+                      <LinkList
+                        value={form.final_links}
+                        onChange={(links) => update("final_links", links)}
+                        placeholder="Cole o link do vídeo pronto"
+                      />
+                    </>
+                  ) : form.post_type === "carousel" ? (
                     <>
                       <p className="mb-1.5 text-xs text-text-muted">Slides do carrossel (na ordem de publicação, 2 a 10)</p>
                       <AttachmentGrid

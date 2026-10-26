@@ -54,3 +54,26 @@ def test_patch_updates_and_clears_links(api, client_row):
 
 def test_rejects_unsafe_link(api, client_row):
     assert _create(api, client_row.id, material_links=["javascript:alert(1)"]).status_code == 422
+
+
+def test_video_post_saves_normalized_links(api, client_row):
+    res = _create(api, client_row.id, post_type="video", final_links=["drive.google.com/file/d/1/view", DRIVE, DRIVE])
+    assert res.status_code == 201
+    body = res.json()
+    assert body["post_type"] == "video"
+    assert body["final_links"] == ["https://drive.google.com/file/d/1/view", DRIVE]
+    assert body["final_images"] == []
+
+
+def test_video_links_can_be_updated_and_cleared(api, client_row):
+    entry = _create(api, client_row.id, post_type="video", final_links=[DRIVE]).json()
+    url = f"/api/v1/calendar-entries/{entry['id']}"
+    assert api.patch(url, json={"final_links": []}).json()["final_links"] == []
+
+
+def test_video_links_reject_unsafe_url(api, client_row):
+    assert _create(api, client_row.id, post_type="video", final_links=["javascript:alert(1)"]).status_code == 422
+
+
+def test_new_entry_has_no_video_links(api, client_row):
+    assert _create(api, client_row.id).json()["final_links"] == []

@@ -1,4 +1,4 @@
-export type PostType = "feed" | "carousel";
+export type PostType = "feed" | "carousel" | "video";
 
 export type PostMedia = { post_type: PostType; final_image: string | null; final_images: string[] };
 

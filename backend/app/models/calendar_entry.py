@@ -44,6 +44,8 @@ class CalendarEntry(Base):
     # URL (R2) da versão em formato Stories (vertical) da mesma arte — opcional,
     # entregue junto quando o post também vai pro Stories.
     final_image_story: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Links do vídeo pronto (Drive, WeTransfer...) quando post_type == "video".
+    final_links: Mapped[list] = mapped_column(JSONText, default=list, nullable=False)
     # Tipo de post pronto: "feed" (1 arte) ou "carousel" (final_images, na ordem de publicação).
     post_type: Mapped[str] = mapped_column(String(20), default="feed", nullable=False)
     # URLs (R2) das artes do carrossel, na ordem em que vão ser publicadas.

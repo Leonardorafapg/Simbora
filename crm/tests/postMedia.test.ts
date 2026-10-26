@@ -35,3 +35,13 @@ test("withSlides mantém a ordem e a capa é o 1º", () => {
 test("removeAt remove só a posição pedida, mesmo com URL repetida", () => {
   assert.deepEqual(removeAt(["a", "a", "b"], 0), ["a", "b"]);
 });
+
+test("feed -> vídeo mantém a arte; carrossel -> vídeo vira a capa e limpa os slides", () => {
+  assert.deepEqual(switchPostType(feed("a"), "video"), { post_type: "video", final_image: "a", final_images: [] });
+  assert.deepEqual(switchPostType(carousel(["a", "b"]), "video"), { post_type: "video", final_image: "a", final_images: [] });
+});
+
+test("vídeo -> carrossel começa pela arte que já existe", () => {
+  const video: PostMedia = { post_type: "video", final_image: "a", final_images: [] };
+  assert.deepEqual(switchPostType(video, "carousel"), carousel(["a"]));
+});

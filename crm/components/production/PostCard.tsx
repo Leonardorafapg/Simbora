@@ -35,7 +35,8 @@ function attachmentCount(entry: CalendarEntry): number {
     (entry.final_image ? 1 : 0) +
     entry.material_files.length +
     (entry.reference_links?.length ?? 0) +
-    (entry.material_links?.length ?? 0)
+    (entry.material_links?.length ?? 0) +
+    (entry.final_links?.length ?? 0)
   );
 }
 
