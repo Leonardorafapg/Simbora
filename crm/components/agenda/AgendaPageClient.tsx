@@ -2,13 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, FileDown, Plus } from "lucide-react";
 import { dayKey, eventsByDay, formatEventRange, monthCells } from "@/lib/agenda";
 import { todayLocalISO } from "@/lib/format";
 import { MONTH_LABELS } from "@/types/calendar";
 import { useAgenda } from "@/hooks/useAgenda";
 import { useTeamDirectory } from "@/hooks/useTeamDirectory";
-import { fetchAgendaEvent } from "@/services/client/agendaApi";
+import { fetchAgendaEvent, fetchAgendaEvents } from "@/services/client/agendaApi";
+import { buildWeekGrid, weekStartOf, weekWindow } from "@/lib/agendaWeek";
 import PageHeader from "@/components/ui/PageHeader";
 import Button from "@/components/ui/Button";
 import AgendaEventDialog from "@/components/agenda/AgendaEventDialog";
@@ -26,6 +27,8 @@ export default function AgendaPageClient({ currentUserId }: Props) {
   const [selectedDay, setSelectedDay] = useState(today);
   const [dialog, setDialog] = useState<{ event: AgendaEvent | null } | null>(null);
   const [linkError, setLinkError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   const { events, loading, error, create, update, remove } = useAgenda(year, month);
   const { members } = useTeamDirectory();
@@ -65,6 +68,24 @@ export default function AgendaPageClient({ currentUserId }: Props) {
     setMonth(next.getMonth() + 1);
   }
 
+  // PDF da semana do dia selecionado (segunda a domingo), no modelo da agenda impressa da Simbora.
+  async function exportWeek() {
+    setExporting(true);
+    setExportError(null);
+    try {
+      const weekStart = weekStartOf(selectedDay);
+      const { start, end } = weekWindow(weekStart);
+      // Busca a semana inteira (ela pode atravessar dois meses; a tela só carrega o mês aberto).
+      const weekEvents = await fetchAgendaEvents(start, end);
+      const { exportAgendaToPdf } = await import("@/lib/agendaPdf");
+      await exportAgendaToPdf(buildWeekGrid(weekEvents, weekStart));
+    } catch (err) {
+      setExportError(err instanceof Error ? err.message : "Não foi possível gerar o PDF.");
+    } finally {
+      setExporting(false);
+    }
+  }
+
   function goToday() {
     setYear(Number(today.slice(0, 4)));
     setMonth(Number(today.slice(5, 7)));
@@ -77,14 +98,25 @@ export default function AgendaPageClient({ currentUserId }: Props) {
         title="Agenda"
         description="Compromissos da equipe. Quem participa é avisado quando você marca, altera ou cancela."
         actions={
-          <Button onClick={() => setDialog({ event: null })}>
-            <Plus className="h-4 w-4" />
-            Novo compromisso
-          </Button>
+          <>
+            <Button
+              variant="secondary"
+              onClick={exportWeek}
+              disabled={exporting}
+              title="Baixa a semana do dia selecionado (segunda a domingo) em PDF"
+            >
+              <FileDown className="h-4 w-4" />
+              {exporting ? "Gerando..." : "Exportar semana (PDF)"}
+            </Button>
+            <Button onClick={() => setDialog({ event: null })}>
+              <Plus className="h-4 w-4" />
+              Novo compromisso
+            </Button>
+          </>
         }
       />
 
-      {(error || linkError) && <p className="mb-4 text-sm text-danger">{error ?? linkError}</p>}
+      {(error || linkError || exportError) && <p className="mb-4 text-sm text-danger">{error ?? linkError ?? exportError}</p>}
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
         <section className="glass-card rounded-2xl p-3 sm:p-4">
