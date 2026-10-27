@@ -93,14 +93,13 @@ def test_creator_still_sees_and_manages_event_without_being_tagged(ana, bia):
     assert client_for(ana).patch(f"/api/v1/agenda/events/{event_id}", json={"title": "Novo"}).status_code == 200
 
 
-def test_only_participants_see_the_event(ana, bia, caio):
+def test_everyone_sees_every_event(ana, bia, caio):
     event_id = create_event(client_for(ana), [bia.id]).json()["id"]
     window = {"start": "2026-10-01T00:00:00-03:00", "end": "2026-11-01T00:00:00-03:00"}
 
-    assert [e["id"] for e in client_for(bia).get("/api/v1/agenda/events", params=window).json()] == [event_id]
-    assert client_for(caio).get("/api/v1/agenda/events", params=window).json() == []
-    assert client_for(caio).get(f"/api/v1/agenda/events/{event_id}").status_code == 404
-    assert client_for(bia).get(f"/api/v1/agenda/events/{event_id}").status_code == 200
+    for person in (ana, bia, caio):  # caio não foi marcado e ainda assim vê
+        assert [e["id"] for e in client_for(person).get("/api/v1/agenda/events", params=window).json()] == [event_id]
+        assert client_for(person).get(f"/api/v1/agenda/events/{event_id}").status_code == 200
 
 
 def test_list_filters_by_window_overlap(ana):
@@ -181,7 +180,7 @@ def test_adding_and_removing_participants_notifies_each_side(db, ana, bia, caio)
     assert agenda_service.TYPE_REMOVED in [n.type for n in inbox(db, bia)]
     still = client_for(ana).get(f"/api/v1/agenda/events/{event_id}").json()
     assert {p["id"] for p in still["participants"]} == {caio.id}
-    assert client_for(bia).get(f"/api/v1/agenda/events/{event_id}").status_code == 404
+    assert client_for(bia).get(f"/api/v1/agenda/events/{event_id}").status_code == 200  # segue vendo, só não é mais marcada
 
 
 def test_agenda_edit_permission_lets_others_edit_and_delete(db, ana, bia):
@@ -192,11 +191,10 @@ def test_agenda_edit_permission_lets_others_edit_and_delete(db, ana, bia):
     assert client_for(bia).delete(f"/api/v1/agenda/events/{event_id}").status_code == 204
 
 
-def test_permission_does_not_reveal_events_of_non_participants(db, ana, bia, caio):
+def test_seeing_an_event_does_not_allow_editing_it(ana, bia, caio):
     event_id = create_event(client_for(ana), [bia.id]).json()["id"]
-    caio.permissions = ["agenda.edit"]
-    db.commit()
-    assert client_for(caio).patch(f"/api/v1/agenda/events/{event_id}", json={"title": "X"}).status_code == 404
+    assert client_for(caio).patch(f"/api/v1/agenda/events/{event_id}", json={"title": "X"}).status_code == 403
+    assert client_for(caio).delete(f"/api/v1/agenda/events/{event_id}").status_code == 403
 
 
 def test_only_creator_can_edit_or_delete(ana, bia):

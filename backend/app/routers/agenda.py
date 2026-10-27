@@ -2,14 +2,13 @@
 from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.core.permissions import has_permission
 from app.core.timeutil import to_utc_naive
-from app.models.agenda import AgendaEvent, agenda_event_participants
+from app.models.agenda import AgendaEvent
 from app.models.user import User
 from app.schemas.agenda import AgendaEventCreate, AgendaEventOut, AgendaEventUpdate
 from app.services import agenda as agenda_service
@@ -32,9 +31,9 @@ def _load_participants(db: Session, ids: list[int]) -> list[User]:
 
 
 def _visible_event(db: Session, event_id: int, user: User) -> AgendaEvent:
-    """Compromisso que a pessoa marcou ou foi marcada; senão 404 (não revela que existe)."""
+    """A agenda é da equipe toda: qualquer usuário logado vê qualquer compromisso."""
     event = db.get(AgendaEvent, event_id)
-    if event is None or (event.created_by != user.id and user.id not in {p.id for p in event.participants}):
+    if event is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Compromisso não encontrado.")
     return event
 
@@ -65,12 +64,6 @@ async def list_events(
     return (
         db.query(AgendaEvent)
         .filter(
-            or_(
-                AgendaEvent.created_by == current_user.id,
-                AgendaEvent.id.in_(
-                    select(agenda_event_participants.c.event_id).where(agenda_event_participants.c.user_id == current_user.id)
-                ),
-            ),
             AgendaEvent.starts_at < end_utc,
             AgendaEvent.ends_at > start_utc,
         )
