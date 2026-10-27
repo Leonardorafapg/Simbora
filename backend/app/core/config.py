@@ -11,8 +11,6 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "change-me-in-env"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 480
-    # Quantos dias o link de aprovação enviado ao cliente (sem login) fica válido.
-    CALENDAR_APPROVAL_TOKEN_EXPIRE_DAYS: int = 7
 
     # Evolution API — gateway self-hosted de WhatsApp (conexão única, global)
     EVOLUTION_API_URL: str = ""

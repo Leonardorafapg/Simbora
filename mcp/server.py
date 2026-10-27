@@ -290,7 +290,7 @@ async def get_calendar_period(
     client: Annotated[int | str, Field(description="Cliente (id ou nome)")],
     month: Annotated[str, Field(description="Mês AAAA-MM")],
 ) -> dict:
-    """Status do cronograma do mês (em_andamento | enviado_aprovacao_amanda | enviado_aprovacao_cliente | finalizado = "Aprovado" | reprovado) e quantas postagens ele tem."""
+    """Status do cronograma do mês (em_andamento | enviado_aprovacao_amanda | finalizado = "Aprovado" | reprovado) e quantas postagens ele tem."""
     client_id = await _client_id(client)
     year, num = (int(x) for x in month.split("-"))
     period = await api.get("/calendar-periods", client_id=client_id, year=year, month=num)

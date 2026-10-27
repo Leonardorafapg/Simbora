@@ -198,25 +198,6 @@ def test_month_approval_ignores_standalone_demands_and_unassigned(db, designer, 
     assert inbox(db, designer.id) == []
 
 
-def test_client_approval_link_also_notifies(db, designer):
-    from app.core.security import create_calendar_approval_token
-
-    client = Client(name="X")
-    db.add(client)
-    db.commit()
-    period = CalendarPeriod(client_id=client.id, year=2026, month=11, status="enviado_aprovacao_cliente")
-    db.add(period)
-    db.commit()
-    make_entry(db, client.id, designer.id)
-    make_entry(db, client.id, designer.id, scheduled=date(2026, 11, 12))
-
-    token = create_calendar_approval_token(period.id)
-    res = TestClient(app).post(f"/api/v1/calendar-periods/approval/{token}/decisao", json={"decision": "aprovado"})
-    assert res.status_code == 200
-    (n,) = inbox(db, designer.id)
-    assert n.title.startswith("2 novas demandas")
-
-
 # --- lembretes da agenda -------------------------------------------------------------------------------
 
 

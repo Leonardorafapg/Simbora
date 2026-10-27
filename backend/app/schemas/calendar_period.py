@@ -1,13 +1,12 @@
 # backend/app/schemas/calendar_period.py
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, model_validator
 
 CALENDAR_PERIOD_STATUSES = [
     "em_andamento",
     "finalizado",
     "reprovado",
-    # Cadeia de aprovação (ver docs/plano-aprovacao-calendario.md)
+    # Aprovação da Amanda (ver docs/plano-aprovacao-calendario.md)
     "enviado_aprovacao_amanda",
-    "enviado_aprovacao_cliente",
 ]
 
 
@@ -45,9 +44,9 @@ class CalendarPeriodEnviarAprovacao(BaseModel):
     client_id: int
     year: int
     month: int
-    # PDF gerado no frontend (jsPDF) e já subido pro R2 antes dessa chamada —
-    # reaproveitado em todas as etapas dessa rodada de aprovação.
-    pdf_url: str
+    # Legado: o envio já foi com um PDF do cronograma. Hoje a Amanda revisa direto no CRM e
+    # o front não manda mais — o campo só continua aceito pra não quebrar telas em cache.
+    pdf_url: str | None = None
 
     @field_validator("month")
     @classmethod
@@ -78,44 +77,12 @@ class CalendarPeriodDecisaoAmanda(BaseModel):
             raise ValueError("decision deve ser 'aprovado' ou 'reprovado'")
         return value
 
-    @field_validator("reason")
-    @classmethod
-    def validate_reason(cls, value: str | None, info) -> str | None:
-        if info.data.get("decision") == "reprovado" and not value:
+    @model_validator(mode="after")
+    def reason_required_when_rejecting(self):
+        # Validador de modelo (não de campo): o de campo não roda quando `reason` é omitido.
+        if self.decision == "reprovado" and not (self.reason or "").strip():
             raise ValueError("Motivo é obrigatório ao reprovar")
-        return value
-
-
-class CalendarPeriodDecisaoCliente(BaseModel):
-    decision: str  # "aprovado" | "reprovado"
-    reason: str | None = None
-
-    @field_validator("decision")
-    @classmethod
-    def validate_decision(cls, value: str) -> str:
-        if value not in ("aprovado", "reprovado"):
-            raise ValueError("decision deve ser 'aprovado' ou 'reprovado'")
-        return value
-
-    @field_validator("reason")
-    @classmethod
-    def validate_reason(cls, value: str | None, info) -> str | None:
-        if info.data.get("decision") == "reprovado" and not value:
-            raise ValueError("Motivo é obrigatório ao reprovar")
-        return value
-
-
-class CalendarApprovalPublicOut(BaseModel):
-    """O que a página pública de aprovação (sem login, acessada pelo link do WhatsApp) recebe."""
-
-    client_id: int
-    client_name: str
-    year: int
-    month: int
-    status: str
-    pdf_url: str | None
-
-    model_config = {"from_attributes": True}
+        return self
 
 
 class CalendarPeriodPendingOut(BaseModel):

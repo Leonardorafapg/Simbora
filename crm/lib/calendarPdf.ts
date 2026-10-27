@@ -171,13 +171,3 @@ export async function exportCalendarToPdf(
   const doc = await buildCalendarPdfDoc(clientName, monthLabel, entries);
   doc.save(`cronograma-${slugify(clientName)}-${slugify(monthLabel)}.pdf`);
 }
-
-/** Mesmo PDF, como Blob — usado pra subir no R2 antes de enviar pro WhatsApp (fluxo de aprovação). */
-export async function buildCalendarPdfBlob(
-  clientName: string,
-  monthLabel: string,
-  entries: CalendarEntry[],
-): Promise<Blob> {
-  const doc = await buildCalendarPdfDoc(clientName, monthLabel, entries);
-  return doc.output("blob");
-}

@@ -11,11 +11,12 @@ class CalendarPeriod(Base):
     O status é informativo (fluxo de aprovação): NÃO bloqueia criar, editar ou
     remover postagens do cliente/mês — o social pode alterar em qualquer etapa.
 
-    Cadeia de aprovação (ver docs/plano-aprovacao-calendario.md):
-    em_andamento -> enviado_aprovacao_amanda -> enviado_aprovacao_cliente ->
-    finalizado (rótulo "Aprovado"). Reprovação em qualquer etapa leva a
-    "reprovado" (editável, e dá pra reenviar); quem/quando/motivo ficam em
-    CalendarApproval, não aqui.
+    Aprovação (ver docs/plano-aprovacao-calendario.md):
+    em_andamento -> enviado_aprovacao_amanda -> finalizado (rótulo "Aprovado",
+    é quando as postagens entram na Produção). Reprovação leva a "reprovado"
+    (editável, e dá pra reenviar); quem/quando/motivo ficam em CalendarApproval,
+    não aqui. (Havia uma etapa de aprovação do cliente pelo link do WhatsApp;
+    foi removida — períodos que estavam nela viram "finalizado" na migração.)
     """
 
     __tablename__ = "calendar_periods"

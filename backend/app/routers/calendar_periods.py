@@ -1,18 +1,14 @@
 # backend/app/routers/calendar_periods.py
-import jwt
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.deps import require_permission
-from app.core.security import decode_calendar_approval_token
 from app.models.calendar_period import CalendarPeriod
 from app.models.client import Client
 from app.models.user import User
 from app.schemas.calendar_period import (
-    CalendarApprovalPublicOut,
     CalendarPeriodDecisaoAmanda,
-    CalendarPeriodDecisaoCliente,
     CalendarPeriodEnviarAprovacao,
     CalendarPeriodOut,
     CalendarPeriodPendingOut,
@@ -58,13 +54,13 @@ async def listar_aprovacoes_pendentes(
     _: User = Depends(require_permission("calendar.approve")),
 ):
     """
-    Caixa de entrada central: todo período que está em qualquer etapa da
-    cadeia de aprovação (ver docs/plano-aprovacao-calendario.md), pra não
-    precisar entrar cliente por cliente pra descobrir o que está pendente.
+    Caixa de entrada central: todo período aguardando a aprovação da Amanda
+    (ver docs/plano-aprovacao-calendario.md), pra não precisar entrar cliente
+    por cliente pra descobrir o que está pendente.
     """
     periods = (
         db.query(CalendarPeriod)
-        .filter(CalendarPeriod.status.in_(["enviado_aprovacao_amanda", "enviado_aprovacao_cliente"]))
+        .filter(CalendarPeriod.status == "enviado_aprovacao_amanda")
         .order_by(CalendarPeriod.updated_at.desc())
         .all()
     )
@@ -198,79 +194,12 @@ async def decidir_amanda(
         db.refresh(period)
         return period
 
-    period.status = "enviado_aprovacao_cliente"
+    # Aprovado pela Amanda = aprovado: as postagens do mês entram direto na Produção e cada
+    # designer recebe UM aviso com a contagem das demandas dele.
+    period.status = "finalizado"
     db.commit()
     db.refresh(period)
-
-    client = db.get(Client, period.client_id)
-    if client is not None:
-        await calendar_approval.send_pdf_to_client(db, period, client)
-
+    notices = demands.notify_month_approved(db, period, current_user.id)
+    db.commit()
+    await notifications.publish(notices)
     return period
-
-
-@router.get("/calendar-periods/approval/{token}", response_model=CalendarApprovalPublicOut)
-async def obter_aprovacao_publica(token: str, db: Session = Depends(get_db)):
-    """Rota pública (sem login) — a página que o cliente abre pelo link do WhatsApp."""
-    try:
-        period_id = decode_calendar_approval_token(token)
-    except jwt.PyJWTError:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Link inválido ou expirado")
-
-    period = db.get(CalendarPeriod, period_id)
-    if period is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cronograma não encontrado")
-
-    client = db.get(Client, period.client_id)
-    if client is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cliente não encontrado")
-
-    return CalendarApprovalPublicOut(
-        client_id=client.id,
-        client_name=client.name,
-        year=period.year,
-        month=period.month,
-        status=period.status,
-        pdf_url=period.pdf_url,
-    )
-
-
-@router.post("/calendar-periods/approval/{token}/decisao", response_model=CalendarApprovalPublicOut)
-async def decidir_cliente(token: str, payload: CalendarPeriodDecisaoCliente, db: Session = Depends(get_db)):
-    """Decisão do cliente pelo link assinado — sem autenticação de usuário."""
-    try:
-        period_id = decode_calendar_approval_token(token)
-    except jwt.PyJWTError:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Link inválido ou expirado")
-
-    period = db.get(CalendarPeriod, period_id)
-    if period is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cronograma não encontrado")
-
-    if period.status != "enviado_aprovacao_cliente":
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Este link já foi usado ou o cronograma não está mais aguardando aprovação do cliente.",
-        )
-
-    calendar_approval.record_decision(
-        db, period, stage="cliente", decision=payload.decision, reason=payload.reason, decided_by_user_id=None
-    )
-
-    period.status = "finalizado" if payload.decision == "aprovado" else "reprovado"
-    db.commit()
-    db.refresh(period)
-    if period.status == "finalizado":
-        notices = demands.notify_month_approved(db, period, None)
-        db.commit()
-        await notifications.publish(notices)
-
-    client = db.get(Client, period.client_id)
-    return CalendarApprovalPublicOut(
-        client_id=period.client_id,
-        client_name=client.name if client else "",
-        year=period.year,
-        month=period.month,
-        status=period.status,
-        pdf_url=period.pdf_url,
-    )

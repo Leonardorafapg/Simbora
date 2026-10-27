@@ -104,10 +104,12 @@ def run_light_migrations():
             ):
                 conn.exec_driver_sql(f"UPDATE calendar_entries SET status = '{new}' WHERE status = '{old}'")
             conn.commit()
-        # Status intermediário "aprovado_amanda" saiu do fluxo: o cronograma já segue direto para o cliente.
+        # A aprovação do cliente saiu do fluxo: o que a Amanda já aprovou (inclusive o antigo
+        # "aprovado_amanda") está aprovado e vai direto pra Produção. Idempotente.
         if inspector.has_table("calendar_periods"):
             conn.exec_driver_sql(
-                "UPDATE calendar_periods SET status = 'enviado_aprovacao_cliente' WHERE status = 'aprovado_amanda'"
+                "UPDATE calendar_periods SET status = 'finalizado' "
+                "WHERE status IN ('enviado_aprovacao_cliente', 'aprovado_amanda')"
             )
             conn.commit()
         add_column_if_missing(conn, "whatsapp_messages", "media_type", "media_type VARCHAR(20)")

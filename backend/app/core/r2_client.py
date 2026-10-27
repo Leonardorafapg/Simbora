@@ -23,14 +23,8 @@ VIDEO_EXTENSIONS = {
     "video/quicktime": "mov",
 }
 
-# PDFs do calendário (fluxo de aprovação) — upload separado do de imagens,
-# mesmo mecanismo de presign.
-DOCUMENT_EXTENSIONS = {
-    "application/pdf": "pdf",
-}
-
 # Documentos aceitos como arte finalizada do post (além de imagem) — upload via
-# /uploads/presign-artwork. Separado de DOCUMENT_EXTENSIONS, que é só o PDF do calendário.
+# /uploads/presign-artwork.
 ARTWORK_DOCUMENT_EXTENSIONS = {
     "application/pdf": "pdf",
     "application/msword": "doc",
@@ -80,7 +74,7 @@ def get_client():
 
 def new_object_key(content_type: str, folder: str | None = None, subdir: str = "") -> str:
     now = datetime.now(timezone.utc)
-    ext = IMAGE_EXTENSIONS.get(content_type) or VIDEO_EXTENSIONS.get(content_type) or DOCUMENT_EXTENSIONS.get(content_type) or ARTWORK_DOCUMENT_EXTENSIONS[content_type]
+    ext = IMAGE_EXTENSIONS.get(content_type) or VIDEO_EXTENSIONS.get(content_type) or ARTWORK_DOCUMENT_EXTENSIONS[content_type]
     prefix = "/".join(p for p in (settings.R2_KEY_PREFIX.strip("/"), folder) if p)
     subdir = subdir.strip("/")
     name = f"{subdir}/{now:%Y/%m}/{uuid.uuid4().hex}.{ext}" if subdir else f"{now:%Y/%m}/{uuid.uuid4().hex}.{ext}"

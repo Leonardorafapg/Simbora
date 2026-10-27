@@ -1,5 +1,4 @@
 import type {
-  CalendarApprovalPublic,
   CalendarPeriod,
   CalendarPeriodPending,
   CalendarPeriodStatus,
@@ -33,22 +32,17 @@ export async function setCalendarPeriodStatus(
 }
 
 /** Time marca o mês como pronto — sobe pro status "aguardando aprovação da Amanda". */
-export async function enviarParaAprovacao(
-  clientId: number,
-  year: number,
-  month: number,
-  pdfUrl: string,
-): Promise<CalendarPeriod> {
+export async function enviarParaAprovacao(clientId: number, year: number, month: number): Promise<CalendarPeriod> {
   const res = await fetch("/api/calendar-periods/enviar-aprovacao", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ client_id: clientId, year, month, pdf_url: pdfUrl }),
+    body: JSON.stringify({ client_id: clientId, year, month }),
   });
   if (!res.ok) throw new Error(await parseErrorMessage(res, "Não foi possível enviar para aprovação."));
   return res.json();
 }
 
-/** Decisão da Amanda — aprovando, dispara o envio automático do PDF pro WhatsApp do cliente. */
+/** Decisão da Amanda — aprovando, as postagens do mês entram na Produção e os designers são avisados. */
 export async function decidirComoAmanda(
   clientId: number,
   year: number,
@@ -65,31 +59,9 @@ export async function decidirComoAmanda(
   return res.json();
 }
 
-/** Caixa de entrada central — todo período em qualquer etapa da cadeia de aprovação. */
+/** Caixa de entrada central — todo período aguardando a aprovação da Amanda. */
 export async function fetchPendingApprovals(): Promise<CalendarPeriodPending[]> {
   const res = await fetch("/api/calendar-periods/pending-approval");
   if (!res.ok) throw new Error(await parseErrorMessage(res, "Não foi possível carregar as aprovações pendentes."));
-  return res.json();
-}
-
-/** Rota pública (sem login) consultada pela página /aprovacao/[token]. */
-export async function fetchApprovalByToken(token: string): Promise<CalendarApprovalPublic> {
-  const res = await fetch(`/api/calendar-periods/approval/${token}`);
-  if (!res.ok) throw new Error(await parseErrorMessage(res, "Link inválido ou expirado."));
-  return res.json();
-}
-
-/** Decisão do cliente pelo link público — sem login. */
-export async function decidirComoCliente(
-  token: string,
-  decision: "aprovado" | "reprovado",
-  reason?: string,
-): Promise<CalendarApprovalPublic> {
-  const res = await fetch(`/api/calendar-periods/approval/${token}/decisao`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ decision, reason }),
-  });
-  if (!res.ok) throw new Error(await parseErrorMessage(res, "Não foi possível registrar a decisão."));
   return res.json();
 }

@@ -113,10 +113,8 @@ export default function ClientCalendar({
 
       <CalendarApprovalPanel
         clientId={clientId}
-        clientName={clientName}
         year={year}
         month={month}
-        monthLabel={monthLabel}
         status={period.status}
         entries={entries}
         canSend={canEdit}
