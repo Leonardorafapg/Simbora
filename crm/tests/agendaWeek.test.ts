@@ -7,8 +7,8 @@ import type { AgendaEvent } from "../types/agenda.ts";
 // Horários montados no fuso local da máquina — os testes valem em qualquer fuso.
 const at = (y: number, m: number, d: number, h = 0, min = 0) => new Date(y, m - 1, d, h, min).toISOString();
 
-const event = (id: number, title: string, start: string, end: string, names: string[] = ["Ana Souza"]): AgendaEvent => ({
-  id, title, description: null, starts_at: start, ends_at: end, created_by: 1,
+const event = (id: number, title: string, start: string, end: string, names: string[] = []): AgendaEvent => ({
+  id, title, description: null, starts_at: start, ends_at: end, created_by: 1, created_by_name: "Leonardo",
   participants: names.map((full_name, i) => ({ id: i + 1, full_name, photo_url: null })),
 });
 
@@ -74,7 +74,7 @@ test("dois compromissos no mesmo horário e dia ficam empilhados", () => {
   assert.deepEqual(cellOf(grid, "10:00", 2).map((e) => e.title), ["A", "B"]);
 });
 
-test("participantes aparecem pelo primeiro nome quando há mais de uma pessoa", () => {
+test("só aparecem os marcados (quem criou não conta), pelo primeiro nome", () => {
   const grid = buildWeekGrid(
     [event(1, "Alinhamento", at(2026, 10, 28, 9), at(2026, 10, 28, 10), ["Ana Souza", "Bia Lima"])],
     WEEK,
@@ -107,4 +107,11 @@ test("compromisso que termina à meia-noite de segunda não entra na semana ante
 
 test("weekFileName", () => {
   assert.equal(weekFileName({ rangeLabel: "26/10 a 01/11" }), "agenda-26-10-a-01-11.pdf");
+});
+
+test("um único marcado também aparece; sem ninguém marcado só o horário", () => {
+  const one = buildWeekGrid([event(1, "Reunião", at(2026, 10, 28, 9), at(2026, 10, 28, 10), ["Bia Lima"])], WEEK);
+  assert.equal(cellOf(one, "09:00", 2)[0].detail, "até 10:00 • Bia");
+  const none = buildWeekGrid([event(2, "Sozinho", at(2026, 10, 28, 9), at(2026, 10, 28, 10))], WEEK);
+  assert.equal(cellOf(none, "09:00", 2)[0].detail, "até 10:00");
 });

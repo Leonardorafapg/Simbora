@@ -7,7 +7,7 @@ import type { AgendaEvent } from "../types/agenda.ts";
 const at = (y: number, m: number, d: number, h = 0, min = 0) => new Date(y, m - 1, d, h, min).toISOString();
 
 const event = (id: number, start: string, end: string): AgendaEvent => ({
-  id, title: `E${id}`, description: null, starts_at: start, ends_at: end, created_by: 1, participants: [],
+  id, title: `E${id}`, description: null, starts_at: start, ends_at: end, created_by: 1, created_by_name: "Leonardo", participants: [],
 });
 
 test("toLocalInput e fromLocalInput se desfazem", () => {

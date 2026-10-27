@@ -17,6 +17,8 @@ type Props = {
   /** Dia (AAAA-MM-DD) pré-selecionado ao criar. */
   initialDate: string;
   currentUserId: number | null;
+  /** Permissão `agenda.edit`: pode alterar e cancelar compromissos marcados por outras pessoas. */
+  canEditOthers?: boolean;
   members: TeamDirectoryEntry[];
   onSave: (input: AgendaEventInput) => Promise<unknown>;
   onDelete: () => Promise<unknown>;
@@ -28,24 +30,31 @@ function defaultRange(date: string) {
   return { start: `${date}T09:00`, end: `${date}T10:00` };
 }
 
-export default function AgendaEventDialog({ event, initialDate, currentUserId, members, onSave, onDelete, onClose }: Props) {
+export default function AgendaEventDialog({
+  event,
+  initialDate,
+  currentUserId,
+  canEditOthers = false,
+  members,
+  onSave,
+  onDelete,
+  onClose,
+}: Props) {
   const isNew = event === null;
-  const canEdit = isNew || event.created_by === currentUserId;
+  const isOwner = isNew || event.created_by === currentUserId;
+  const canEdit = isOwner || canEditOthers;
 
   const [title, setTitle] = useState(event?.title ?? "");
   const [description, setDescription] = useState(event?.description ?? "");
   const [start, setStart] = useState(event ? toLocalInput(event.starts_at) : defaultRange(initialDate).start);
   const [end, setEnd] = useState(event ? toLocalInput(event.ends_at) : defaultRange(initialDate).end);
-  // O criador sempre participa — não entra na lista de convidados editável.
-  const [guestIds, setGuestIds] = useState<number[]>(
-    event ? event.participants.map((p) => p.id).filter((id) => id !== event.created_by) : [],
-  );
+  // Participantes são só as pessoas marcadas — quem cria o compromisso só entra se se marcar.
+  const [guestIds, setGuestIds] = useState<number[]>(event ? event.participants.map((p) => p.id) : []);
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const guestOptions = members.filter((m) => m.is_active && m.id !== (event?.created_by ?? currentUserId)).map((m) => ({ value: m.id, label: m.full_name }));
-  const creator = event?.participants.find((p) => p.id === event.created_by);
+  const guestOptions = members.filter((m) => m.is_active).map((m) => ({ value: m.id, label: m.full_name }));
 
   // Ao mudar o início, o fim acompanha mantendo a duração (como nos calendários comuns).
   function changeStart(value: string) {
@@ -150,9 +159,9 @@ export default function AgendaEventDialog({ event, initialDate, currentUserId, m
                 options={guestOptions}
                 value={guestIds}
                 onChange={setGuestIds}
-                allLabel="Só eu"
-                pluralLabel="convidados"
-                ariaLabel="Convidados"
+                allLabel="Ninguém marcado"
+                pluralLabel="pessoas"
+                ariaLabel="Participantes"
               />
             ) : (
               <ul className="flex flex-wrap gap-2">
@@ -164,8 +173,16 @@ export default function AgendaEventDialog({ event, initialDate, currentUserId, m
                 ))}
               </ul>
             )}
-            {canEdit && !isNew && creator && <p className="text-xs text-text-faint">Marcado por você.</p>}
-            {!canEdit && creator && <p className="text-xs text-text-faint">Marcado por {creator.full_name}. Só quem marcou pode alterar.</p>}
+            {!isNew && event.created_by_name && (
+              <p className="text-xs text-text-faint">
+                {isOwner
+                  ? "Marcado por você."
+                  : canEdit
+                    ? `Marcado por ${event.created_by_name}. Você pode alterar por ter a permissão de editar a agenda.`
+                    : `Marcado por ${event.created_by_name}. Só quem marcou pode alterar.`}
+              </p>
+            )}
+            {isNew && <p className="text-xs text-text-faint">Você não entra como participante, a menos que se marque.</p>}
           </div>
 
           <Field label="Descrição">

@@ -23,6 +23,7 @@ export const PERMISSIONS: { key: string; label: string }[] = [
   { key: "calendar.edit", label: "Editar entradas no calendário" },
   { key: "calendar.delete", label: "Remover entradas no calendário" },
   { key: "calendar.approve", label: "Aprovar calendário (etapa Amanda)" },
+  { key: "agenda.edit", label: "Editar e cancelar compromissos de outras pessoas na agenda" },
   { key: "whatsapp.view", label: "Ver WhatsApp" },
   { key: "whatsapp.send", label: "Enviar mensagens no WhatsApp" },
   { key: "instagram.view", label: "Ver Instagram (agendamentos e métricas)" },

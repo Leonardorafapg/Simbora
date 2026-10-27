@@ -12,6 +12,8 @@ export type AgendaEvent = {
   starts_at: string;
   ends_at: string;
   created_by: number;
+  /** Quem marcou — não aparece em `participants` (só se tiver se marcado). */
+  created_by_name: string | null;
   participants: AgendaParticipant[];
 };
 

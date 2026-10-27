@@ -53,7 +53,7 @@ const shortDate = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
 function detailOf(event: AgendaEvent, start: Date, end: Date): string {
   const until = dayKey(start) === dayKey(end) ? `até ${clock(end)}` : `até ${shortDate(dayKey(end))} ${clock(end)}`;
   const others = event.participants.map((p) => p.full_name.split(" ")[0]);
-  return others.length > 1 ? `${until} • ${others.join(", ")}` : until;
+  return others.length > 0 ? `${until} • ${others.join(", ")}` : until;
 }
 
 /**

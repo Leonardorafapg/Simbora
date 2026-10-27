@@ -2,10 +2,12 @@
 from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
+from app.core.permissions import has_permission
 from app.core.timeutil import to_utc_naive
 from app.models.agenda import AgendaEvent, agenda_event_participants
 from app.models.user import User
@@ -19,9 +21,9 @@ router = APIRouter()
 MAX_RANGE = timedelta(days=100)
 
 
-def _load_participants(db: Session, ids: list[int], creator: User) -> list[User]:
-    """Convidados (só usuários ativos) + quem criou, que sempre participa do próprio compromisso."""
-    wanted = list(dict.fromkeys([creator.id, *ids]))
+def _load_participants(db: Session, ids: list[int]) -> list[User]:
+    """Só quem foi marcado (usuários ativos): quem cria não entra sozinho na lista."""
+    wanted = list(dict.fromkeys(ids))
     users = db.query(User).filter(User.id.in_(wanted), User.is_active.is_(True)).all()
     if len(users) != len(wanted):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Participante inválido.")
@@ -30,17 +32,20 @@ def _load_participants(db: Session, ids: list[int], creator: User) -> list[User]
 
 
 def _visible_event(db: Session, event_id: int, user: User) -> AgendaEvent:
-    """Compromisso que a pessoa participa; senão 404 (não revela que existe)."""
+    """Compromisso que a pessoa marcou ou foi marcada; senão 404 (não revela que existe)."""
     event = db.get(AgendaEvent, event_id)
-    if event is None or user.id not in {p.id for p in event.participants}:
+    if event is None or (event.created_by != user.id and user.id not in {p.id for p in event.participants}):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Compromisso não encontrado.")
     return event
 
 
 def _owned_event(db: Session, event_id: int, user: User) -> AgendaEvent:
     event = _visible_event(db, event_id, user)
-    if event.created_by != user.id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Só quem marcou o compromisso pode alterá-lo.")
+    if event.created_by != user.id and not has_permission(user, "agenda.edit"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Só quem marcou o compromisso (ou quem tem permissão de editar a agenda) pode alterá-lo.",
+        )
     return event
 
 
@@ -59,9 +64,13 @@ async def list_events(
 
     return (
         db.query(AgendaEvent)
-        .join(agenda_event_participants, agenda_event_participants.c.event_id == AgendaEvent.id)
         .filter(
-            agenda_event_participants.c.user_id == current_user.id,
+            or_(
+                AgendaEvent.created_by == current_user.id,
+                AgendaEvent.id.in_(
+                    select(agenda_event_participants.c.event_id).where(agenda_event_participants.c.user_id == current_user.id)
+                ),
+            ),
             AgendaEvent.starts_at < end_utc,
             AgendaEvent.ends_at > start_utc,
         )
@@ -92,7 +101,7 @@ async def create_event(
         ends_at=payload.ends_at,
         created_by=current_user.id,
     )
-    event.participants = _load_participants(db, payload.participant_ids, current_user)
+    event.participants = _load_participants(db, payload.participant_ids)
     db.add(event)
     db.flush()
     created = agenda_service.notify_created(db, event, current_user.full_name, current_user.id)
@@ -120,7 +129,7 @@ async def update_event(
             data.pop(key, None)
     participant_ids = data.pop("participant_ids", None)
     if participant_ids is not None:
-        event.participants = _load_participants(db, participant_ids, current_user)
+        event.participants = _load_participants(db, participant_ids)
     for field, value in data.items():
         setattr(event, field, value)
     if event.ends_at <= event.starts_at:

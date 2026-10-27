@@ -77,6 +77,7 @@ class AgendaEventOut(BaseModel):
     starts_at: datetime
     ends_at: datetime
     created_by: int
+    created_by_name: str | None = None
     participants: list[AgendaParticipantOut]
 
     model_config = {"from_attributes": True}

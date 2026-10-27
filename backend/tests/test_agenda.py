@@ -79,10 +79,18 @@ def test_time_helpers():
 # --- criação e visibilidade -----------------------------------------------------------------
 
 
-def test_creator_is_always_a_participant(ana, bia):
+def test_only_tagged_people_are_participants(ana, bia):
     body = create_event(client_for(ana), [bia.id]).json()
-    assert {p["id"] for p in body["participants"]} == {ana.id, bia.id}
+    assert {p["id"] for p in body["participants"]} == {bia.id}  # quem cria não entra sozinho
     assert body["created_by"] == ana.id
+    assert {p["id"] for p in create_event(client_for(ana), [ana.id, bia.id]).json()["participants"]} == {ana.id, bia.id}
+
+
+def test_creator_still_sees_and_manages_event_without_being_tagged(ana, bia):
+    event_id = create_event(client_for(ana), [bia.id]).json()["id"]
+    window = {"start": "2026-10-01T00:00:00-03:00", "end": "2026-11-01T00:00:00-03:00"}
+    assert [e["id"] for e in client_for(ana).get("/api/v1/agenda/events", params=window).json()] == [event_id]
+    assert client_for(ana).patch(f"/api/v1/agenda/events/{event_id}", json={"title": "Novo"}).status_code == 200
 
 
 def test_only_participants_see_the_event(ana, bia, caio):
@@ -172,8 +180,23 @@ def test_adding_and_removing_participants_notifies_each_side(db, ana, bia, caio)
     assert [n.type for n in inbox(db, caio)] == [agenda_service.TYPE_INVITE]
     assert agenda_service.TYPE_REMOVED in [n.type for n in inbox(db, bia)]
     still = client_for(ana).get(f"/api/v1/agenda/events/{event_id}").json()
-    assert {p["id"] for p in still["participants"]} == {ana.id, caio.id}  # criador nunca sai
+    assert {p["id"] for p in still["participants"]} == {caio.id}
     assert client_for(bia).get(f"/api/v1/agenda/events/{event_id}").status_code == 404
+
+
+def test_agenda_edit_permission_lets_others_edit_and_delete(db, ana, bia):
+    event_id = create_event(client_for(ana), [bia.id]).json()["id"]
+    bia.permissions = ["agenda.edit"]
+    db.commit()
+    assert client_for(bia).patch(f"/api/v1/agenda/events/{event_id}", json={"title": "Outro"}).json()["title"] == "Outro"
+    assert client_for(bia).delete(f"/api/v1/agenda/events/{event_id}").status_code == 204
+
+
+def test_permission_does_not_reveal_events_of_non_participants(db, ana, bia, caio):
+    event_id = create_event(client_for(ana), [bia.id]).json()["id"]
+    caio.permissions = ["agenda.edit"]
+    db.commit()
+    assert client_for(caio).patch(f"/api/v1/agenda/events/{event_id}", json={"title": "X"}).status_code == 404
 
 
 def test_only_creator_can_edit_or_delete(ana, bia):
@@ -288,6 +311,37 @@ def test_deleting_a_user_cleans_their_agenda_and_notices(db, ana, bia):
     db.expire_all()
     assert db.query(Notification).filter(Notification.user_id == bia_id).count() == 0
     assert db.query(AgendaEvent).filter(AgendaEvent.created_by == bia_id).count() == 0
-    # o compromisso de Ana continua, só sem Bia
+    # o compromisso de Ana continua, só sem Bia (e Ana, que marcou, segue como dona dele)
     (remaining,) = db.query(AgendaEvent).all()
-    assert {p.id for p in remaining.participants} == {ana_id}
+    assert remaining.created_by == ana_id
+    assert {p.id for p in remaining.participants} == set()
+
+
+def test_event_tells_who_created_it_even_when_not_a_participant(ana, bia):
+    body = create_event(client_for(ana), [bia.id]).json()
+    assert body["created_by_name"] == "Pessoa 1"
+    assert ana.id not in {p["id"] for p in body["participants"]}
+    assert client_for(bia).get(f"/api/v1/agenda/events/{body['id']}").json()["created_by_name"] == "Pessoa 1"
+
+
+def test_event_with_nobody_tagged_has_no_participants_but_is_still_listed_for_its_creator(ana):
+    body = create_event(client_for(ana)).json()
+    assert body["participants"] == []
+    window = {"start": "2026-10-01T00:00:00-03:00", "end": "2026-11-01T00:00:00-03:00"}
+    assert [e["id"] for e in client_for(ana).get("/api/v1/agenda/events", params=window).json()] == [body["id"]]
+
+
+def test_creator_gets_no_reminder_unless_tagged(db, ana, bia):
+    from datetime import datetime, timedelta
+
+    from app.services import reminders
+
+    now = datetime(2026, 10, 28, 12, 0)
+    for guests, creator_tagged in (([bia.id], False), ([ana.id, bia.id], True)):
+        body = client_for(ana).post("/api/v1/agenda/events", json={
+            "title": "Lembrete", "participant_ids": guests,
+            "starts_at": (now + timedelta(minutes=20)).isoformat() + "Z", "ends_at": (now + timedelta(minutes=80)).isoformat() + "Z",
+        }).json()
+        recipients = {n.user_id for n in reminders.agenda_reminders(db, now) if f"evento={body['id']}" in (n.link or "")}
+        assert (ana.id in recipients) is creator_tagged
+        assert bia.id in recipients

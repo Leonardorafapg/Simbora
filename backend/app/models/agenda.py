@@ -17,7 +17,7 @@ agenda_event_participants = Table(
 
 
 class AgendaEvent(Base):
-    """Compromisso da agenda da equipe: visível pra quem criou e pra quem foi convidado."""
+    """Compromisso da agenda da equipe: visível pra quem criou e pra quem foi marcado (quem cria só participa se se marcar)."""
 
     __tablename__ = "agenda_events"
 
@@ -32,3 +32,9 @@ class AgendaEvent(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
 
     participants: Mapped[list[User]] = relationship(secondary=agenda_event_participants, lazy="selectin")
+    creator: Mapped[User] = relationship(foreign_keys=[created_by], lazy="selectin")
+
+    @property
+    def created_by_name(self) -> str | None:
+        """Quem marcou — o criador não aparece na lista de participantes (só se se marcar)."""
+        return self.creator.full_name if self.creator else None

@@ -18,9 +18,9 @@ import type { AgendaEvent } from "@/types/agenda";
 const WEEKDAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const iso = (year: number, month: number, day: number) => `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 
-type Props = { currentUserId: number | null };
+type Props = { currentUserId: number | null; canEditOthers: boolean };
 
-export default function AgendaPageClient({ currentUserId }: Props) {
+export default function AgendaPageClient({ currentUserId, canEditOthers }: Props) {
   const today = todayLocalISO();
   const [year, setYear] = useState(() => Number(today.slice(0, 4)));
   const [month, setMonth] = useState(() => Number(today.slice(5, 7)));
@@ -216,7 +216,7 @@ export default function AgendaPageClient({ currentUserId }: Props) {
                   >
                     <span className="block text-xs font-medium text-accent">{formatEventRange(event)}</span>
                     <span className="block truncate text-sm font-medium text-text">{event.title}</span>
-                    {event.participants.length > 1 && (
+                    {event.participants.length > 0 && (
                       <span className="block truncate text-xs text-text-faint">
                         {event.participants.map((p) => p.full_name.split(" ")[0]).join(", ")}
                       </span>
@@ -240,6 +240,7 @@ export default function AgendaPageClient({ currentUserId }: Props) {
           event={dialog.event}
           initialDate={selectedDay}
           currentUserId={currentUserId}
+          canEditOthers={canEditOthers}
           members={members}
           onSave={(input) => (dialog.event ? update(dialog.event.id, input) : create(input))}
           onDelete={() => remove(dialog.event!.id)}
