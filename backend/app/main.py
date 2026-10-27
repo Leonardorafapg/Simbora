@@ -1,4 +1,5 @@
 # backend/app/main.py
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 
@@ -6,8 +7,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.database import run_light_migrations
-from app.routers import leads, auth, users, team, clients, calendar, calendar_periods, whatsapp, whatsapp_webhook, search, uploads, tags, instagram, oauth
+from app.routers import leads, auth, users, team, clients, calendar, calendar_periods, whatsapp, whatsapp_webhook, search, uploads, tags, instagram, oauth, agenda, notifications, push
 from app.services.instagram_posts import worker as instagram_worker
+from app.services.notification_worker import worker as notification_worker
 
 logging.basicConfig(level=logging.INFO)
 # O httpx loga a URL completa em INFO, e a API do Instagram leva o access_token
@@ -22,8 +24,12 @@ async def lifespan(_app: FastAPI):
     # Laço que publica os posts agendados e renova os tokens do Instagram.
     if settings.INSTAGRAM_WORKER_ENABLED:
         instagram_worker.start()
+    # Laço de lembretes (agenda e prazos de demanda).
+    if settings.NOTIFICATION_WORKER_ENABLED:
+        notification_worker.start(asyncio.get_running_loop())
     yield
     instagram_worker.stop()
+    notification_worker.stop()
 
 
 app = FastAPI(title=settings.APP_NAME, debug=settings.DEBUG, lifespan=lifespan)
@@ -53,6 +59,9 @@ app.include_router(whatsapp_webhook.router, prefix="/api/v1")
 app.include_router(search.router, prefix="/api/v1")
 app.include_router(uploads.router, prefix="/api/v1")
 app.include_router(instagram.router, prefix="/api/v1")
+app.include_router(agenda.router, prefix="/api/v1")
+app.include_router(notifications.router, prefix="/api/v1")
+app.include_router(push.router, prefix="/api/v1")
 app.include_router(oauth.router)  # metadata e /oauth/* na raiz, exigido pelo OAuth
 app.include_router(oauth.api_router, prefix="/api/v1")
 

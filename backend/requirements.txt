@@ -14,3 +14,4 @@ python-multipart
 psycopg[binary]
 cryptography
 Pillow
+pywebpush

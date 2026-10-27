@@ -18,7 +18,7 @@ from app.schemas.calendar_period import (
     CalendarPeriodPendingOut,
     CalendarPeriodSetStatus,
 )
-from app.services import calendar_approval
+from app.services import calendar_approval, demands, notifications
 
 router = APIRouter()
 
@@ -108,7 +108,7 @@ async def get_calendar_period(
 async def set_calendar_period_status(
     payload: CalendarPeriodSetStatus,
     db: Session = Depends(get_db),
-    _: User = Depends(require_permission("calendar.edit")),
+    current_user: User = Depends(require_permission("calendar.edit")),
 ):
     period = (
         db.query(CalendarPeriod)
@@ -124,10 +124,16 @@ async def set_calendar_period_status(
         period = CalendarPeriod(client_id=payload.client_id, year=payload.year, month=payload.month)
         db.add(period)
 
+    was_approved = period.status == "finalizado"
     period.status = payload.status
 
     db.commit()
     db.refresh(period)
+    notices = []
+    if period.status == "finalizado" and not was_approved:
+        notices = demands.notify_month_approved(db, period, current_user.id)
+        db.commit()
+    await notifications.publish(notices)
     return period
 
 
@@ -254,6 +260,10 @@ async def decidir_cliente(token: str, payload: CalendarPeriodDecisaoCliente, db:
     period.status = "finalizado" if payload.decision == "aprovado" else "reprovado"
     db.commit()
     db.refresh(period)
+    if period.status == "finalizado":
+        notices = demands.notify_month_approved(db, period, None)
+        db.commit()
+        await notifications.publish(notices)
 
     client = db.get(Client, period.client_id)
     return CalendarApprovalPublicOut(

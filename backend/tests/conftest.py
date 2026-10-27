@@ -10,6 +10,7 @@ from datetime import date
 _tmp = tempfile.mkdtemp(prefix="simbora-tests-")
 os.environ["DATABASE_URL"] = f"sqlite:///{_tmp}/test.db"
 os.environ["INSTAGRAM_WORKER_ENABLED"] = "false"
+os.environ["NOTIFICATION_WORKER_ENABLED"] = "false"
 os.environ["INSTAGRAM_APP_ID"] = "app-id"
 os.environ["INSTAGRAM_APP_SECRET"] = "app-secret"
 os.environ["INSTAGRAM_REDIRECT_URI"] = "https://api.test/api/v1/instagram/oauth/callback"

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Plus, Search, SlidersHorizontal, X } from "lucide-react";
 import { deadlineInfo, urgencyRank } from "@/lib/deadline";
 import {
@@ -52,7 +53,12 @@ export default function ProductionBoard({ canEdit, canCreate, canDelete, canView
   const [requesterIds, setRequesterIds] = useState<number[]>([]);
   const [tagIds, setTagIds] = useState<number[]>([]);
   const [deadlineFilter, setDeadlineFilter] = useState<"" | "atrasados" | "vencem">("");
-  const [month, setMonth] = useState(currentMonth());
+  // Link de aviso (/production?demanda=7&mes=2026-11): abre no mês certo e já com a demanda aberta.
+  const searchParams = useSearchParams();
+  const linkedMonth = searchParams.get("mes");
+  const linkedEntryId = Number(searchParams.get("demanda")) || null;
+  const [month, setMonth] = useState(() => (linkedMonth && /^\d{4}-(0[1-9]|1[0-2])$/.test(linkedMonth) ? linkedMonth : currentMonth()));
+  const openedLinkedEntry = useRef<number | null>(null);
   const [search, setSearch] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const filtersRef = useRef<HTMLDivElement>(null);
@@ -72,6 +78,17 @@ export default function ProductionBoard({ canEdit, canCreate, canDelete, canView
     entries.filter((e) => (["finalizados", "publicados"] as string[]).includes(e.status)).map((e) => e.id),
     canViewInstagram,
   );
+
+  useEffect(() => {
+    if (!linkedEntryId || openedLinkedEntry.current === linkedEntryId) return;
+    const entry = entries.find((e) => e.id === linkedEntryId);
+    if (!entry) return;
+    const timer = window.setTimeout(() => {
+      openedLinkedEntry.current = linkedEntryId; // abre uma vez só: fechar o card não reabre
+      setSelected(entry);
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [entries, linkedEntryId]);
 
   useEffect(() => {
     if (!filtersOpen) return;

@@ -54,6 +54,13 @@ class Settings(BaseSettings):
     TOKEN_ENCRYPTION_KEY: str = ""
     # Desliga o laço de publicação/renovação (ex.: rodar uma segunda instância só de leitura).
     INSTAGRAM_WORKER_ENABLED: bool = True
+    # Desliga o laço de lembretes (agenda e prazos).
+    NOTIFICATION_WORKER_ENABLED: bool = True
+    # Notificação push no celular (Web Push). Gere o par com `python -m app.scripts.generate_vapid`.
+    # Vazio = push desligado (os avisos continuam no sino do CRM).
+    VAPID_PUBLIC_KEY: str = ""
+    VAPID_PRIVATE_KEY: str = ""
+    VAPID_SUBJECT: str = "mailto:admin@simbora.com.br"
 
     # Login OAuth do MCP (ver docs/plano-mcp-oauth.md). O issuer é o PUBLIC_API_URL.
     # URL do endpoint MCP (com /mcp): vira o `aud` dos tokens e o `resource` aceito.

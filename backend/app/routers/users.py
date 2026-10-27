@@ -8,7 +8,7 @@ from app.core.deps import get_current_user, require_admin
 from app.core.permissions import PERMISSIONS
 from app.core.security import hash_password
 from app.models.user import User
-from app.services import oauth
+from app.services import agenda, oauth
 from app.schemas.user import (
     PasswordChange,
     PermissionCatalogEntry,
@@ -151,5 +151,6 @@ async def delete_user(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuário não encontrado")
 
     oauth.delete_user_oauth_data(db, user.id)
+    agenda.delete_user_data(db, user.id)
     db.delete(user)
     db.commit()

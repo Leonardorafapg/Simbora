@@ -7,6 +7,7 @@ import type { SessionUser } from "@/types/auth";
 import ProfileCard from "@/components/settings/ProfileCard";
 import WhatsAppConnectionCard from "@/components/settings/WhatsAppConnectionCard";
 import AiConnectionsCard from "@/components/settings/AiConnectionsCard";
+import PushNotificationsCard from "@/components/settings/PushNotificationsCard";
 
 type Props = {
   user: SessionUser | null;
@@ -18,6 +19,8 @@ export default function SettingsPageClient({ user }: Props) {
       <h1 className="text-lg font-semibold text-text">Configurações</h1>
 
       {user && <ProfileCard user={user} />}
+
+      <PushNotificationsCard />
 
       {canManageTeam(user?.is_admin) && (
         <Link

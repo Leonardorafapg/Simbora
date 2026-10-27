@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Menu, Settings } from "lucide-react";
 import Avatar from "@/components/ui/Avatar";
 import ThemeToggle from "@/components/layout/ThemeToggle";
+import NotificationBell from "@/components/layout/NotificationBell";
 import GlobalSearch from "@/components/layout/GlobalSearch";
 import { OPEN_PALETTE_EVENT } from "@/components/layout/CommandPalette";
 import type { SessionUser } from "@/types/auth";
@@ -41,6 +42,7 @@ export default function Topbar({ user, onMenuClick }: Props) {
           <kbd className="font-sans">Ctrl</kbd>
           <kbd className="font-sans">K</kbd>
         </button>
+        <NotificationBell />
         <ThemeToggle />
         <Link
           href="/settings"

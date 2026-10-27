@@ -39,3 +39,38 @@ class ConnectionManager:
 
 
 manager = ConnectionManager()
+
+
+class UserConnectionManager:
+    """Conexões WebSocket por usuário — avisos (notificações) vão só pra quem é o destinatário.
+
+    Mesma premissa do gerenciador acima: um único processo."""
+
+    def __init__(self) -> None:
+        self._connections: dict[int, set[WebSocket]] = {}
+
+    async def connect(self, websocket: WebSocket, user_id: int) -> None:
+        await websocket.accept()
+        self._connections.setdefault(user_id, set()).add(websocket)
+
+    def disconnect(self, websocket: WebSocket, user_id: int) -> None:
+        sockets = self._connections.get(user_id)
+        if sockets is None:
+            return
+        sockets.discard(websocket)
+        if not sockets:
+            self._connections.pop(user_id, None)
+
+    def is_connected(self, user_id: int) -> bool:
+        return bool(self._connections.get(user_id))
+
+    async def send_to_user(self, user_id: int, message: dict[str, Any]) -> None:
+        for ws in list(self._connections.get(user_id, ())):
+            try:
+                await ws.send_json(message)
+            except Exception:
+                logger.warning("Falha ao enviar aviso por WebSocket — removendo conexão.")
+                self.disconnect(ws, user_id)
+
+
+user_manager = UserConnectionManager()

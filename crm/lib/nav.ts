@@ -1,6 +1,7 @@
 import {
   LayoutDashboard,
   Briefcase,
+  CalendarClock,
   MessageCircle,
   ClipboardList,
   ClipboardCheck,
@@ -22,6 +23,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/clients", label: "Clientes", icon: Briefcase },
   { href: "/production", label: "Produção", icon: ClipboardList },
   { href: "/aprovacoes", label: "Aprovações", icon: ClipboardCheck },
+  { href: "/agenda", label: "Agenda", icon: CalendarClock },
   { href: "/whatsapp", label: "WhatsApp", icon: MessageCircle },
   { href: "/team", label: "Equipe", icon: Users, hideInSidebar: true },
   { href: "/settings", label: "Configurações", icon: Settings, hideInSidebar: true },

@@ -13,7 +13,7 @@ from app.models.calendar_period import CalendarPeriod
 from app.models.tag import Tag
 from app.models.client import Client
 from app.models.user import User
-from app.services import instagram_posts
+from app.services import demands, instagram_posts, notifications
 from app.services.calendar_media import normalize_post_media
 from app.schemas.calendar_entry import (
     DELIVERED_STATUSES,
@@ -148,6 +148,9 @@ async def bulk_create_calendar_entries(
     db.commit()
     for entry in created:
         db.refresh(entry)
+    notices = demands.notify_batch(db, [e for e in created if demands.in_production(db, e)], current_user.id)
+    db.commit()
+    await notifications.publish(notices)
     return CalendarEntryBulkResult(dry_run=False, count=len(created), entries=created)
 
 
@@ -187,6 +190,9 @@ async def create_calendar_entry(
     db.add(entry)
     db.commit()
     db.refresh(entry)
+    notices = demands.notify_assigned(db, entry, current_user.id) if demands.in_production(db, entry) else []
+    db.commit()
+    await notifications.publish(notices)
     return entry
 
 
@@ -195,12 +201,13 @@ async def update_calendar_entry(
     entry_id: int,
     payload: CalendarEntryUpdate,
     db: Session = Depends(get_db),
-    _: User = Depends(require_permission("calendar.edit")),
+    current_user: User = Depends(require_permission("calendar.edit")),
 ):
     entry = db.get(CalendarEntry, entry_id)
     if entry is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Entrada não encontrada")
 
+    previous_assignee = entry.assignee_id
     data = payload.model_dump(exclude_unset=True)
     # Etiquetas são do fluxo de produção: editáveis mesmo com o mês finalizado.
     tag_ids = data.pop("tag_ids", None)
@@ -237,6 +244,11 @@ async def update_calendar_entry(
 
     db.commit()
     db.refresh(entry)
+    notices = []
+    if entry.assignee_id != previous_assignee and demands.in_production(db, entry):
+        notices = demands.notify_assigned(db, entry, current_user.id, reassigned=True)
+        db.commit()
+    await notifications.publish(notices)
     return entry
 
 
