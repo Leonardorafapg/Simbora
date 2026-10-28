@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { ChevronLeft, ChevronRight, FileDown, Plus } from "lucide-react";
 import { dayKey, eventsByDay, formatEventRange, monthCells } from "@/lib/agenda";
@@ -33,6 +33,7 @@ export default function AgendaPageClient({ currentUserId, canEditOthers }: Props
   const { events, loading, error, create, update, remove } = useAgenda(year, month);
   const { members } = useTeamDirectory();
   const searchParams = useSearchParams();
+  const dayPanelRef = useRef<HTMLElement>(null);
 
   const byDay = useMemo(() => eventsByDay(events), [events]);
   const cells = useMemo(() => monthCells(year, month), [year, month]);
@@ -106,11 +107,13 @@ export default function AgendaPageClient({ currentUserId, canEditOthers }: Props
               title="Baixa a semana do dia selecionado (segunda a domingo) em PDF"
             >
               <FileDown className="h-4 w-4" />
-              {exporting ? "Gerando..." : "Exportar semana (PDF)"}
+              <span className="sm:hidden">{exporting ? "Gerando..." : "PDF"}</span>
+              <span className="hidden sm:inline">{exporting ? "Gerando..." : "Exportar semana (PDF)"}</span>
             </Button>
             <Button onClick={() => setDialog({ event: null })}>
               <Plus className="h-4 w-4" />
-              Novo compromisso
+              <span className="sm:hidden">Novo</span>
+              <span className="hidden sm:inline">Novo compromisso</span>
             </Button>
           </>
         }
@@ -118,7 +121,7 @@ export default function AgendaPageClient({ currentUserId, canEditOthers }: Props
 
       {(error || linkError || exportError) && <p className="mb-4 text-sm text-danger">{error ?? linkError ?? exportError}</p>}
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="grid gap-4 sm:gap-6 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_380px]">
         <section className="glass-card rounded-2xl p-3 sm:p-4">
           <div className="mb-3 flex items-center justify-between gap-2">
             <h2 className="text-base font-semibold text-text">
@@ -165,14 +168,20 @@ export default function AgendaPageClient({ currentUserId, canEditOthers }: Props
                 <button
                   key={key}
                   type="button"
-                  onClick={() => setSelectedDay(key)}
+                  onClick={() => {
+                    setSelectedDay(key);
+                    // Celular: a lista do dia fica abaixo do calendário, então leva a tela até ela.
+                    if (window.matchMedia("(max-width: 1023px)").matches) {
+                      dayPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+                    }
+                  }}
                   onDoubleClick={() => {
                     setSelectedDay(key);
                     setDialog({ event: null });
                   }}
                   aria-label={`${day} de ${MONTH_LABELS[month - 1]}${list.length ? `, ${list.length} compromisso${list.length > 1 ? "s" : ""}` : ""}`}
                   aria-pressed={selected}
-                  className={`flex min-h-[56px] flex-col items-start gap-0.5 rounded-lg border p-1 text-left transition-colors sm:min-h-[84px] sm:p-1.5 ${
+                  className={`flex min-h-[52px] min-w-0 flex-col items-start gap-0.5 rounded-lg border p-1 text-left transition-colors sm:min-h-[96px] sm:p-1.5 xl:min-h-[116px] ${
                     selected ? "border-accent bg-accent-soft" : "border-border hover:bg-surface-2"
                   }`}
                 >
@@ -183,22 +192,32 @@ export default function AgendaPageClient({ currentUserId, canEditOthers }: Props
                   >
                     {day}
                   </span>
-                  {list.slice(0, 2).map((event) => (
-                    <span key={event.id} className="hidden w-full truncate rounded bg-accent-soft px-1 text-[10px] text-accent sm:block">
+                  {/* Celular: só pontos (cabe na célula); a lista do dia fica logo abaixo do calendário. */}
+                  {list.length > 0 && (
+                    <span className="flex items-center gap-0.5 sm:hidden" aria-hidden>
+                      {list.slice(0, 3).map((event) => (
+                        <span key={event.id} className="h-1.5 w-1.5 rounded-full bg-accent" />
+                      ))}
+                      {list.length > 3 && <span className="text-[9px] leading-none text-text-faint">+</span>}
+                    </span>
+                  )}
+                  {list.slice(0, 3).map((event) => (
+                    <span
+                      key={event.id}
+                      title={event.title}
+                      className="hidden w-full truncate rounded bg-accent-soft px-1 py-0.5 text-[11px] leading-tight text-accent sm:block xl:text-xs"
+                    >
                       {event.title}
                     </span>
                   ))}
-                  {list.length > 0 && (
-                    <span className="text-[10px] text-text-faint sm:hidden">{list.length} •</span>
-                  )}
-                  {list.length > 2 && <span className="hidden text-[10px] text-text-faint sm:block">+{list.length - 2}</span>}
+                  {list.length > 3 && <span className="hidden text-[11px] text-text-faint sm:block">+{list.length - 3}</span>}
                 </button>
               );
             })}
           </div>
         </section>
 
-        <aside className="glass-card h-fit rounded-2xl p-4">
+        <aside ref={dayPanelRef} className="glass-card h-fit rounded-2xl p-4 lg:sticky lg:top-0">
           <h2 className="text-sm font-semibold text-text">
             {new Date(`${selectedDay}T12:00`).toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })}
           </h2>
@@ -212,12 +231,12 @@ export default function AgendaPageClient({ currentUserId, canEditOthers }: Props
                   <button
                     type="button"
                     onClick={() => setDialog({ event })}
-                    className="w-full rounded-xl border border-border bg-surface px-3 py-2 text-left transition-colors hover:border-accent-border"
+                    className="w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-left transition-colors hover:border-accent-border"
                   >
                     <span className="block text-xs font-medium text-accent">{formatEventRange(event)}</span>
-                    <span className="block truncate text-sm font-medium text-text">{event.title}</span>
+                    <span className="block break-words text-sm font-medium text-text">{event.title}</span>
                     {event.participants.length > 0 && (
-                      <span className="block truncate text-xs text-text-faint">
+                      <span className="block break-words text-xs text-text-faint">
                         {event.participants.map((p) => p.full_name.split(" ")[0]).join(", ")}
                       </span>
                     )}
