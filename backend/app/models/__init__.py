@@ -11,11 +11,13 @@ from app.models.instagram import InstagramAccount, InstagramPost
 from app.models.agenda import AgendaEvent, agenda_event_participants
 from app.models.notification import Notification
 from app.models.push_subscription import PushSubscription
+from app.models.whatsapp_alias import WhatsAppJidAlias
+from app.models.whatsapp_group import WhatsAppGroup
 from app.models.oauth import OAuthAuthorizationCode, OAuthClient, OAuthGrant, OAuthRefreshToken
 
 __all__ = [
     "User", "Client", "CalendarEntry", "CalendarPeriod", "WhatsAppMessage", "WhatsAppChatLabel", "Tag",
     "InstagramAccount", "InstagramPost", "CalendarApproval",
-    "AgendaEvent", "agenda_event_participants", "Notification", "PushSubscription",
+    "AgendaEvent", "agenda_event_participants", "Notification", "PushSubscription", "WhatsAppJidAlias", "WhatsAppGroup",
     "OAuthClient", "OAuthGrant", "OAuthAuthorizationCode", "OAuthRefreshToken",
 ]

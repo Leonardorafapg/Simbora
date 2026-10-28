@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.database import SessionLocal
 from app.core.ws_manager import manager as ws_manager
-from app.services import whatsapp_store
+from app.services import whatsapp_aliases, whatsapp_groups, whatsapp_store
 from app.services.whatsapp_format import extract_media
 
 logger = logging.getLogger("whatsapp_webhook")
@@ -49,7 +49,8 @@ def _extract_text(message: dict[str, Any]) -> str | None:
 
 async def _handle_messages_upsert(db: Session, data: dict[str, Any]) -> None:
     key = data.get("key") or {}
-    remote_jid = key.get("remoteJid") or ""
+    # Contato com dois identificadores (@lid e número): a conversa fica sempre no número.
+    remote_jid = whatsapp_aliases.canonical_jid(db, key)
     if not remote_jid:
         return
 
@@ -99,12 +100,13 @@ async def _handle_messages_update(db: Session, data: dict[str, Any]) -> None:
     whatsapp_store.update_message_status(db, message_id, _STATUS_MAP[evo_status])
 
 
-async def _handle_presence_update(data: dict[str, Any]) -> None:
+async def _handle_presence_update(db: Session, data: dict[str, Any]) -> None:
     # Idem: formato inferido do Baileys ({id, presences: {jid: {lastKnownPresence}}}),
     # não validado ainda contra um payload real dessa instância.
     remote_jid = data.get("id")
     if not remote_jid:
         return
+    remote_jid = whatsapp_aliases.resolve(db, remote_jid)
 
     presences = data.get("presences") or {}
     raw_state = next(
@@ -125,6 +127,7 @@ async def _handle_labels_association(db: Session, data: dict[str, Any]) -> None:
     label_id = data.get("labelId") or association.get("labelId")
     if not remote_jid or not label_id:
         return
+    remote_jid = whatsapp_aliases.resolve(db, remote_jid)
     applied = data.get("type") != "remove"
     whatsapp_store.set_chat_label(db, remote_jid, str(label_id), applied)
     await ws_manager.broadcast({"type": "whatsapp_labels_changed", "remote_jid": remote_jid})
@@ -134,6 +137,14 @@ async def _handle_labels_edit(db: Session, data: dict[str, Any]) -> None:
     if data.get("deleted") and data.get("id") is not None:
         whatsapp_store.delete_label(db, str(data["id"]))
     await ws_manager.broadcast({"type": "whatsapp_labels_changed", "remote_jid": None})
+
+
+async def _handle_group_event(db: Session, data: Any) -> None:
+    """`groups.upsert` / `group.update`: guarda o nome (assunto) do grupo assim que a Evolution avisa."""
+    items = data if isinstance(data, list) else [data]
+    saved = whatsapp_groups.save(db, [item for item in items if isinstance(item, dict)])
+    if saved:
+        await ws_manager.broadcast({"type": "whatsapp_labels_changed", "remote_jid": None})  # recarrega a lista
 
 
 @router.post("/whatsapp/webhook", status_code=204)
@@ -153,10 +164,12 @@ async def whatsapp_webhook(request: Request):
         elif event == "messages.update":
             await _handle_messages_update(db, data)
         elif event == "presence.update":
-            await _handle_presence_update(data)
+            await _handle_presence_update(db, data)
         elif event == "labels.association":
             await _handle_labels_association(db, data)
         elif event == "labels.edit":
             await _handle_labels_edit(db, data)
+        elif event in ("groups.upsert", "group.update"):
+            await _handle_group_event(db, data)
     finally:
         db.close()

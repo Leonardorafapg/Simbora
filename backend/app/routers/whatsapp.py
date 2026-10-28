@@ -23,8 +23,8 @@ from sqlalchemy.orm import Session
 
 from app.core import evolution_client
 from app.core.config import settings
-from app.core.database import get_db
-from app.core.deps import require_permission
+from app.core.database import SessionLocal, get_db
+from app.core.deps import require_admin, require_permission
 from app.core.security import decode_access_token
 from app.core.ws_manager import manager as ws_manager
 from app.models.client import Client
@@ -38,7 +38,7 @@ from app.schemas.whatsapp import (
     WhatsAppMessage,
     WhatsAppStatus,
 )
-from app.services import whatsapp_store
+from app.services import whatsapp_aliases, whatsapp_groups, whatsapp_store
 from app.services.whatsapp_format import (
     display_name,
     extract_media,
@@ -68,6 +68,19 @@ _groups_refresh_task: asyncio.Task | None = None
 _webhook_synced = False
 
 
+def _persist_groups(groups: list[dict]) -> None:
+    """Salva os nomes descobertos (sobrevivem a deploy). Nunca derruba quem chamou."""
+    if not groups:
+        return
+    db = SessionLocal()
+    try:
+        whatsapp_groups.save(db, groups)
+    except Exception:
+        logger.exception("Não foi possível salvar o nome dos grupos")
+    finally:
+        db.close()
+
+
 async def _refresh_group_info() -> None:
     global _groups_next_refresh
     try:
@@ -77,6 +90,7 @@ async def _refresh_group_info() -> None:
             if jid:
                 info[jid] = group
         _group_info.update(info)
+        _persist_groups(list(info.values()))
         _groups_next_refresh = time.monotonic() + _GROUPS_TTL_SECONDS
     except Exception as exc:
         # Falha esperada (timeout da Evolution) — mantém o cache antigo e tenta
@@ -87,7 +101,7 @@ async def _refresh_group_info() -> None:
 
 
 # Grupos que a consulta individual não achou: não tenta de novo antes disso.
-_GROUP_LOOKUP_RETRY_SECONDS = 120
+_GROUP_LOOKUP_RETRY_SECONDS = 15 * 60  # grupo que a Evolution recusa (ex.: o número saiu) não precisa ser perguntado toda hora
 _group_lookup_retry_at: dict[str, float] = {}
 _GROUP_LOOKUP_MAX_PER_REQUEST = 40
 _GROUP_LOOKUP_BUDGET_SECONDS = 8.0
@@ -103,6 +117,7 @@ async def _lookup_missing_groups(jids: list[str]) -> None:
     if not pending:
         return
     gate = asyncio.Semaphore(6)
+    found: list[dict] = []
 
     async def one(jid: str) -> None:
         async with gate:
@@ -115,6 +130,7 @@ async def _lookup_missing_groups(jids: list[str]) -> None:
                 info = {}
         if info.get("subject"):
             _group_info[jid] = info
+            found.append(info if info.get("id") else {**info, "id": jid})
         else:
             _group_lookup_retry_at[jid] = time.monotonic() + _GROUP_LOOKUP_RETRY_SECONDS
 
@@ -122,6 +138,37 @@ async def _lookup_missing_groups(jids: list[str]) -> None:
         await asyncio.wait_for(asyncio.gather(*(one(j) for j in pending)), timeout=_GROUP_LOOKUP_BUDGET_SECONDS)
     except asyncio.TimeoutError:
         logger.warning("Busca individual de grupos passou do tempo — o resto fica pra próxima.")
+    _persist_groups(found)
+
+
+# --- contatos com dois identificadores (@lid e número) ----------------------------------------------------
+_ALIAS_BACKFILL_INTERVAL_SECONDS = 10 * 60
+_alias_next_run = 0.0
+_alias_task: asyncio.Task | None = None
+
+
+async def _run_alias_backfill() -> None:
+    db = SessionLocal()
+    try:
+        result = await whatsapp_aliases.backfill(db)
+        if result["found"]:
+            logger.info("Contatos @lid juntados com o número: %s", result)
+    except Exception:
+        logger.exception("Falha ao descobrir o número dos contatos @lid")
+    finally:
+        db.close()
+
+
+def _schedule_alias_backfill(db: Session) -> None:
+    """Em segundo plano (uma rodada por vez): descobre o número das conversas @lid que ainda estão separadas."""
+    global _alias_next_run, _alias_task
+    running = _alias_task is not None and not _alias_task.done()
+    if running or time.monotonic() < _alias_next_run:
+        return
+    if not whatsapp_aliases.unresolved_lids(db, limit=1):
+        return
+    _alias_next_run = time.monotonic() + _ALIAS_BACKFILL_INTERVAL_SECONDS
+    _alias_task = asyncio.create_task(_run_alias_backfill())
 
 
 def _group_info_snapshot() -> dict[str, dict]:
@@ -316,6 +363,11 @@ async def list_chats(
     # mesmo com histórico real esperando na Evolution. Busca sempre os dois e
     # funde: banco manda em quem já tem (unread/última mensagem corretos), o
     # que só existe na Evolution ainda aparece, só sem esses dois refinamentos.
+    # Une o que já dá pra unir (mesmo contato em @lid e em número) antes de listar, e manda descobrir o resto.
+    whatsapp_aliases.merge_all_known(db)
+    _schedule_alias_backfill(db)
+    aliases = whatsapp_aliases.alias_map(db)
+
     db_chats = whatsapp_store.list_chats(db)
     db_by_jid = {c["remote_jid"]: c for c in db_chats}
 
@@ -329,17 +381,20 @@ async def list_chats(
     raw_by_jid: dict[str, dict] = {}
     for raw in raw_chats:
         jid = raw.get("remoteJid") or raw.get("id") or ""
-        if jid:
-            raw_by_jid[jid] = raw
+        canonical = whatsapp_aliases.resolve_with(aliases, jid)
+        if canonical != jid:
+            raw = {**raw, "remoteJid": canonical, "id": canonical}
+        if canonical:
+            raw_by_jid.setdefault(canonical, raw)
 
     # Nome salvo na agenda / nome do grupo. `findContacts` traz os grupos
     # também (type "group", nome em `pushName`) e responde na hora — é a fonte
     # principal de nome de grupo; `fetchAllGroups` (lento) só complementa.
     contact_by_jid: dict[str, dict] = {}
     for contact in raw_contacts:
-        jid = contact.get("remoteJid") or contact.get("id") or ""
+        jid = whatsapp_aliases.resolve_with(aliases, contact.get("remoteJid") or contact.get("id") or "")
         if jid:
-            contact_by_jid[jid] = contact
+            contact_by_jid.setdefault(jid, contact)
 
     label_by_id = {
         str(label["id"]): WhatsAppLabel(
@@ -349,10 +404,11 @@ async def list_chats(
         if label.get("id") is not None
     }
     label_ids_by_jid = whatsapp_store.chat_label_ids(db)
-    group_info = _group_info_snapshot()
+    # Nomes já descobertos ficam no banco (sobrevivem a deploy); a memória só cobre o que acabou de chegar.
+    group_info = {**_group_info_snapshot(), **whatsapp_groups.load(db)}
     group_jids = {j for j in [*db_by_jid, *raw_by_jid] if j.endswith("@g.us")}
-    await _lookup_missing_groups(sorted(group_jids))
-    group_info = {**group_info, **{j: _group_info[j] for j in group_jids if j in _group_info}}
+    await _lookup_missing_groups(sorted(j for j in group_jids if j not in group_info))
+    group_info = {**group_info, **{j: _group_info[j] for j in group_jids if j in _group_info and j not in group_info}}
     sender_names = whatsapp_store.group_sender_names(db)
     matcher = _ClientMatcher(db.query(Client).filter(Client.is_active.is_(True)).all())
 
@@ -498,6 +554,11 @@ async def get_messages(
     db: Session = Depends(get_db),
     _: User = Depends(require_permission("whatsapp.view")),
 ):
+    requested_jid = remote_jid
+    remote_jid = whatsapp_aliases.resolve(db, requested_jid)
+    if remote_jid != requested_jid:
+        # Endereço antigo (@lid) de um contato cujo número já sabemos: traz o que ficou gravado nele.
+        whatsapp_aliases.merge_lid_into_phone(db, requested_jid, remote_jid)
     messages = whatsapp_store.list_messages(db, remote_jid, limit=limit)
 
     if not messages:
@@ -518,7 +579,7 @@ async def get_messages(
             whatsapp_store.save_message(
                 db,
                 message_id=key.get("id"),
-                remote_jid=key.get("remoteJid") or remote_jid,
+                remote_jid=remote_jid,
                 from_me=bool(key.get("fromMe")),
                 text=mapped.text,
                 sender_name=raw.get("pushName"),
@@ -549,6 +610,7 @@ async def get_message_media(
     get_media_base64). `download=true` marca a resposta pra baixar em vez de
     abrir inline (usado pelo botão de download do documento no frontend).
     """
+    remote_jid = whatsapp_aliases.resolve(db, remote_jid)
     message = whatsapp_store.get_message(db, message_id)
     if message is None or message.remote_jid != remote_jid:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Mensagem não encontrada.")
@@ -586,13 +648,14 @@ async def send_message(
     db: Session = Depends(get_db),
     _: User = Depends(require_permission("whatsapp.send")),
 ):
+    remote_jid = whatsapp_aliases.resolve(db, remote_jid)
     result = await evolution_client.send_text_message(remote_jid, payload.text)
     key = result.get("key") or {}
 
     message = whatsapp_store.save_message(
         db,
         message_id=key.get("id"),
-        remote_jid=key.get("remoteJid") or remote_jid,
+        remote_jid=remote_jid,
         from_me=True,
         text=payload.text,
         sender_name=None,
@@ -635,6 +698,7 @@ async def send_media(
             status_code=status.HTTP_413_CONTENT_TOO_LARGE, detail="Arquivo grande demais (máximo 25 MB)."
         )
 
+    remote_jid = whatsapp_aliases.resolve(db, remote_jid)
     mimetype = file.content_type or "application/octet-stream"
     file_name = (file.filename or "arquivo").strip()[:255] or "arquivo"
     media_kind = media_kind_for_upload(mimetype)
@@ -653,7 +717,7 @@ async def send_media(
     message = whatsapp_store.save_message(
         db,
         message_id=key.get("id"),
-        remote_jid=key.get("remoteJid") or remote_jid,
+        remote_jid=remote_jid,
         from_me=True,
         text=caption or None,
         sender_name=None,
@@ -679,9 +743,22 @@ async def send_media(
 async def send_typing(
     remote_jid: str,
     payload: TypingInput,
+    db: Session = Depends(get_db),
     _: User = Depends(require_permission("whatsapp.send")),
 ):
-    await evolution_client.send_presence(remote_jid, payload.presence)
+    await evolution_client.send_presence(whatsapp_aliases.resolve(db, remote_jid), payload.presence)
+
+
+@router.post("/whatsapp/maintenance/merge-contacts")
+async def merge_contacts(
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    """Admin: junta agora os contatos que aparecem duas vezes (`@lid` e número) — o que já se sabe e o que dá
+    pra descobrir lendo a Evolution. Roda sozinho em segundo plano; isto só força na hora."""
+    known = whatsapp_aliases.merge_all_known(db)
+    discovered = await whatsapp_aliases.backfill(db, limit=200)
+    return {"ja_conhecidos": known, "descobertos": discovered, "ainda_separados": len(whatsapp_aliases.unresolved_lids(db, limit=1000))}
 
 
 @router.websocket("/whatsapp/ws")

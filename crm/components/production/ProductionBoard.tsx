@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Plus, Search, SlidersHorizontal, X } from "lucide-react";
+import { Plus, Rows3, Search, SlidersHorizontal, X } from "lucide-react";
+import { useDensity } from "@/components/layout/ThemeToggle";
 import { deadlineInfo, urgencyRank } from "@/lib/deadline";
 import {
   DndContext,
@@ -61,6 +62,7 @@ export default function ProductionBoard({ canEdit, canCreate, canDelete, canView
   const openedLinkedEntry = useRef<number | null>(null);
   const [search, setSearch] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const { density, toggleDensity } = useDensity();
   const filtersRef = useRef<HTMLDivElement>(null);
   const [selected, setSelected] = useState<CalendarEntry | null>(null);
   const [creating, setCreating] = useState(false);
@@ -367,6 +369,19 @@ export default function ProductionBoard({ canEdit, canCreate, canDelete, canView
             </div>
           )}
         </div>
+
+        <button
+          type="button"
+          onClick={toggleDensity}
+          aria-pressed={density === "compact"}
+          title={density === "compact" ? "Voltar ao modo confortável (mostra as capas)" : "Deixa os cards menores e esconde as capas"}
+          className={`glass-input flex items-center gap-2 rounded-lg px-3 py-2 text-sm outline-none ${
+            density === "compact" ? "border-accent-border text-accent" : ""
+          }`}
+        >
+          <Rows3 className="h-4 w-4" />
+          Compacto
+        </button>
       </div>
 
       {loading && <TopProgress />}

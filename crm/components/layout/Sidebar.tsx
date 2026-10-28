@@ -4,11 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ChevronsUpDown, LogOut, PanelLeftClose, PanelLeftOpen, Rows3, X } from "lucide-react";
+import { ChevronsUpDown, LogOut, PanelLeftClose, PanelLeftOpen, X } from "lucide-react";
 import { NAV_ITEMS } from "@/lib/nav";
 import { logout } from "@/services/client/authApi";
 import Avatar from "@/components/ui/Avatar";
-import { NEXT_THEME_LABEL, ThemeIcon, useDensity, useThemeToggle } from "@/components/layout/ThemeToggle";
+import { NEXT_THEME_LABEL, ThemeIcon, useThemeToggle } from "@/components/layout/ThemeToggle";
 import type { SessionUser } from "@/types/auth";
 
 type Props = {
@@ -33,7 +33,6 @@ export default function Sidebar({ user, mobileOpen, onClose, collapsed, onToggle
   const pathname = usePathname();
   const router = useRouter();
   const { theme, toggle: toggleTheme } = useThemeToggle();
-  const { density, toggleDensity } = useDensity();
   const [menuOpen, setMenuOpen] = useState(false);
   const accountRef = useRef<HTMLDivElement>(null);
   const c = collapsed;
@@ -177,15 +176,6 @@ export default function Sidebar({ user, mobileOpen, onClose, collapsed, onToggle
               >
                 <ThemeIcon theme={theme} />
                 {NEXT_THEME_LABEL[theme ?? "dark"]}
-              </button>
-              <button
-                type="button"
-                role="menuitem"
-                onClick={toggleDensity}
-                className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2.5 text-left text-[13px] text-text-muted transition-colors hover:bg-surface-2 hover:text-text"
-              >
-                <Rows3 className="h-4 w-4" />
-                {density === "compact" ? "Densidade confortável" : "Densidade compacta"}
               </button>
               <div className="my-0.5 h-px bg-border" />
               <button

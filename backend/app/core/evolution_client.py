@@ -39,6 +39,28 @@ def _key_fingerprint() -> str:
     return f"len={len(key)} termina_em='{key[-4:]}'"
 
 
+def error_detail(response: httpx.Response) -> str:
+    """Texto do erro devolvido pela Evolution.
+
+    Ela manda `{"status": 404, "error": "Not Found", "response": {"message": ["Error: ..."]}}` — o motivo
+    de verdade fica dentro de `response.message` (string ou lista); `error` é só o nome do status HTTP.
+    """
+    detail = response.text[:300]
+    try:
+        data = response.json()
+    except ValueError:
+        return detail
+    if not isinstance(data, dict):
+        return detail
+    inner = data.get("response") if isinstance(data.get("response"), dict) else {}
+    for candidate in (inner.get("message"), data.get("message"), data.get("error")):
+        if isinstance(candidate, list):
+            candidate = "; ".join(str(item) for item in candidate)
+        if candidate:
+            return str(candidate)[:300]
+    return detail
+
+
 async def _request(method: str, path: str, timeout: float = 30.0, **kwargs: Any) -> httpx.Response:
     url = f"{_base_url()}{path}"
     # Diagnóstico temporário de um bug de integração em produção — nunca loga
@@ -62,12 +84,7 @@ async def _request(method: str, path: str, timeout: float = 30.0, **kwargs: Any)
         ) from exc
 
     if response.status_code >= 400:
-        detail = response.text
-        try:
-            data = response.json()
-            detail = data.get("message") or data.get("error") or detail
-        except ValueError:
-            pass
+        detail = error_detail(response)
         logger.warning("Evolution API returned error: %s %s -> %s %s", method, url, response.status_code, detail)
         exc = HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
@@ -192,6 +209,8 @@ async def set_webhook(webhook_url: str) -> None:
                         "PRESENCE_UPDATE",
                         "LABELS_ASSOCIATION",
                         "LABELS_EDIT",
+                        "GROUPS_UPSERT",
+                        "GROUP_UPDATE",
                     ],
                     "headers": {"x-webhook-secret": settings.EVOLUTION_WEBHOOK_SECRET or ""},
                 }
@@ -227,6 +246,11 @@ async def find_chats() -> list[dict[str, Any]]:
     return data if isinstance(data, list) else data.get("chats", [])
 
 
+# Com muitos grupos a Evolution leva vários minutos (consulta o WhatsApp ao vivo); 90 s estourava sempre.
+# Só roda em segundo plano, então esperar não trava nenhuma tela.
+FETCH_ALL_GROUPS_TIMEOUT = 300.0
+
+
 async def fetch_all_groups() -> list[dict[str, Any]]:
     """
     Nome de verdade de cada grupo (`subject`) — o objeto de Chat devolvido por
@@ -240,7 +264,7 @@ async def fetch_all_groups() -> list[dict[str, Any]]:
     """
     instance = _instance_name()
     response = await _request(
-        "GET", f"/group/fetchAllGroups/{instance}", timeout=90.0, params={"getParticipants": "false"}
+        "GET", f"/group/fetchAllGroups/{instance}", timeout=FETCH_ALL_GROUPS_TIMEOUT, params={"getParticipants": "false"}
     )
     data = response.json()
     return data if isinstance(data, list) else data.get("groups", [])
