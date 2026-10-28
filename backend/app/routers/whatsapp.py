@@ -103,39 +103,49 @@ async def _refresh_group_info() -> None:
 # Grupos que a consulta individual não achou: não tenta de novo antes disso.
 _GROUP_LOOKUP_RETRY_SECONDS = 15 * 60  # grupo que a Evolution recusa (ex.: o número saiu) não precisa ser perguntado toda hora
 _group_lookup_retry_at: dict[str, float] = {}
-_GROUP_LOOKUP_MAX_PER_REQUEST = 40
+# Poucas e uma de cada vez: em rajada o WhatsApp responde "rate-overlimit" e bloqueia todas (visto em produção).
+_GROUP_LOOKUP_MAX_PER_REQUEST = 3
 _GROUP_LOOKUP_BUDGET_SECONDS = 8.0
+_RATE_LIMIT_PAUSE_SECONDS = 10 * 60
+_group_lookups_paused_until = 0.0
 
 
 async def _lookup_missing_groups(jids: list[str]) -> None:
-    """Completa o cache com os grupos que o `fetchAllGroups` (lento) ainda não trouxe,
-    um a um e em paralelo, com teto de tempo — a lista nunca fica presa nisso."""
+    """Completa o cache com alguns grupos que o `fetchAllGroups` (lento) ainda não trouxe — poucos por vez,
+    um de cada vez e com teto de tempo; a lista nunca fica presa nisso. Enquanto a consulta completa está
+    rodando, ou depois de um "rate-overlimit", não pergunta nada (as duas disputariam o mesmo limite)."""
+    global _group_lookups_paused_until
     now = time.monotonic()
+    refreshing = _groups_refresh_task is not None and not _groups_refresh_task.done()
+    if refreshing or now < _group_lookups_paused_until:
+        return
     pending = [
         j for j in jids if j not in _group_info and _group_lookup_retry_at.get(j, 0) <= now
     ][:_GROUP_LOOKUP_MAX_PER_REQUEST]
     if not pending:
         return
-    gate = asyncio.Semaphore(6)
     found: list[dict] = []
 
-    async def one(jid: str) -> None:
-        async with gate:
+    async def run() -> None:
+        global _group_lookups_paused_until
+        for jid in pending:
             try:
                 info = await evolution_client.find_group_info(jid)
             except Exception as exc:
-                logger.warning(
-                    "findGroupInfos falhou para %s: %s", jid, getattr(exc, "detail", None) or repr(exc)
-                )
+                detail = str(getattr(exc, "detail", None) or repr(exc))
+                logger.warning("findGroupInfos falhou para %s: %s", jid, detail)
+                if "rate-overlimit" in detail:
+                    _group_lookups_paused_until = time.monotonic() + _RATE_LIMIT_PAUSE_SECONDS
+                    return  # o resto também levaria o mesmo bloqueio
                 info = {}
-        if info.get("subject"):
-            _group_info[jid] = info
-            found.append(info if info.get("id") else {**info, "id": jid})
-        else:
-            _group_lookup_retry_at[jid] = time.monotonic() + _GROUP_LOOKUP_RETRY_SECONDS
+            if info.get("subject"):
+                _group_info[jid] = info
+                found.append(info if info.get("id") else {**info, "id": jid})
+            else:
+                _group_lookup_retry_at[jid] = time.monotonic() + _GROUP_LOOKUP_RETRY_SECONDS
 
     try:
-        await asyncio.wait_for(asyncio.gather(*(one(j) for j in pending)), timeout=_GROUP_LOOKUP_BUDGET_SECONDS)
+        await asyncio.wait_for(run(), timeout=_GROUP_LOOKUP_BUDGET_SECONDS)
     except asyncio.TimeoutError:
         logger.warning("Busca individual de grupos passou do tempo — o resto fica pra próxima.")
     _persist_groups(found)
@@ -147,10 +157,10 @@ _alias_next_run = 0.0
 _alias_task: asyncio.Task | None = None
 
 
-async def _run_alias_backfill() -> None:
+async def _run_alias_backfill(extra: list[str]) -> None:
     db = SessionLocal()
     try:
-        result = await whatsapp_aliases.backfill(db)
+        result = await whatsapp_aliases.backfill(db, extra=extra)
         if result["found"]:
             logger.info("Contatos @lid juntados com o número: %s", result)
     except Exception:
@@ -159,16 +169,17 @@ async def _run_alias_backfill() -> None:
         db.close()
 
 
-def _schedule_alias_backfill(db: Session) -> None:
-    """Em segundo plano (uma rodada por vez): descobre o número das conversas @lid que ainda estão separadas."""
+def _schedule_alias_backfill(db: Session, extra: list[str] | None = None) -> None:
+    """Em segundo plano (uma rodada por vez): descobre o número das conversas @lid que ainda estão separadas
+    (as gravadas no CRM e, em `extra`, as que só aparecem na lista da Evolution)."""
     global _alias_next_run, _alias_task
     running = _alias_task is not None and not _alias_task.done()
     if running or time.monotonic() < _alias_next_run:
         return
-    if not whatsapp_aliases.unresolved_lids(db, limit=1):
+    if not whatsapp_aliases.unresolved_lids(db, limit=1, extra=extra):
         return
     _alias_next_run = time.monotonic() + _ALIAS_BACKFILL_INTERVAL_SECONDS
-    _alias_task = asyncio.create_task(_run_alias_backfill())
+    _alias_task = asyncio.create_task(_run_alias_backfill(list(extra or [])))
 
 
 def _group_info_snapshot() -> dict[str, dict]:
@@ -365,8 +376,6 @@ async def list_chats(
     # que só existe na Evolution ainda aparece, só sem esses dois refinamentos.
     # Une o que já dá pra unir (mesmo contato em @lid e em número) antes de listar, e manda descobrir o resto.
     whatsapp_aliases.merge_all_known(db)
-    _schedule_alias_backfill(db)
-    aliases = whatsapp_aliases.alias_map(db)
 
     db_chats = whatsapp_store.list_chats(db)
     db_by_jid = {c["remote_jid"]: c for c in db_chats}
@@ -377,6 +386,15 @@ async def list_chats(
         _safe(evolution_client.find_contacts(), "contatos"),
         _safe(evolution_client.find_labels(), "etiquetas"),
     )
+
+    # Conversas da Evolution em @lid: o número costuma vir na última mensagem — aprende antes de montar a lista.
+    for raw in raw_chats:
+        whatsapp_aliases.learn_from_chat(db, raw)
+    aliases = whatsapp_aliases.alias_map(db)
+    if aliases:
+        db_by_jid = {c["remote_jid"]: c for c in whatsapp_store.list_chats(db)}  # pode ter unido conversas agora
+    raw_lids = [j for j in ((r.get("remoteJid") or r.get("id") or "") for r in raw_chats) if j and j not in aliases]
+    _schedule_alias_backfill(db, extra=raw_lids)
 
     raw_by_jid: dict[str, dict] = {}
     for raw in raw_chats:
@@ -617,7 +635,17 @@ async def get_message_media(
     if message.media_type is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Essa mensagem não tem mídia.")
 
-    result = await evolution_client.get_media_base64(remote_jid, message_id, message.from_me)
+    # Conversa unida (@lid -> número): a Evolution guarda a mensagem no endereço original, então tenta os dois.
+    result = None
+    last_error: HTTPException | None = None
+    for jid in [remote_jid, *whatsapp_aliases.lids_of(db, remote_jid)]:
+        try:
+            result = await evolution_client.get_media_base64(jid, message_id, message.from_me)
+            break
+        except HTTPException as exc:
+            last_error = exc
+    if result is None:
+        raise last_error or HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Mídia indisponível.")
     raw_base64 = result.get("base64") or ""
     # Evolution às vezes manda como data URI (`data:<mime>;base64,xxx`), às
     # vezes só o base64 cru — cobre os dois pra não quebrar o decode abaixo.

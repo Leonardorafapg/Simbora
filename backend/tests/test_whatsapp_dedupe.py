@@ -321,3 +321,118 @@ def test_group_events_registered_in_the_webhook_subscription():
 
 def test_fetch_all_groups_waits_long_enough():
     assert evolution_client.FETCH_ALL_GROUPS_TIMEOUT >= 240
+
+
+# --- rodada 2: o que apareceu em produção ---------------------------------------------------------------------
+
+
+def test_media_of_a_merged_chat_is_fetched_from_the_original_lid_address(db, api_admin, evolution, monkeypatch):
+    """A Evolution guarda a mensagem no endereço @lid original: pedir pelo número dava 400 ('ephemeralMessage')."""
+    from fastapi import HTTPException
+
+    whatsapp_store.save_message(
+        db, message_id="IMG1", remote_jid=LID, from_me=False, text=None, sender_name="Carol", is_group=False,
+        status="recebida", timestamp=1, media_type="image", media_mimetype="image/png",
+    )
+    whatsapp_aliases.learn(db, LID, PHONE)
+    whatsapp_aliases.merge_lid_into_phone(db, LID, PHONE)
+    tried = []
+
+    async def fake_media(jid, message_id, from_me):
+        tried.append(jid)
+        if jid != LID:
+            raise HTTPException(status_code=502, detail="Evolution API retornou erro: TypeError ... 'ephemeralMessage'")
+        return {"base64": "aGVsbG8=", "mimetype": "image/png"}
+
+    monkeypatch.setattr(evolution_client, "get_media_base64", fake_media)
+    res = api_admin.get(f"/api/v1/whatsapp/chats/{PHONE}/messages/IMG1/media")
+    assert res.status_code == 200 and res.content == b"hello"
+    assert tried == [PHONE, LID]
+
+
+def test_media_error_is_kept_when_no_address_works(db, api_admin, evolution, monkeypatch):
+    from fastapi import HTTPException
+
+    whatsapp_store.save_message(
+        db, message_id="IMG2", remote_jid=PHONE, from_me=False, text=None, sender_name=None, is_group=False,
+        status="recebida", timestamp=1, media_type="image", media_mimetype="image/png",
+    )
+
+    async def fail(jid, message_id, from_me):
+        raise HTTPException(status_code=502, detail="falhou")
+
+    monkeypatch.setattr(evolution_client, "get_media_base64", fail)
+    assert api_admin.get(f"/api/v1/whatsapp/chats/{PHONE}/messages/IMG2/media").status_code == 502
+
+
+def test_evolution_only_lid_chat_is_merged_using_its_last_message(db, api_admin, evolution, monkeypatch):
+    """O "Lula_Luiz" repetido: uma conversa no banco (número) e outra que só existe na lista da Evolution (@lid)."""
+    save(db, PHONE, "Vai ter alguma filmagem amanhã?", message_id="A", name="Lula_Luiz", ts=1_700_000_100)
+
+    async def find_chats():
+        return [{
+            "remoteJid": LID, "pushName": "Lula_Luiz", "updatedAt": "2026-10-27T22:54:00Z",
+            "lastMessage": {"key": {"id": "A", "remoteJid": LID, "remoteJidAlt": PHONE}, "message": {"conversation": "Vai ter alguma filmagem amanhã?"}},
+        }]
+
+    monkeypatch.setattr(evolution_client, "find_chats", find_chats)
+    chats = api_admin.get("/api/v1/whatsapp/chats").json()
+    assert [c["remote_jid"] for c in chats] == [PHONE]
+    assert db.get(WhatsAppJidAlias, LID).phone_jid == PHONE
+
+
+def test_evolution_only_lid_chat_without_hint_goes_to_the_backfill(db, evolution):
+    evolution["messages"][LID] = [{"key": {"id": "X", "remoteJid": LID, "remoteJidAlt": PHONE}}]
+    assert whatsapp_aliases.unresolved_lids(db, extra=[LID, PHONE]) == [LID]  # só @lid entra
+    result = asyncio.run(whatsapp_aliases.backfill(db, extra=[LID]))
+    assert result["found"] == 1 and db.get(WhatsAppJidAlias, LID).phone_jid == PHONE
+
+
+def test_group_lookups_are_few_and_one_at_a_time(db, api_admin, evolution, monkeypatch):
+    for i in range(10):
+        save(db, f"12036300000000{i:02d}@g.us", "oi", message_id=f"G{i}", name="Maria")
+    in_flight, peak, calls = [0], [0], []
+
+    async def slow(jid):
+        in_flight[0] += 1
+        peak[0] = max(peak[0], in_flight[0])
+        calls.append(jid)
+        await asyncio.sleep(0.01)
+        in_flight[0] -= 1
+        return {"id": jid, "subject": f"Grupo {jid[-6:]}"}
+
+    monkeypatch.setattr(evolution_client, "find_group_info", slow)
+    api_admin.get("/api/v1/whatsapp/chats")
+    assert len(calls) == router._GROUP_LOOKUP_MAX_PER_REQUEST <= 3
+    assert peak[0] == 1
+
+
+def test_rate_overlimit_pauses_the_lookups(db, api_admin, evolution, monkeypatch):
+    from fastapi import HTTPException
+
+    for i in range(3):
+        save(db, f"12036300000000{i:02d}@g.us", "oi", message_id=f"G{i}", name="Maria")
+    calls = []
+
+    async def limited(jid):
+        calls.append(jid)
+        raise HTTPException(status_code=502, detail="Evolution API retornou erro: Error fetching group; Error: rate-overlimit")
+
+    monkeypatch.setattr(evolution_client, "find_group_info", limited)
+    router._group_lookups_paused_until = 0.0
+    api_admin.get("/api/v1/whatsapp/chats")
+    api_admin.get("/api/v1/whatsapp/chats")
+    assert len(calls) == 1  # parou no primeiro bloqueio e não insistiu na segunda abertura
+    router._group_lookups_paused_until = 0.0
+
+
+def test_no_individual_lookups_while_the_full_group_fetch_is_running(db, api_admin, evolution, monkeypatch):
+    save(db, GROUP, "oi", message_id="G1", name="Maria")
+
+    class Running:
+        def done(self):
+            return False
+
+    monkeypatch.setattr(router, "_groups_refresh_task", Running())
+    api_admin.get("/api/v1/whatsapp/chats")
+    assert evolution["lookups"] == 0

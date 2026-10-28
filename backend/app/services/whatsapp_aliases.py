@@ -47,6 +47,23 @@ def resolve(db: Session, jid: str) -> str:
     return alias.phone_jid if alias else jid
 
 
+def lids_of(db: Session, phone_jid: str) -> list[str]:
+    """Endereços @lid que já vimos pra esse número (a Evolution guarda a mensagem no endereço original)."""
+    return [a.lid for a in db.query(WhatsAppJidAlias).filter(WhatsAppJidAlias.phone_jid == phone_jid).all()]
+
+
+def learn_from_chat(db: Session, raw_chat: dict[str, Any]) -> str | None:
+    """Conversa da Evolution (`findChats`) em @lid: o número costuma vir na `key` da última mensagem."""
+    jid = raw_chat.get("remoteJid") or raw_chat.get("id") or ""
+    last = raw_chat.get("lastMessage") if isinstance(raw_chat.get("lastMessage"), dict) else {}
+    alt = (last.get("key") or {}).get("remoteJidAlt") if isinstance(last.get("key"), dict) else None
+    if is_lid(jid) and is_phone_jid(alt):
+        if learn(db, jid, alt):
+            merge_lid_into_phone(db, jid, alt)
+        return alt
+    return None
+
+
 def resolve_with(mapping: dict[str, str], jid: str) -> str:
     return mapping.get(jid, jid)
 
@@ -114,18 +131,20 @@ def merge_all_known(db: Session) -> dict[str, int]:
     return {"chats": chats, "messages": messages}
 
 
-def unresolved_lids(db: Session, limit: int = 200) -> list[str]:
-    """Conversas `@lid` sem número conhecido (candidatas a descobrir pela Evolution)."""
+def unresolved_lids(db: Session, limit: int = 200, extra: list[str] | None = None) -> list[str]:
+    """Conversas `@lid` sem número conhecido (candidatas a descobrir pela Evolution): as gravadas no CRM e,
+    em `extra`, as que só aparecem na lista da Evolution."""
     known = alias_map(db)
     rows = db.query(WhatsAppMessage.remote_jid).filter(WhatsAppMessage.remote_jid.like(f"%{LID}")).distinct().all()
-    return [jid for (jid,) in rows if jid not in known][:limit]
+    candidates = dict.fromkeys([jid for (jid,) in rows] + [j for j in (extra or []) if is_lid(j)])
+    return [jid for jid in candidates if jid not in known][:limit]
 
 
-async def backfill(db: Session, limit: int = 100) -> dict[str, int]:
+async def backfill(db: Session, limit: int = 100, extra: list[str] | None = None) -> dict[str, int]:
     """Descobre o número das conversas `@lid` antigas lendo as mensagens delas na Evolution (`remoteJidAlt`)."""
     found = merged = 0
     now = time.monotonic()
-    for lid in unresolved_lids(db, limit):
+    for lid in unresolved_lids(db, limit, extra):
         if _next_attempt.get(lid, 0) > now:
             continue
         _next_attempt[lid] = now + BACKFILL_RETRY_SECONDS
