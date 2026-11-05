@@ -74,6 +74,17 @@ def list_for_entry(db: Session, entry_id: int) -> list[CalendarEntryReview]:
     )
 
 
+def list_for_entries(db: Session, entry_ids: list[int]) -> list[CalendarEntryReview]:
+    if not entry_ids:
+        return []
+    return (
+        db.query(CalendarEntryReview)
+        .filter(CalendarEntryReview.entry_id.in_(entry_ids))
+        .order_by(CalendarEntryReview.decided_at.desc(), CalendarEntryReview.id.desc())
+        .all()
+    )
+
+
 def reviewer_ids(db: Session) -> list[int]:
     """Quem tem `post.review` explícito (admin não entra: avisar todo admin seria ruído)."""
     return [u.id for u in db.query(User).filter(User.is_active.is_(True)).all() if REVIEW_PERMISSION in (u.permissions or [])]
@@ -93,7 +104,7 @@ def notify_pending(db: Session, entry: CalendarEntry, actor_id: int | None) -> l
         type=TYPE_REVIEW_PENDING,
         title=f"Post para revisar: {entry_label(entry)}",
         body=f"{_client_name(db, entry.client_id)} • post {entry.scheduled_date:%d/%m}",
-        link=production_link(entry),
+        link=f"/revisao?demanda={entry.id}",
     )
 
 

@@ -9,21 +9,25 @@ type Props = {
   /** Muda quando o post muda de coluna, pra recarregar o histórico. */
   status: string;
   members: { id: number; full_name: string }[];
+  /** Histórico já carregado por quem renderiza (a fila de revisão busca tudo de uma vez); sem isso, busca sozinho. */
+  reviews?: CalendarEntryReview[];
 };
 
 /** Quem aprovou ou pediu ajustes no post, e por quê (mais recente primeiro). Some se nunca foi revisado. */
-export default function EntryReviewHistory({ entryId, status, members }: Props) {
-  const [reviews, setReviews] = useState<CalendarEntryReview[]>([]);
+export default function EntryReviewHistory({ entryId, status, members, reviews: provided }: Props) {
+  const [fetched, setFetched] = useState<CalendarEntryReview[]>([]);
+  const reviews = provided ?? fetched;
 
   useEffect(() => {
+    if (provided) return;
     let cancelled = false;
     fetchEntryReviews(entryId)
-      .then((data) => !cancelled && setReviews(data))
-      .catch(() => !cancelled && setReviews([]));
+      .then((data) => !cancelled && setFetched(data))
+      .catch(() => !cancelled && setFetched([]));
     return () => {
       cancelled = true;
     };
-  }, [entryId, status]);
+  }, [entryId, status, provided]);
 
   if (reviews.length === 0) return null;
 

@@ -5,12 +5,14 @@ import { useState } from "react";
 type Props = {
   title: string;
   loading?: boolean;
+  /** Falha ao enviar: aparece aqui dentro, porque o diálogo cobre a tela. */
+  error?: string | null;
   onConfirm: (reason: string) => void;
   onCancel: () => void;
 };
 
 /** Pede o motivo antes de mandar o post de volta pra Modificações (obrigatório). */
-export default function RejectReasonDialog({ title, loading, onConfirm, onCancel }: Props) {
+export default function RejectReasonDialog({ title, loading, error, onConfirm, onCancel }: Props) {
   const [reason, setReason] = useState("");
   const trimmed = reason.trim();
 
@@ -31,6 +33,11 @@ export default function RejectReasonDialog({ title, loading, onConfirm, onCancel
           onChange={(e) => setReason(e.target.value)}
           className="mt-1 w-full resize-none rounded-lg border border-border bg-surface-2 p-3 text-sm text-text outline-none focus:border-accent"
         />
+        {error && (
+          <p role="alert" className="mt-3 text-sm text-danger">
+            {error}
+          </p>
+        )}
         <div className="mt-5 flex justify-end gap-3">
           <button type="button" onClick={onCancel} className="rounded-lg px-4 py-2 text-sm text-text">
             Cancelar

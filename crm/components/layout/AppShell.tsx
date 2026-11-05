@@ -51,7 +51,7 @@ export default function AppShell({ user, children }: Props) {
         <Topbar user={user} onMenuClick={() => setMobileNavOpen(true)} />
         <main className="flex-1 relative min-w-0 min-h-0 overflow-auto flex flex-col">{children}</main>
       </div>
-      <CommandPalette />
+      <CommandPalette user={user} />
     </div>
   );
 }

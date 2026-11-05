@@ -17,6 +17,7 @@ from app.models.user import User
 from app.services import demands, instagram_posts, notifications, post_review
 from app.services.calendar_media import normalize_post_media
 from app.schemas.calendar_entry import (
+    CALENDAR_STATUSES,
     DELIVERED_STATUSES,
     CalendarEntryBulkCreate,
     CalendarEntryBulkResult,
@@ -45,10 +46,20 @@ async def list_calendar_entries(
     month: str | None = Query(default=None, description="YYYY-MM"),
     period_status: str | None = Query(default=None, description="Só postagens cujo mês do cliente está nesse status"),
     assignee_id: int | None = Query(default=None, description="Só postagens desse responsável"),
+    entry_status: str | None = Query(default=None, alias="status", description="Só postagens nessa coluna (ex.: checagem_aprovacao)"),
+    limit: int | None = Query(default=None, ge=1, le=1000, description="Máximo de postagens devolvidas"),
     db: Session = Depends(get_db),
     _: User = Depends(require_permission("calendar.view")),
 ):
     query = db.query(CalendarEntry)
+
+    if entry_status is not None:
+        if entry_status not in CALENDAR_STATUSES:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Status inválido. Use um de: {', '.join(CALENDAR_STATUSES)}",
+            )
+        query = query.filter(CalendarEntry.status == entry_status)
 
     if period_status is not None:
         # Demanda avulsa aberta pela tela de Produção não depende da aprovação
@@ -85,7 +96,8 @@ async def list_calendar_entries(
         end = date(year, month_num, monthrange(year, month_num)[1])
         query = query.filter(CalendarEntry.scheduled_date >= start, CalendarEntry.scheduled_date <= end)
 
-    return query.order_by(CalendarEntry.scheduled_date).all()
+    query = query.order_by(CalendarEntry.scheduled_date)
+    return (query.limit(limit) if limit is not None else query).all()
 
 
 @router.get("/calendar-entries/{entry_id}", response_model=CalendarEntryOut)
@@ -224,6 +236,12 @@ async def update_calendar_entry(
     previous_change_request = (entry.change_request or "").strip()
     data = payload.model_dump(exclude_unset=True)
     review_reason = data.pop("review_reason", None)
+    expected_status = data.pop("expected_status", None)
+    if expected_status is not None and expected_status != previous_status:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Esse post mudou de coluna enquanto você olhava. A lista foi atualizada; confira antes de decidir.",
+        )
 
     # Aprovar ou pedir ajustes é só de quem revisa (redatora); validado antes de mexer em qualquer campo.
     status_changed = data.get("status") is not None and data["status"] != previous_status
@@ -280,6 +298,16 @@ async def update_calendar_entry(
     db.commit()
     await notifications.publish(notices)
     return entry
+
+
+@router.get("/calendar-reviews", response_model=list[CalendarEntryReviewOut])
+async def list_reviews_batch(
+    entry_ids: list[int] = Query(default=[], max_length=200),
+    db: Session = Depends(get_db),
+    _: User = Depends(require_permission("calendar.view")),
+):
+    """Histórico de revisões de vários posts de uma vez (a fila de revisão evita uma chamada por card)."""
+    return post_review.list_for_entries(db, entry_ids)
 
 
 @router.get("/calendar-entries/{entry_id}/reviews", response_model=list[CalendarEntryReviewOut])

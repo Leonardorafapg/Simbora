@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Briefcase, CalendarDays, CornerDownLeft, LogOut, Rows3, Search, User as UserIcon } from "lucide-react";
 import { NAV_ITEMS } from "@/lib/nav";
+import { hasPermission } from "@/lib/permissions";
+import type { SessionUser } from "@/types/auth";
 import { logout } from "@/services/client/authApi";
 import { fetchSearchResults } from "@/services/client/searchApi";
 import { NEXT_THEME_LABEL, ThemeIcon, useDensity, useThemeToggle } from "@/components/layout/ThemeToggle";
@@ -27,7 +29,7 @@ function resultHref(result: SearchResult): string {
 const RESULT_ICON = { client: Briefcase, calendar_entry: CalendarDays, user: UserIcon } as const;
 
 /** Paleta de comandos (Ctrl/⌘ + K): navegação, ações rápidas e busca de clientes, postagens e equipe. */
-export default function CommandPalette() {
+export default function CommandPalette({ user }: { user: SessionUser | null }) {
   const router = useRouter();
   const { theme, toggle: toggleTheme } = useThemeToggle();
   const { density, toggleDensity } = useDensity();
@@ -87,7 +89,7 @@ export default function CommandPalette() {
       close();
       router.push(href);
     };
-    const pages: Item[] = NAV_ITEMS.map((n) => {
+    const pages: Item[] = NAV_ITEMS.filter((n) => !n.permission || hasPermission(user, n.permission)).map((n) => {
       const Icon = n.icon;
       return { id: `nav-${n.href}`, label: n.label, group: "Ir para", icon: <Icon className="h-4 w-4" />, run: go(n.href) };
     });
@@ -142,7 +144,7 @@ export default function CommandPalette() {
           })
         : [];
     return [...filter(pages), ...filter(actions), ...found];
-  }, [query, results, theme, density, router, close, toggleTheme, toggleDensity]);
+  }, [query, results, theme, density, router, close, toggleTheme, toggleDensity, user]);
 
   if (!open) return null;
 

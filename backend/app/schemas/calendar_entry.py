@@ -111,6 +111,9 @@ class CalendarEntryUpdate(BaseModel):
     status: str | None = None
     # Motivo do pedido de ajustes: obrigatório quando quem revisa tira o post da "Checagem e aprovação" pra "Modificações".
     review_reason: str | None = Field(default=None, max_length=2000)
+    # Coluna em que quem edita viu o post. Se ele já saiu de lá (outra pessoa moveu), a edição é recusada com 409,
+    # em vez de decidir às cegas sobre um post que mudou (a fila de revisão manda "checagem_aprovacao").
+    expected_status: str | None = None
     requester_id: int | None = None
     assignee_id: int | None = None
     tag_ids: list[int] | None = None
@@ -170,6 +173,7 @@ class CalendarEntryOut(BaseModel):
 
 class CalendarEntryReviewOut(BaseModel):
     id: int
+    entry_id: int
     decision: str
     reason: str | None
     decided_by_user_id: int | None

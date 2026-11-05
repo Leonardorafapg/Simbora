@@ -183,3 +183,55 @@ def test_bulk_create_keeps_the_given_assignee_and_rejects_unknown_users(db, reda
 
     bad = c.post("/api/v1/calendar-entries/bulk", json={"entries": [{**row, "assignee_id": 99999}], "dry_run": False})
     assert bad.status_code == 400
+
+
+def test_list_filters_by_status_and_review_notice_links_to_the_queue(db, redatora, designer, entry):
+    c = api_as(designer)
+    move(c, entry.id, "checagem_aprovacao")
+
+    in_review = api_as(redatora).get("/api/v1/calendar-entries", params={"status": "checagem_aprovacao"}).json()
+    assert [e["id"] for e in in_review] == [entry.id]
+    assert api_as(redatora).get("/api/v1/calendar-entries", params={"status": "finalizados"}).json() == []
+
+    notice = db.query(Notification).filter(Notification.user_id == redatora.id, Notification.type == "post_revisao").one()
+    assert notice.link == f"/revisao?demanda={entry.id}"
+
+
+def test_decision_on_a_post_that_left_the_review_is_refused_with_409(db, redatora, designer, entry):
+    # O post voltou a Andamento depois que a redatora abriu a fila: aprovar às cegas não pode passar.
+    res = api_as(redatora).patch(
+        f"/api/v1/calendar-entries/{entry.id}", json={"status": "finalizados", "expected_status": "checagem_aprovacao"}
+    )
+    assert res.status_code == 409
+    assert current_status(db, entry.id) == "andamento"
+    assert db.query(CalendarEntryReview).count() == 0
+
+    res = api_as(redatora).patch(
+        f"/api/v1/calendar-entries/{entry.id}",
+        json={"status": "modificacoes", "review_reason": "Ajustar", "expected_status": "checagem_aprovacao"},
+    )
+    assert res.status_code == 409
+
+
+def test_decision_with_matching_expected_status_is_recorded(db, redatora, designer, entry):
+    move(api_as(designer), entry.id, "checagem_aprovacao")
+    res = api_as(redatora).patch(
+        f"/api/v1/calendar-entries/{entry.id}", json={"status": "finalizados", "expected_status": "checagem_aprovacao"}
+    )
+    assert res.status_code == 200
+    assert [r.decision for r in db.query(CalendarEntryReview)] == ["aprovado"]
+
+
+def test_status_filter_rejects_unknown_values_and_honours_limit(db, redatora, entry):
+    c = api_as(redatora)
+    assert c.get("/api/v1/calendar-entries", params={"status": "qualquer"}).status_code == 400
+    assert len(c.get("/api/v1/calendar-entries", params={"status": "andamento", "limit": 1}).json()) == 1
+
+
+def test_reviews_batch_returns_history_of_many_posts(db, redatora, designer, entry):
+    move(api_as(designer), entry.id, "checagem_aprovacao")
+    move(api_as(redatora), entry.id, "modificacoes", review_reason="Faltou legenda")
+    c = api_as(redatora)
+    rows = c.get("/api/v1/calendar-reviews", params=[("entry_ids", entry.id), ("entry_ids", 99999)]).json()
+    assert [(r["entry_id"], r["decision"], r["reason"]) for r in rows] == [(entry.id, "reprovado", "Faltou legenda")]
+    assert c.get("/api/v1/calendar-reviews").json() == []
