@@ -10,5 +10,5 @@ export default async function WhatsAppPage() {
     return <NoAccess message="Você não tem permissão para ver o WhatsApp." />;
   }
 
-  return <WhatsAppPageClient />;
+  return <WhatsAppPageClient canManage={hasPermission(session, "whatsapp.manage")} />;
 }

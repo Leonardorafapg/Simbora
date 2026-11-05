@@ -1,7 +1,7 @@
 import { useDraggable } from "@dnd-kit/core";
 import { AlignLeft, Paperclip } from "lucide-react";
 import type { CalendarEntry } from "@/types/calendar";
-import type { Client } from "@/types/client";
+import type { ClientRef } from "@/types/client";
 import { formatDate } from "@/lib/format";
 import { DEADLINE_CLASSES, DEADLINE_LABELS, deadlineInfo, formatDeadline } from "@/lib/deadline";
 import { tagChipClass, tagChipStyle } from "@/lib/tagColors";
@@ -43,7 +43,7 @@ function attachmentCount(entry: CalendarEntry): number {
 
 type ContentProps = {
   entry: CalendarEntry;
-  client?: Client;
+  client?: ClientRef;
   requester?: CardPerson;
   assignee?: CardPerson;
   onSelect?: (entry: CalendarEntry) => void;
@@ -157,7 +157,7 @@ function PostCardContent({ entry, client, requester, assignee, onSelect, instagr
 
 type Props = {
   entry: CalendarEntry;
-  client?: Client;
+  client?: ClientRef;
   requester?: CardPerson;
   assignee?: CardPerson;
   canEdit: boolean;
@@ -228,7 +228,7 @@ export default function PostCard({
 }
 
 /** Cartão que acompanha o ponteiro durante o arraste (renderizado no DragOverlay). */
-export function PostCardOverlay({ entry, client }: { entry: CalendarEntry; client?: Client }) {
+export function PostCardOverlay({ entry, client }: { entry: CalendarEntry; client?: ClientRef }) {
   return (
     <div className="rotate-2 cursor-grabbing overflow-hidden rounded-xl border border-accent bg-surface-2 shadow-[0_0_32px_color-mix(in_srgb,var(--accent)_35%,transparent)]">
       <PostCardContent entry={entry} client={client} />

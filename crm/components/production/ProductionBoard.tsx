@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Plus, Rows3, Search, SlidersHorizontal, X } from "lucide-react";
+import { Plus, Rows3, Search, SlidersHorizontal, User, X } from "lucide-react";
 import { useDensity } from "@/components/layout/ThemeToggle";
 import { deadlineInfo, urgencyRank } from "@/lib/deadline";
 import {
@@ -16,7 +16,7 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import { useCalendarEntries } from "@/hooks/useCalendarEntries";
-import { useClients } from "@/hooks/useClients";
+import { useClientDirectory } from "@/hooks/useClientDirectory";
 import { useTeamDirectory } from "@/hooks/useTeamDirectory";
 import { useTags } from "@/hooks/useTags";
 import { useInstagramByEntries } from "@/hooks/useInstagram";
@@ -39,6 +39,8 @@ import { REVIEWER_ONLY_MESSAGE, isReviewDecision, needsReviewer } from "@/lib/po
 import { PostCardOverlay } from "./PostCard";
 
 type Props = {
+  /** Quem está logado: o quadro abre só com as demandas dele (que pediu ou que executa). */
+  currentUserId: number | null;
   canEdit: boolean;
   canCreate: boolean;
   canDelete: boolean;
@@ -58,6 +60,7 @@ function currentMonth() {
  * Só entram postagens de cronogramas finalizados (aprovados) — o resto ainda está em planejamento.
  */
 export default function ProductionBoard({
+  currentUserId,
   canEdit,
   canCreate,
   canDelete,
@@ -74,6 +77,9 @@ export default function ProductionBoard({
   const searchParams = useSearchParams();
   const linkedMonth = searchParams.get("mes");
   const linkedEntryId = Number(searchParams.get("demanda")) || null;
+  // Padrão ao abrir: só as minhas (social que pediu ou designer que executa). Não é lembrado: no próximo
+  // login volta a ligado. Com link de aviso começa desligado, senão a demanda do link poderia ficar escondida.
+  const [onlyMine, setOnlyMine] = useState(() => currentUserId !== null && !linkedEntryId);
   const [month, setMonth] = useState(() => (linkedMonth && /^\d{4}-(0[1-9]|1[0-2])$/.test(linkedMonth) ? linkedMonth : currentMonth()));
   const openedLinkedEntry = useRef<number | null>(null);
   const [search, setSearch] = useState("");
@@ -90,7 +96,7 @@ export default function ProductionBoard({
   const [rejectingBusy, setRejectingBusy] = useState(false);
 
   const { entries, loading, error, create, update, remove } = useCalendarEntries(undefined, month, "finalizado");
-  const { clients } = useClients();
+  const { clients } = useClientDirectory();
   const { members } = useTeamDirectory();
   const { tags } = useTags();
   // Badge do Instagram: só faz sentido em postagem aprovada/publicada (ou que já teve agendamento).
@@ -142,9 +148,11 @@ export default function ProductionBoard({
     (requesterIds.length ? 1 : 0) +
     (tagIds.length ? 1 : 0) +
     (deadlineFilter ? 1 : 0) +
+    (onlyMine ? 1 : 0) +
     (month !== currentMonth() ? 1 : 0);
 
   function clearFilters() {
+    setOnlyMine(false);
     setClientIds([]);
     setAssigneeIds([]);
     setRequesterIds([]);
@@ -157,6 +165,7 @@ export default function ProductionBoard({
   const visibleEntries = entries
     .filter(matchesSearch)
     .map((entry) => ({ entry, info: deadlineInfo(entry) }))
+    .filter(({ entry }) => !onlyMine || entry.requester_id === currentUserId || entry.assignee_id === currentUserId)
     .filter(({ entry }) => clientIds.length === 0 || clientIds.includes(entry.client_id))
     .filter(({ entry }) => assigneeIds.length === 0 || (entry.assignee_id !== null && assigneeIds.includes(entry.assignee_id)))
     .filter(({ entry }) => requesterIds.length === 0 || (entry.requester_id !== null && requesterIds.includes(entry.requester_id)))
@@ -226,6 +235,7 @@ export default function ProductionBoard({
   async function handleCreate(input: CalendarEntryCreateInput) {
     const entry = await create(input, { fromProduction: true });
     if (month && entry.scheduled_date.slice(0, 7) !== month) setMonth(entry.scheduled_date.slice(0, 7));
+    if (onlyMine && entry.requester_id !== currentUserId && entry.assignee_id !== currentUserId) setOnlyMine(false);
     // Filtros que deixariam a demanda nova de fora são limpos, pra ela não sumir da tela.
     if (clientIds.length && !clientIds.includes(entry.client_id)) setClientIds([]);
     if (assigneeIds.length && (entry.assignee_id === null || !assigneeIds.includes(entry.assignee_id))) setAssigneeIds([]);
@@ -288,6 +298,21 @@ export default function ProductionBoard({
             </button>
           )}
         </div>
+
+        {currentUserId !== null && (
+          <button
+            type="button"
+            onClick={() => setOnlyMine((v) => !v)}
+            aria-pressed={onlyMine}
+            title={onlyMine ? "Mostrando só as demandas em que você é o social ou o designer. Clique para ver todas." : "Mostrar só as minhas demandas"}
+            className={`glass-input flex items-center gap-2 rounded-lg px-3 py-2 text-sm outline-none ${
+              onlyMine ? "border-accent-border text-accent" : ""
+            }`}
+          >
+            <User className="h-4 w-4" />
+            Minhas demandas
+          </button>
+        )}
 
         <div ref={filtersRef} className="relative">
           <button

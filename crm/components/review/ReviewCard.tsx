@@ -5,14 +5,14 @@ import { Check, ExternalLink, MessageSquareWarning } from "lucide-react";
 import { DEADLINE_CLASSES, DEADLINE_LABELS, deadlineInfo, formatDeadline } from "@/lib/deadline";
 import { isImageUrl } from "@/lib/artwork";
 import type { CalendarEntry, CalendarEntryReview } from "@/types/calendar";
-import type { Client } from "@/types/client";
+import type { ClientRef } from "@/types/client";
 import FileLightbox from "@/components/ui/FileLightbox";
 import Linkify from "@/components/ui/Linkify";
 import EntryReviewHistory from "@/components/production/EntryReviewHistory";
 
 type Props = {
   entry: CalendarEntry;
-  client?: Client;
+  client?: ClientRef;
   assignee?: { id: number; full_name: string };
   members: { id: number; full_name: string }[];
   reviews: CalendarEntryReview[];

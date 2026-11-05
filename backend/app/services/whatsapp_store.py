@@ -79,6 +79,15 @@ def get_message(db: Session, message_id: str) -> WhatsAppMessage | None:
     return db.query(WhatsAppMessage).filter(WhatsAppMessage.message_id == message_id).first()
 
 
+def set_sender_name(db: Session, message_id: str | None, name: str) -> None:
+    """Grava quem da equipe mandou uma mensagem nossa que já estava salva (eco do webhook chegou antes)."""
+    message = get_message(db, message_id) if message_id else None
+    if message is None or not message.from_me:
+        return
+    message.sender_name = name
+    db.commit()
+
+
 def reply_fields(db: Session, quoted_id: str, snippet: str | None = None) -> dict[str, Any]:
     """Campos de "resposta" pra gravar numa mensagem que cita `quoted_id`. Se a citada está no
     nosso histórico, de lá vêm o trecho e de quem ela era; senão fica só o que a Evolution mandou."""

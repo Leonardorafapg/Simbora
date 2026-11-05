@@ -137,6 +137,32 @@ def test_incoming_reply_from_the_webhook_keeps_the_quote(api, db, monkeypatch):
     assert [m["reply_to_id"] for m in listed] == [None, "E1"]
 
 
+def test_sent_message_keeps_who_on_the_team_sent_it(api, db, evolution):
+    res = send(api, JID, text="Oi")
+
+    assert res.json()["sender_name"] == "Admin"
+    listed = api.get(f"/api/v1/whatsapp/chats/{JID}/messages").json()
+    assert [(m["from_me"], m["sender_name"]) for m in listed] == [(True, "Admin")]
+    # Quem da equipe mandou não pode virar o nome do contato na lista de conversas.
+    assert [c["name"] for c in whatsapp_store.list_chats(db)] == [None]
+
+
+def test_media_keeps_who_sent_it_too(api, evolution):
+    res = api.post(f"/api/v1/whatsapp/chats/{JID}/media", files={"file": ("a.png", b"\x89PNG fake", "image/png")})
+    assert res.json()["sender_name"] == "Admin"
+
+
+def test_echo_that_arrived_first_gets_the_team_member_name(api, db, evolution):
+    # O eco do webhook (fromMe) chegou antes do envio terminar de salvar: só sabe o nome da conta do WhatsApp.
+    save(db, JID, "Oi", message_id="R1", from_me=True, name="Conta WhatsApp")
+
+    body = send(api, JID, text="Oi").json()
+
+    assert body["sender_name"] == "Admin"
+    db.expire_all()
+    assert db.query(WhatsAppMessage).filter_by(message_id="R1").one().sender_name == "Admin"
+
+
 def test_extract_quote_reads_text_media_and_ignores_plain_messages():
     assert extract_quote({"conversation": "oi"}) is None
     assert extract_quote({"extendedTextMessage": {"text": "ok", "contextInfo": {"stanzaId": "A", "quotedMessage": {"conversation": "x" * 300}}}}) == (

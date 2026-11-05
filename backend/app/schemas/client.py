@@ -47,6 +47,19 @@ class ClientUpdate(BaseModel):
         return value
 
 
+class ClientDirectoryEntry(BaseModel):
+    """Só o necessário pra mostrar e escolher o cliente (nome, foto, responsáveis padrão) — sem contato nem notas."""
+
+    id: int
+    name: str
+    photo_url: str | None
+    default_social_id: int | None
+    default_designer_id: int | None
+    is_active: bool
+
+    model_config = {"from_attributes": True}
+
+
 class ClientOut(BaseModel):
     id: int
     name: str

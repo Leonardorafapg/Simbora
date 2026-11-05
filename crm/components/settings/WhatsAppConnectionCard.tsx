@@ -5,7 +5,7 @@ import { MessageCircle, Plug, Trash2, X } from "lucide-react";
 import { disconnect, getStatus } from "@/services/client/whatsappApi";
 import WhatsAppConnectScreen from "@/components/whatsapp/WhatsAppConnectScreen";
 
-export default function WhatsAppConnectionCard() {
+export default function WhatsAppConnectionCard({ canManage }: { canManage: boolean }) {
   const [connected, setConnected] = useState<boolean | null>(null);
   const [showConnectModal, setShowConnectModal] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
@@ -66,7 +66,7 @@ export default function WhatsAppConnectionCard() {
           </span>
         </div>
 
-        {connected === null ? null : connected ? (
+        {connected === null || !canManage ? null : connected ? (
           <button
             type="button"
             onClick={handleDisconnect}

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { upsertMessage } from "../lib/whatsapp.ts";
 import { insertAtCursor, quoteAuthor, replyTargetOf } from "../lib/whatsappReply.ts";
 import type { WhatsAppMessage } from "../types/whatsapp.ts";
 
@@ -28,6 +29,17 @@ test("replyTargetOf: texto, mídia sem legenda e mensagem sem id", () => {
     text: "📷 Foto",
   });
   assert.equal(replyTargetOf({ ...base, id: null }, "Cliente"), null);
+});
+
+test("upsertMessage: eco do webhook que chegou primeiro recebe o nome de quem da equipe enviou", () => {
+  const echo = { ...base, id: "E1", from_me: true, sender_name: null };
+  const sent = { ...echo, sender_name: "Brian" };
+
+  assert.equal(upsertMessage([echo], sent)[0].sender_name, "Brian");
+  assert.equal(upsertMessage([sent], echo)[0].sender_name, "Brian"); // o contrário não apaga o nome
+  assert.equal(upsertMessage([sent], sent).length, 1);
+  // Mensagem recebida nunca é reescrita.
+  assert.equal(upsertMessage([base], { ...base, sender_name: "Outra" })[0].sender_name, "Carol");
 });
 
 test("insertAtCursor: no cursor, no lugar da seleção e com índices fora do texto", () => {

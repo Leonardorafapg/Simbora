@@ -13,6 +13,9 @@ export type Client = {
   is_active: boolean;
 };
 
+/** O mínimo pra mostrar e escolher um cliente (Produção, revisão, dashboard): sem contato nem notas. */
+export type ClientRef = Pick<Client, "id" | "name" | "photo_url" | "default_social_id" | "default_designer_id" | "is_active">;
+
 export type ClientCreateInput = {
   name: string;
   photo_url?: string | null;

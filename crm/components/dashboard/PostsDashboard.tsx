@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { useCalendarEntries } from "@/hooks/useCalendarEntries";
-import { useClients } from "@/hooks/useClients";
+import { useClientDirectory } from "@/hooks/useClientDirectory";
 import { useTeamDirectory } from "@/hooks/useTeamDirectory";
 import { MONTH_LABELS, CALENDAR_ENTRY_STATUSES, CALENDAR_ENTRY_STATUS_LABELS } from "@/types/calendar";
 import { deadlineInfo } from "@/lib/deadline";
@@ -42,7 +42,7 @@ export default function PostsDashboard() {
   const [month, setMonth] = useState(() => monthOf(new Date()));
   const { entries, loading, error } = useCalendarEntries(undefined, month);
   const { entries: previous } = useCalendarEntries(undefined, shiftMonth(month, -1));
-  const { clients } = useClients();
+  const { clients } = useClientDirectory();
   const { members } = useTeamDirectory();
 
   const [year, monthNumber] = month.split("-").map(Number);

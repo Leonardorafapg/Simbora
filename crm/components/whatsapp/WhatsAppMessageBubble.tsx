@@ -89,7 +89,8 @@ export default function WhatsAppMessageBubble({ chat, message, first, last, avat
   const isSticker = message.media_type === "sticker";
   // Legenda: texto da mensagem, exceto em documento (o texto já é o nome do arquivo quando não há filename).
   const caption = message.media_type === "document" && !message.media_filename ? null : message.text;
-  const showName = chat.is_group && !mine && first && !!message.sender_name;
+  // Recebida em grupo: quem falou. Nossa: quem da equipe mandou (o WhatsApp recebe esse nome junto do texto).
+  const showName = first && !!message.sender_name && (mine || chat.is_group);
   // Em grupo, a foto de quem mandou fica ao lado do primeiro balão da sequência (como no WhatsApp).
   const withAvatar = chat.is_group && !mine;
 

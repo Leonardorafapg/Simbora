@@ -4,11 +4,12 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.deps import require_permission
+from app.core.deps import get_current_user, require_permission
+from app.core.permissions import has_permission
 from app.models.calendar_period import CalendarPeriod
 from app.models.client import Client
 from app.models.user import User
-from app.schemas.client import ClientCreate, ClientOut, ClientUpdate
+from app.schemas.client import ClientCreate, ClientDirectoryEntry, ClientOut, ClientUpdate
 
 router = APIRouter()
 
@@ -24,6 +25,17 @@ async def list_clients(
     db: Session = Depends(get_db),
     _: User = Depends(require_permission("client.view")),
 ):
+    return db.query(Client).order_by(Client.name).all()
+
+
+@router.get("/clients/directory", response_model=list[ClientDirectoryEntry])
+async def clients_directory(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Lista enxuta de clientes pra quem trabalha no calendário (Produção, revisão) sem ter `client.view`."""
+    if not (has_permission(current_user, "client.view") or has_permission(current_user, "calendar.view")):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permissão insuficiente")
     return db.query(Client).order_by(Client.name).all()
 
 

@@ -76,8 +76,14 @@ export function formatFileSize(bytes: number): string {
 
 /** Adiciona ou ignora a mensagem se o id já está na lista (HTTP e WebSocket entregam a mesma). */
 export function upsertMessage(list: WhatsAppMessage[], message: WhatsAppMessage): WhatsAppMessage[] {
-  if (message.id && list.some((m) => m.id === message.id)) return list;
-  return [...list, message];
+  const existing = message.id ? list.find((m) => m.id === message.id) : undefined;
+  if (!existing) return [...list, message];
+  // Mesmo envio chegando duas vezes (resposta HTTP + WebSocket). Se o eco veio primeiro, ele não
+  // sabe quem da equipe mandou — completa o nome com o da resposta do envio.
+  if (existing.from_me && message.from_me && message.sender_name && existing.sender_name !== message.sender_name) {
+    return list.map((m) => (m === existing ? { ...m, sender_name: message.sender_name } : m));
+  }
+  return list;
 }
 
 export type MessageRow =

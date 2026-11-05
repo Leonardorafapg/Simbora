@@ -1,4 +1,4 @@
-import type { Client, ClientCreateInput, ClientUpdateInput } from "@/types/client";
+import type { Client, ClientCreateInput, ClientRef, ClientUpdateInput } from "@/types/client";
 
 async function parseErrorMessage(res: Response, fallback: string) {
   const data = await res.json().catch(() => ({}));
@@ -7,6 +7,13 @@ async function parseErrorMessage(res: Response, fallback: string) {
 
 export async function fetchClients(): Promise<Client[]> {
   const res = await fetch("/api/clients");
+  if (!res.ok) throw new Error(await parseErrorMessage(res, "Não foi possível carregar os clientes."));
+  return res.json();
+}
+
+/** Lista enxuta: funciona com `calendar.view`, sem exigir `client.view`. */
+export async function fetchClientDirectory(): Promise<ClientRef[]> {
+  const res = await fetch("/api/clients/directory");
   if (!res.ok) throw new Error(await parseErrorMessage(res, "Não foi possível carregar os clientes."));
   return res.json();
 }

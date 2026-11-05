@@ -7,7 +7,7 @@ import WhatsAppChatLayout from "@/components/whatsapp/WhatsAppChatLayout";
 
 const POLL_INTERVAL_MS = 4000;
 
-export default function WhatsAppPageClient() {
+export default function WhatsAppPageClient({ canManage }: { canManage: boolean }) {
   const [connected, setConnected] = useState<boolean | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -53,8 +53,15 @@ export default function WhatsAppPageClient() {
     <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
       {connected ? (
         <WhatsAppChatLayout onDisconnected={() => setConnected(false)} />
-      ) : (
+      ) : canManage ? (
         <WhatsAppConnectScreen onConnected={() => setConnected(true)} />
+      ) : (
+        <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 text-center">
+          <h2 className="text-base font-semibold text-text">WhatsApp desconectado</h2>
+          <p className="max-w-sm text-sm text-text-muted">
+            O número não está conectado agora. Peça a quem administra o sistema para conectar; as conversas voltam sozinhas.
+          </p>
+        </div>
       )}
     </div>
   );

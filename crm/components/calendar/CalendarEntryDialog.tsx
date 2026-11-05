@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { AlignLeft, CalendarDays, Clock, ExternalLink, ImagePlus, MessageSquareWarning, Paperclip, UserRound, Users, X } from "lucide-react";
 import type { CalendarEntry, CalendarEntryCreateInput, CalendarEntryUpdateInput } from "@/types/calendar";
 import type { Client } from "@/types/client";
-import { useClients } from "@/hooks/useClients";
+import { useClientDirectory } from "@/hooks/useClientDirectory";
 import { useTeamDirectory } from "@/hooks/useTeamDirectory";
 import UserSelect from "@/components/ui/UserSelect";
 import TagPicker from "./TagPicker";
@@ -78,7 +78,7 @@ export default function CalendarEntryDialog({
   onRequestDelete,
   instagram,
 }: Props) {
-  const { clients: allClients } = useClients();
+  const { clients: allClients } = useClientDirectory();
   const { members } = useTeamDirectory();
   const clientList = clients ?? allClients;
   const findClient = (id: number) => clientList.find((c) => c.id === id);

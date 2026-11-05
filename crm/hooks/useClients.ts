@@ -35,6 +35,7 @@ export function useClients() {
   async function create(input: ClientCreateInput) {
     const client = await createClient(input);
     invalidate("clients");
+    invalidate("clientDirectory");
     setClients((prev) => [...prev, client].sort(byName));
     return client;
   }
@@ -42,6 +43,7 @@ export function useClients() {
   async function update(id: number, input: ClientUpdateInput) {
     const client = await updateClient(id, input);
     invalidate("clients");
+    invalidate("clientDirectory");
     setClients((prev) => prev.map((c) => (c.id === id ? client : c)).sort(byName));
     return client;
   }
@@ -49,6 +51,7 @@ export function useClients() {
   async function remove(id: number) {
     await deleteClient(id);
     invalidate("clients");
+    invalidate("clientDirectory");
     setClients((prev) => prev.filter((c) => c.id !== id));
   }
 

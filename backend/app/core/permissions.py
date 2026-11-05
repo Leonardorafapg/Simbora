@@ -26,6 +26,7 @@ PERMISSIONS: dict[str, str] = {
     "agenda.edit": "Editar e cancelar compromissos de outras pessoas na agenda",
     "whatsapp.view": "Ver WhatsApp",
     "whatsapp.send": "Enviar mensagens no WhatsApp",
+    "whatsapp.manage": "Conectar e desconectar o número do WhatsApp",
     "instagram.view": "Ver Instagram (agendamentos e métricas)",
     "instagram.manage": "Conectar contas e agendar posts no Instagram",
 }

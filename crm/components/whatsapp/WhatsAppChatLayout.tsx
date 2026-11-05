@@ -106,7 +106,8 @@ export default function WhatsAppChatLayout({ onDisconnected }: Props) {
               // Em grupo, `sender_name` é quem mandou (participante), não o
               // nome do grupo — sem isso, conversa nova de grupo aparecia com
               // nome de pessoa até o próximo refresh da lista.
-              name: message.remote_jid.endsWith("@g.us") ? null : (message.sender_name ?? null),
+              // Mensagem nossa também leva `sender_name` (quem da equipe mandou): não é o nome do contato.
+              name: message.remote_jid.endsWith("@g.us") || message.from_me ? null : (message.sender_name ?? null),
               is_group: message.remote_jid.endsWith("@g.us"),
               last_message: previewOf(message),
               last_from_me: message.from_me,

@@ -1,14 +1,14 @@
 import { useDroppable } from "@dnd-kit/core";
 import type { CalendarEntry, CalendarEntryStatus } from "@/types/calendar";
 import { CALENDAR_ENTRY_STATUS_LABELS } from "@/types/calendar";
-import type { Client } from "@/types/client";
+import type { ClientRef } from "@/types/client";
 import type { InstagramPost } from "@/types/instagram";
 import PostCard, { type CardPerson } from "./PostCard";
 
 type Props = {
   status: CalendarEntryStatus;
   entries: CalendarEntry[];
-  clients: Client[];
+  clients: ClientRef[];
   members: CardPerson[];
   canEdit: boolean;
   onSelect: (entry: CalendarEntry) => void;

@@ -26,6 +26,7 @@ from app.core import evolution_client
 from app.core.config import settings
 from app.core.database import SessionLocal, get_db
 from app.core.deps import require_admin, require_permission
+from app.core.permissions import has_permission
 from app.core.security import decode_access_token
 from app.core.ws_manager import manager as ws_manager
 from app.models.client import Client
@@ -375,7 +376,7 @@ async def get_status(
 
 @router.post("/whatsapp/connect", response_model=QRCodeResponse)
 async def connect(
-    _: User = Depends(require_permission("whatsapp.view")),
+    _: User = Depends(require_permission("whatsapp.manage")),
 ):
     result = await evolution_client.connect_instance()
 
@@ -393,7 +394,7 @@ async def connect(
 
 @router.post("/whatsapp/disconnect", status_code=204)
 async def disconnect(
-    _: User = Depends(require_permission("whatsapp.view")),
+    _: User = Depends(require_permission("whatsapp.manage")),
 ):
     await evolution_client.delete_instance()
 
@@ -729,18 +730,20 @@ async def send_message(
         remote_jid=remote_jid,
         from_me=True,
         text=payload.text,
-        sender_name=None,
+        # Quem da equipe mandou: o WhatsApp recebe "*Nome:*" dentro do texto, e o CRM mostra no balão.
+        sender_name=current_user.full_name,
         is_group=remote_jid.endswith("@g.us"),
         status="enviada",
         timestamp=result.get("messageTimestamp") or 0,
         **_reply_kwargs(db, quoted),
     )
     if message is None:
-        # Dedup: já tinha sido salva (não deveria acontecer no envio, mas o
-        # dado que importa é devolver a resposta certa mesmo assim).
+        # Dedup: o eco do webhook chegou antes de salvarmos — ele não sabe quem da equipe
+        # mandou, então o nome é gravado na mensagem que já existe.
+        whatsapp_store.set_sender_name(db, key.get("id"), current_user.full_name)
         out = WhatsAppMessage(
             id=key.get("id"), remote_jid=remote_jid, from_me=True, text=payload.text,
-            timestamp=result.get("messageTimestamp"), sender_name=None,
+            timestamp=result.get("messageTimestamp"), sender_name=current_user.full_name,
         )
     else:
         out = _message_out(message)
@@ -797,7 +800,7 @@ async def send_media(
         remote_jid=remote_jid,
         from_me=True,
         text=caption or None,
-        sender_name=None,
+        sender_name=current_user.full_name,
         is_group=remote_jid.endswith("@g.us"),
         status="enviada",
         timestamp=result.get("messageTimestamp") or int(time.time()),
@@ -807,10 +810,11 @@ async def send_media(
         **_reply_kwargs(db, quoted),
     )
     if message is None:
+        whatsapp_store.set_sender_name(db, key.get("id"), current_user.full_name)
         return WhatsAppMessage(
             id=key.get("id"), remote_jid=remote_jid, from_me=True, text=caption or None,
             timestamp=result.get("messageTimestamp"), media_type=media_kind,
-            media_mimetype=mimetype, media_filename=file_name,
+            media_mimetype=mimetype, media_filename=file_name, sender_name=current_user.full_name,
         )
     out = _message_out(message)
     await ws_manager.broadcast({"type": "whatsapp_message", "message": out.model_dump()})
@@ -861,10 +865,18 @@ async def whatsapp_ws(websocket: WebSocket, token: str = Query(...)):
     Autentica pelo JWT do usuário no query param (WebSocket não manda header
     Authorization pelo navegador).
     """
+    # Só quem pode ver o WhatsApp recebe as mensagens em tempo real (antes bastava um login válido).
+    # O usuário é relido do banco: permissão revogada ou conta desativada valem na hora, não só no próximo login.
     try:
-        decode_access_token(token)
+        user_id = int(decode_access_token(token)["sub"])
     except Exception:
         await websocket.close(code=4401)
+        return
+    with SessionLocal() as db:
+        user = db.get(User, user_id)
+        allowed = user is not None and user.is_active and has_permission(user, "whatsapp.view")
+    if not allowed:
+        await websocket.close(code=4403)
         return
 
     await ws_manager.connect(websocket)

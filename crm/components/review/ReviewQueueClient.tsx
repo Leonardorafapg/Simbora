@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useReviewQueue } from "@/hooks/useReviewQueue";
-import { useClients } from "@/hooks/useClients";
+import { useClientDirectory } from "@/hooks/useClientDirectory";
 import { useTeamDirectory } from "@/hooks/useTeamDirectory";
 import type { CalendarEntry } from "@/types/calendar";
 import PageHeader from "@/components/ui/PageHeader";
@@ -17,7 +17,7 @@ import ReviewCard from "./ReviewCard";
  */
 export default function ReviewQueueClient() {
   const { entries, reviews, loading, error, approve, requestChanges } = useReviewQueue();
-  const { clients } = useClients();
+  const { clients } = useClientDirectory();
   const { members } = useTeamDirectory();
   const highlightedId = Number(useSearchParams().get("demanda")) || null;
   const [rejecting, setRejecting] = useState<CalendarEntry | null>(null);

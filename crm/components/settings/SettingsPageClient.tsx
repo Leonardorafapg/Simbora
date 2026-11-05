@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { ChevronRight, Users } from "lucide-react";
-import { canManageTeam } from "@/lib/permissions";
+import { canManageTeam, hasPermission } from "@/lib/permissions";
 import type { SessionUser } from "@/types/auth";
 import ProfileCard from "@/components/settings/ProfileCard";
 import WhatsAppConnectionCard from "@/components/settings/WhatsAppConnectionCard";
@@ -38,7 +38,9 @@ export default function SettingsPageClient({ user }: Props) {
         </Link>
       )}
 
-      <WhatsAppConnectionCard />
+      {hasPermission(user, "whatsapp.view") && (
+        <WhatsAppConnectionCard canManage={hasPermission(user, "whatsapp.manage")} />
+      )}
 
       <AiConnectionsCard />
     </div>

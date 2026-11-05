@@ -27,6 +27,7 @@ export const PERMISSIONS: { key: string; label: string }[] = [
   { key: "agenda.edit", label: "Editar e cancelar compromissos de outras pessoas na agenda" },
   { key: "whatsapp.view", label: "Ver WhatsApp" },
   { key: "whatsapp.send", label: "Enviar mensagens no WhatsApp" },
+  { key: "whatsapp.manage", label: "Conectar e desconectar o número do WhatsApp" },
   { key: "instagram.view", label: "Ver Instagram (agendamentos e métricas)" },
   { key: "instagram.manage", label: "Conectar contas e agendar posts no Instagram" },
 ];
