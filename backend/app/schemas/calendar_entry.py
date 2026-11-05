@@ -44,6 +44,7 @@ class CalendarEntryCreate(BaseModel):
     theme: str
     # Campo "Execução" saiu da UI/relatório; mantido opcional por compatibilidade.
     execution_notes: str = ""
+    change_request: str | None = None
     # "Formato" saiu da UI — Execução assumiu esse lugar. Campo mantido no
     # banco (não é mais preenchido nem exibido) para não exigir migração
     # destrutiva; sempre recebe string vazia por baixo dos panos.
@@ -94,6 +95,7 @@ class CalendarEntryUpdate(BaseModel):
     title: str | None = None
     theme: str | None = None
     execution_notes: str | None = None
+    change_request: str | None = None
     reference_link: str | None = None
     reference_image: str | None = None
     material_files: list[str] | None = None
@@ -143,6 +145,7 @@ class CalendarEntryOut(BaseModel):
     title: str | None
     theme: str
     execution_notes: str | None
+    change_request: str | None
     reference_link: str | None
     reference_image: str | None
     material_files: list[str]

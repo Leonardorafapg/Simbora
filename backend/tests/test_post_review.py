@@ -149,3 +149,37 @@ def test_history_endpoint_and_delete_cleanup(db, redatora, designer, entry):
     admin_api = api_as(make_user(db, 3, BASE + ["calendar.delete"]))
     assert admin_api.delete(f"/api/v1/calendar-entries/{entry.id}").status_code == 204
     assert db.query(CalendarEntryReview).count() == 0
+
+
+def test_change_request_is_separate_from_description_and_notifies_the_designer(db, redatora, designer, entry):
+    res = api_as(redatora).patch(f"/api/v1/calendar-entries/{entry.id}", json={"change_request": "Trocar a foto da capa"})
+    assert res.status_code == 200
+    body = res.json()
+    assert body["change_request"] == "Trocar a foto da capa"
+    assert body["theme"] == "Tema"  # a descrição original não é tocada
+    notice = db.query(Notification).filter(Notification.user_id == designer.id, Notification.type == "post_alteracao").one()
+    assert "Trocar a foto da capa" in notice.body
+
+
+def test_unchanged_change_request_does_not_notify_again(db, redatora, designer, entry):
+    client = api_as(redatora)
+    client.patch(f"/api/v1/calendar-entries/{entry.id}", json={"change_request": "Ajustar texto"})
+    client.patch(f"/api/v1/calendar-entries/{entry.id}", json={"change_request": "Ajustar texto", "title": "Novo título"})
+    assert db.query(Notification).filter(Notification.type == "post_alteracao").count() == 1
+
+
+def test_assignee_editing_own_change_request_is_not_notified(db, designer, entry):
+    api_as(designer).patch(f"/api/v1/calendar-entries/{entry.id}", json={"change_request": "Anotação minha"})
+    assert db.query(Notification).filter(Notification.type == "post_alteracao").count() == 0
+
+
+def test_bulk_create_keeps_the_given_assignee_and_rejects_unknown_users(db, redatora, designer, client_row):
+    c = api_as(redatora)
+    row = {"client_id": client_row.id, "scheduled_date": "2026-11-05", "theme": "Jogos", "assignee_id": designer.id}
+
+    ok = c.post("/api/v1/calendar-entries/bulk", json={"entries": [row], "dry_run": False})
+    assert ok.status_code == 200
+    assert ok.json()["entries"][0]["assignee_id"] == designer.id
+
+    bad = c.post("/api/v1/calendar-entries/bulk", json={"entries": [{**row, "assignee_id": 99999}], "dry_run": False})
+    assert bad.status_code == 400

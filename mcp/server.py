@@ -310,12 +310,16 @@ class CalendarRow(BaseModel):
     caption: str | None = None
     material_notes: str | None = None
     status: str = "producao"
+    requester: Annotated[int | str | None, Field(description="Quem pediu (id ou nome); vazio = o padrão da importação/cliente")] = None
+    assignee: Annotated[int | str | None, Field(description="Responsável (id ou nome); vazio = o padrão da importação/cliente")] = None
 
 
 @write_tool
 async def import_calendar(
     client: Annotated[int | str, Field(description="Cliente (id ou nome)")],
     rows: Annotated[list[CalendarRow], Field(description="Postagens a criar (máx. 200)")],
+    assignee: Annotated[int | str | None, Field(description="Responsável de TODAS as linhas sem responsável próprio (id ou nome). Vazio = designer padrão do cliente")] = None,
+    requester: Annotated[int | str | None, Field(description="Solicitante das linhas sem solicitante próprio (id ou nome). Vazio = social padrão do cliente")] = None,
     dry_run: Annotated[bool, Field(description="true = só valida e mostra a prévia, não grava")] = True,
 ) -> dict:
     """
@@ -323,9 +327,21 @@ async def import_calendar(
     Por padrão roda em prévia (dry_run=true): confira com o usuário e rode de novo com dry_run=false.
     """
     client_id = await _client_id(client)
+    cache: dict[str, int | None] = {}
+
+    async def person(ref: int | str | None) -> int | None:
+        if ref is None or (isinstance(ref, str) and not ref.strip()):
+            return None
+        key = str(ref)
+        if key not in cache:
+            cache[key] = await _user_id(ref)
+        return cache[key]
+
     entries = [
         {
             "client_id": client_id,
+            "requester_id": await person(r.requester if r.requester is not None else requester),
+            "assignee_id": await person(r.assignee if r.assignee is not None else assignee),
             "scheduled_date": _iso_date(r.date, f"linha {i} data"),
             "title": r.title,
             "theme": r.theme,
@@ -364,10 +380,14 @@ async def create_calendar_entry(
     caption: str | None = None,
     material_notes: str | None = None,
     status: str = "producao",
+    requester: Annotated[int | str | None, Field(description="Quem pediu a demanda (id ou nome). Vazio = social padrão do cliente")] = None,
+    assignee: Annotated[int | str | None, Field(description="Responsável por executar (id ou nome, ex.: 'Leticia'). Vazio = designer padrão do cliente")] = None,
 ) -> dict:
-    """Cria uma postagem no calendário."""
+    """Cria uma postagem no calendário. Informe `assignee` para definir quem executa (senão vai pro designer padrão do cliente)."""
     body = {
         "client_id": await _client_id(client),
+        "requester_id": await _user_id(requester) if requester is not None else None,
+        "assignee_id": await _user_id(assignee) if assignee is not None else None,
         "scheduled_date": _iso_date(date),
         "title": title,
         "theme": theme,
@@ -389,6 +409,7 @@ async def update_calendar_entry(
     title: Annotated[str | None, Field(description="Título da postagem")] = None,
     theme: Annotated[str | None, Field(description="Descrição da postagem")] = None,
     execution_notes: str | None = None,
+    change_request: Annotated[str | None, Field(description="Pedido de alteração do social (separado da descrição); o designer é avisado")] = None,
     reference_link: str | None = None,
     reference_image: str | None = None,
     material_files: Annotated[list[str] | None, Field(description="Lista COMPLETA (substitui)")] = None,
@@ -396,6 +417,8 @@ async def update_calendar_entry(
     caption: str | None = None,
     material_notes: str | None = None,
     status: Annotated[str | None, Field(description="producao | andamento | modificacoes | checagem_aprovacao | finalizados | publicados")] = None,
+    requester: Annotated[int | str | None, Field(description="Novo solicitante (id ou nome)")] = None,
+    assignee: Annotated[int | str | None, Field(description="Novo responsável (id ou nome); o novo responsável é avisado")] = None,
 ) -> dict:
     """Edita uma postagem do calendário. Só os campos informados mudam."""
     body: dict[str, Any] = {
@@ -404,6 +427,7 @@ async def update_calendar_entry(
             "title": title,
             "theme": theme,
             "execution_notes": execution_notes,
+            "change_request": change_request,
             "reference_link": reference_link,
             "reference_image": reference_image,
             "material_files": material_files,
@@ -416,6 +440,10 @@ async def update_calendar_entry(
     }
     if date is not None:
         body["scheduled_date"] = _iso_date(date)
+    if requester is not None:
+        body["requester_id"] = await _user_id(requester)
+    if assignee is not None:
+        body["assignee_id"] = await _user_id(assignee)
     if not body:
         raise ToolError("Nada para alterar: informe ao menos um campo.")
 

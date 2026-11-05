@@ -27,6 +27,10 @@ class CalendarEntry(Base):
     theme: Mapped[str] = mapped_column(Text, nullable=False)
     format: Mapped[str] = mapped_column(String(30), nullable=False)
     execution_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Pedido de alteração do social (o que mudar na arte) — separado da descrição original (`theme`),
+    # que continua sendo o briefing. Guarda só o último pedido; o histórico de ajustes da redatora fica
+    # em calendar_entry_reviews.
+    change_request: Mapped[str | None] = mapped_column(Text, nullable=True)
     reference_link: Mapped[str | None] = mapped_column(String(500), nullable=True)
     # URL (R2) da imagem de referência que o social sobe ao planejar
     # a postagem — só aparece no drawer de detalhe, nunca em relatório/

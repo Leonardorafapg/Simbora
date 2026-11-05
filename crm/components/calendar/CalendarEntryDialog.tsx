@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { AlignLeft, CalendarDays, Clock, ExternalLink, ImagePlus, Paperclip, UserRound, Users, X } from "lucide-react";
+import { AlignLeft, CalendarDays, Clock, ExternalLink, ImagePlus, MessageSquareWarning, Paperclip, UserRound, Users, X } from "lucide-react";
 import type { CalendarEntry, CalendarEntryCreateInput, CalendarEntryUpdateInput } from "@/types/calendar";
 import type { Client } from "@/types/client";
 import { useClients } from "@/hooks/useClients";
@@ -50,6 +50,7 @@ function buildForm(
     tag_ids: entry?.tags.map((t) => t.id) ?? ([] as number[]),
     title: entry?.title ?? "",
     theme: entry?.theme ?? "",
+    change_request: entry?.change_request ?? "",
     reference_image: entry?.reference_image ?? null,
     material_files: entry?.material_files ?? [],
     // Postagens antigas guardavam um único link de referência no campo reference_link.
@@ -237,6 +238,20 @@ export default function CalendarEntryDialog({
                 className="glass-input min-h-[110px] w-full rounded-lg px-3 py-2 text-base outline-none"
               />
               <DetectedLinks text={form.theme} />
+            </section>
+
+            <section className="space-y-2 rounded-xl border border-border bg-surface-2/40 p-4">
+              <div className={labelCls}>
+                <MessageSquareWarning className="h-4 w-4 text-text-faint" />
+                Pedido de alteração
+              </div>
+              <textarea
+                value={form.change_request}
+                onChange={(e) => update("change_request", e.target.value)}
+                placeholder="O que precisa mudar na arte? Fica separado da descrição original."
+                className="glass-input min-h-[80px] w-full rounded-lg px-3 py-2 text-base outline-none"
+              />
+              <DetectedLinks text={form.change_request} />
             </section>
 
             <section className="space-y-3 rounded-xl border border-border bg-surface-2/40 p-4">

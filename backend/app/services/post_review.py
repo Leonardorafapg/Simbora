@@ -21,6 +21,7 @@ REVIEW_STAGE = "checagem_aprovacao"
 
 TYPE_REVIEW_PENDING = "post_revisao"
 TYPE_REVIEW_DONE = "post_revisado"
+TYPE_CHANGE_REQUEST = "post_alteracao"
 
 _APPROVED = {"finalizados", "publicados"}
 
@@ -107,5 +108,19 @@ def notify_decision(db: Session, entry: CalendarEntry, review: CalendarEntryRevi
         type=TYPE_REVIEW_DONE,
         title=f"{'Post aprovado' if approved else 'Ajustes pedidos'}: {entry_label(entry)}",
         body=_client_name(db, entry.client_id) if approved else (review.reason or "")[:300],
+        link=production_link(entry),
+    )
+
+
+def notify_change_request(db: Session, entry: CalendarEntry, actor_id: int | None) -> list[Notification]:
+    """O social escreveu (ou mudou) o pedido de alteração: avisa o responsável (designer) pelo post."""
+    if entry.assignee_id is None or entry.assignee_id == actor_id or not (entry.change_request or "").strip():
+        return []
+    return notifications.create_notifications(
+        db,
+        [entry.assignee_id],
+        type=TYPE_CHANGE_REQUEST,
+        title=f"Pedido de alteração: {entry_label(entry)}",
+        body=entry.change_request.strip()[:300],
         link=production_link(entry),
     )

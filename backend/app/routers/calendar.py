@@ -127,6 +127,9 @@ async def bulk_create_calendar_entries(
         if not clients_ok[item.client_id]:
             errors.append(f"Linha {index}: cliente {item.client_id} inválido")
             continue
+        for user_id in (item.requester_id, item.assignee_id):
+            if user_id is not None and db.get(User, user_id) is None:
+                errors.append(f"Linha {index}: usuário {user_id} inválido")
 
     if errors:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=errors)
@@ -218,6 +221,7 @@ async def update_calendar_entry(
 
     previous_assignee = entry.assignee_id
     previous_status = entry.status
+    previous_change_request = (entry.change_request or "").strip()
     data = payload.model_dump(exclude_unset=True)
     review_reason = data.pop("review_reason", None)
 
@@ -267,6 +271,8 @@ async def update_calendar_entry(
     notices = []
     if entry.assignee_id != previous_assignee and demands.in_production(db, entry):
         notices += demands.notify_assigned(db, entry, current_user.id, reassigned=True)
+    if (entry.change_request or "").strip() != previous_change_request:
+        notices += post_review.notify_change_request(db, entry, current_user.id)
     if review is not None:
         notices += post_review.notify_decision(db, entry, review, current_user.id)
     if status_changed and entry.status == post_review.REVIEW_STAGE:

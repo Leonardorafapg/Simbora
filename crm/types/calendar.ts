@@ -35,6 +35,8 @@ export type CalendarEntry = {
   title: string | null;
   theme: string;
   execution_notes: string | null;
+  /** Pedido de alteração do social, separado da descrição original. */
+  change_request: string | null;
   reference_link: string | null;
   /** URL (R2) da imagem de referência. Só é exibida no drawer — nunca em relatório/impressão/PDF. */
   reference_image: string | null;
@@ -75,6 +77,7 @@ export type CalendarEntryCreateInput = {
   title?: string | null;
   theme: string;
   execution_notes?: string;
+  change_request?: string | null;
   reference_link?: string;
   reference_image?: string | null;
   material_files?: string[];
@@ -100,6 +103,7 @@ export type CalendarEntryUpdateInput = Partial<{
   title: string | null;
   theme: string;
   execution_notes: string;
+  change_request: string | null;
   reference_link: string;
   reference_image: string | null;
   material_files: string[];

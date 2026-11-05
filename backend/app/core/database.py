@@ -78,6 +78,7 @@ def run_light_migrations():
         add_column_if_missing(conn, "calendar_entries", "post_type", "post_type VARCHAR(20) DEFAULT 'feed' NOT NULL")
         add_column_if_missing(conn, "calendar_entries", "final_images", "final_images TEXT DEFAULT '[]'")
         add_column_if_missing(conn, "calendar_entries", "title", "title VARCHAR(200)")
+        add_column_if_missing(conn, "calendar_entries", "change_request", "change_request TEXT")
         add_column_if_missing(conn, "calendar_entries", "requester_id", "requester_id INTEGER REFERENCES users(id)")
         add_column_if_missing(conn, "calendar_entries", "assignee_id", "assignee_id INTEGER REFERENCES users(id)")
         add_column_if_missing(conn, "calendar_entries", "custom_deadline", "custom_deadline DATE")
