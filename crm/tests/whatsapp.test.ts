@@ -75,3 +75,23 @@ test("chatTitle nunca devolve o JID cru", () => {
   assert.equal(chatTitle({ name: null, remote_jid: "55@s.whatsapp.net", is_group: false, phone: "+55 16 3523-0764" }), "+55 16 3523-0764");
   assert.equal(chatTitle({ name: "Equipe MKT", remote_jid: "1@g.us", is_group: true }), "Equipe MKT");
 });
+
+test("avatarJidsToFetch: só quem mandou no grupo, sem repetir e sem pedir o que já se sabe", async () => {
+  const { avatarJidsToFetch, AVATAR_RETRY_MS } = await import("../lib/whatsapp.ts");
+  const now = 1_000_000;
+  const cache = new Map([
+    ["com-foto@s.whatsapp.net", { url: "https://x/f.jpg", at: 0 }],
+    ["sem-foto-recente@s.whatsapp.net", { url: null, at: now - 1000 }],
+    ["sem-foto-antiga@s.whatsapp.net", { url: null, at: now - AVATAR_RETRY_MS - 1 }],
+  ]);
+  const messages = [
+    msg({ sender_jid: "a@s.whatsapp.net" }),
+    msg({ sender_jid: "a@s.whatsapp.net" }),
+    msg({ sender_jid: "com-foto@s.whatsapp.net" }),
+    msg({ sender_jid: "sem-foto-recente@s.whatsapp.net" }),
+    msg({ sender_jid: "sem-foto-antiga@s.whatsapp.net" }),
+    msg({ sender_jid: "eu@s.whatsapp.net", from_me: true }),
+    msg({ sender_jid: null }),
+  ];
+  assert.deepEqual(avatarJidsToFetch(messages, cache, now), ["a@s.whatsapp.net", "sem-foto-antiga@s.whatsapp.net"]);
+});

@@ -36,7 +36,7 @@ def is_phone_jid(jid: str | None) -> bool:
 
 
 def alias_map(db: Session) -> dict[str, str]:
-    return {a.lid: a.phone_jid for a in db.query(WhatsAppJidAlias).all()}
+    return {lid: phone for lid, phone in db.query(WhatsAppJidAlias.lid, WhatsAppJidAlias.phone_jid)}
 
 
 def resolve(db: Session, jid: str) -> str:
@@ -47,9 +47,18 @@ def resolve(db: Session, jid: str) -> str:
     return alias.phone_jid if alias else jid
 
 
+def sender_of(key: dict[str, Any]) -> str | None:
+    """Quem mandou a mensagem num grupo: o número (`participantAlt`) quando a Evolution informa, senão o
+    `participant` (pode ser @lid)."""
+    alt = key.get("participantAlt")
+    if is_phone_jid(alt):
+        return alt
+    return key.get("participant") or None
+
+
 def lids_of(db: Session, phone_jid: str) -> list[str]:
     """Endereços @lid que já vimos pra esse número (a Evolution guarda a mensagem no endereço original)."""
-    return [a.lid for a in db.query(WhatsAppJidAlias).filter(WhatsAppJidAlias.phone_jid == phone_jid).all()]
+    return [lid for (lid,) in db.query(WhatsAppJidAlias.lid).filter(WhatsAppJidAlias.phone_jid == phone_jid)]
 
 
 def learn_from_chat(db: Session, raw_chat: dict[str, Any]) -> str | None:

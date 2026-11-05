@@ -30,6 +30,7 @@ def save_message(
     media_type: str | None = None,
     media_mimetype: str | None = None,
     media_filename: str | None = None,
+    sender_jid: str | None = None,
 ) -> WhatsAppMessage | None:
     """
     None se a mensagem já existia (dedup por message_id) — acontece quando o
@@ -53,6 +54,7 @@ def save_message(
         media_type=media_type,
         media_mimetype=media_mimetype,
         media_filename=media_filename,
+        sender_jid=sender_jid,
     )
     db.add(message)
     try:
@@ -206,6 +208,6 @@ def delete_label(db: Session, label_id: str) -> None:
 
 def chat_label_ids(db: Session) -> dict[str, list[str]]:
     result: dict[str, list[str]] = {}
-    for row in db.query(WhatsAppChatLabel).all():
-        result.setdefault(row.remote_jid, []).append(row.label_id)
+    for remote_jid, label_id in db.query(WhatsAppChatLabel.remote_jid, WhatsAppChatLabel.label_id):
+        result.setdefault(remote_jid, []).append(label_id)
     return result

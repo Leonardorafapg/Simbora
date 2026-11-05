@@ -86,3 +86,10 @@ def pick_group_name(subject: str | None, contact_name: str | None, sender_names:
     if candidate and "@" not in candidate and candidate not in sender_names:
         return candidate
     return None
+
+
+def with_sender_prefix(full_name: str | None, text: str) -> str:
+    """Texto como vai pro WhatsApp: "*Brian:*" (negrito) numa linha e a mensagem embaixo, pra o cliente saber
+    quem da equipe está falando (o número é compartilhado). No CRM o balão guarda só o texto original."""
+    first_name = (full_name or "").strip().split(" ")[0]
+    return f"*{first_name}:*\n{text}" if first_name else text

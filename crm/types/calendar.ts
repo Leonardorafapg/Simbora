@@ -113,7 +113,18 @@ export type CalendarEntryUpdateInput = Partial<{
   caption: string;
   material_notes: string | null;
   status: CalendarEntryStatus;
+  /** Motivo do pedido de ajustes — obrigatório quando quem revisa move da "Checagem e aprovação" pra "Modificações". */
+  review_reason: string;
   requester_id: number | null;
   assignee_id: number | null;
   tag_ids: number[];
 }>;
+
+/** Uma decisão da redatora sobre o post (GET /calendar-entries/{id}/reviews). */
+export type CalendarEntryReview = {
+  id: number;
+  decision: "aprovado" | "reprovado";
+  reason: string | null;
+  decided_by_user_id: number | null;
+  decided_at: string;
+};

@@ -52,6 +52,8 @@ class WhatsAppMessage(BaseModel):
     media_type: str | None = None
     media_mimetype: str | None = None
     media_filename: str | None = None
+    # Em grupo: quem mandou (pra mostrar a foto ao lado do balão).
+    sender_jid: str | None = None
 
 
 class SendMessageInput(BaseModel):

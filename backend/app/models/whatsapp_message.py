@@ -31,6 +31,8 @@ class WhatsAppMessage(Base):
     # Nome original do arquivo (documentos) — pra mostrar "Contrato.pdf" em vez de "Documento".
     media_filename: Mapped[str | None] = mapped_column(String(255), nullable=True)
     # pushName de quem mandou — só relevante em grupo (ver WhatsAppChatWindow).
+    # Quem mandou, em grupo (número; ou @lid se o WhatsApp não informou o número) — pra mostrar a foto.
+    sender_jid: Mapped[str | None] = mapped_column(String(100), nullable=True)
     sender_name: Mapped[str | None] = mapped_column(String(150), nullable=True)
     is_group: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     # enviada / entregue / lida / erro — ver _STATUS_MAP no webhook.

@@ -1,5 +1,6 @@
 import { getSession } from "@/services/server/auth";
 import { hasPermission } from "@/lib/permissions";
+import { REVIEW_PERMISSION } from "@/lib/postReview";
 import ProductionBoard from "@/components/production/ProductionBoard";
 
 export default async function ProductionPage() {
@@ -19,6 +20,7 @@ export default async function ProductionPage() {
       canEdit={hasPermission(session, "calendar.edit")}
       canCreate={hasPermission(session, "calendar.create")}
       canDelete={hasPermission(session, "calendar.delete")}
+      canReview={hasPermission(session, REVIEW_PERMISSION)}
       canViewInstagram={hasPermission(session, "instagram.view")}
       canManageInstagram={hasPermission(session, "instagram.manage")}
     />

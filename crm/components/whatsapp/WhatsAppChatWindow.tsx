@@ -7,6 +7,7 @@ import WhatsAppLabelChip from "@/components/whatsapp/WhatsAppLabelChip";
 import WhatsAppMessageBubble from "@/components/whatsapp/WhatsAppMessageBubble";
 import WhatsAppComposer from "@/components/whatsapp/WhatsAppComposer";
 import { buildRows, chatTitle } from "@/lib/whatsapp";
+import { useSenderAvatars } from "@/hooks/useSenderAvatars";
 import type { WhatsAppChat, WhatsAppMessage } from "@/types/whatsapp";
 
 const TYPING_PRESENCE_LABELS: Record<string, string> = {
@@ -37,6 +38,7 @@ export default function WhatsAppChatWindow({ chat, messages, loading, typingPres
   const [droppedFile, setDroppedFile] = useState<File | null>(null);
 
   const rows = useMemo(() => buildRows(messages), [messages]);
+  const avatars = useSenderAvatars(messages, chat.is_group);
 
   // Conversa nova abre no fim; mensagem nova só puxa pro fim se a pessoa já estava lá embaixo
   // (ou se a mensagem é dela) — senão atrapalha quem está lendo o histórico.
@@ -156,7 +158,14 @@ export default function WhatsAppChatWindow({ chat, messages, loading, typingPres
                   </span>
                 </div>
               ) : (
-                <WhatsAppMessageBubble key={row.key} chat={chat} message={row.message} first={row.first} last={row.last} />
+                <WhatsAppMessageBubble
+                  key={row.key}
+                  chat={chat}
+                  message={row.message}
+                  first={row.first}
+                  last={row.last}
+                  avatarUrl={row.message.sender_jid ? avatars[row.message.sender_jid] : null}
+                />
               ),
             )}
         </div>

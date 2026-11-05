@@ -9,11 +9,12 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.deps import require_permission
 from app.models.calendar_entry import CalendarEntry
+from app.models.calendar_entry_review import CalendarEntryReview
 from app.models.calendar_period import CalendarPeriod
 from app.models.tag import Tag
 from app.models.client import Client
 from app.models.user import User
-from app.services import demands, instagram_posts, notifications
+from app.services import demands, instagram_posts, notifications, post_review
 from app.services.calendar_media import normalize_post_media
 from app.schemas.calendar_entry import (
     DELIVERED_STATUSES,
@@ -21,6 +22,7 @@ from app.schemas.calendar_entry import (
     CalendarEntryBulkResult,
     CalendarEntryCreate,
     CalendarEntryOut,
+    CalendarEntryReviewOut,
     CalendarEntryUpdate,
 )
 
@@ -109,6 +111,9 @@ async def bulk_create_calendar_entries(
     se qualquer linha falhar, não grava nenhuma. Com `dry_run=true` roda a
     mesma validação e devolve o resultado sem persistir nada.
     """
+    for item in payload.entries:
+        post_review.ensure_can_move(current_user, None, item.status)
+
     errors: list[str] = []
     clients_ok: dict[int, bool] = {}
     client_by_id: dict[int, Client] = {}
@@ -172,6 +177,8 @@ async def create_calendar_entry(
         if user_id is not None and db.get(User, user_id) is None:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Usuário inválido")
 
+    post_review.ensure_can_move(current_user, None, payload.status)
+
     data = payload.model_dump()
     data["final_image"], data["final_images"] = normalize_post_media(
         data["post_type"], data["final_image"], data["final_images"]
@@ -191,6 +198,8 @@ async def create_calendar_entry(
     db.commit()
     db.refresh(entry)
     notices = demands.notify_assigned(db, entry, current_user.id) if demands.in_production(db, entry) else []
+    if entry.status == post_review.REVIEW_STAGE:
+        notices += post_review.notify_pending(db, entry, current_user.id)
     db.commit()
     await notifications.publish(notices)
     return entry
@@ -208,7 +217,18 @@ async def update_calendar_entry(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Entrada não encontrada")
 
     previous_assignee = entry.assignee_id
+    previous_status = entry.status
     data = payload.model_dump(exclude_unset=True)
+    review_reason = data.pop("review_reason", None)
+
+    # Aprovar ou pedir ajustes é só de quem revisa (redatora); validado antes de mexer em qualquer campo.
+    status_changed = data.get("status") is not None and data["status"] != previous_status
+    review = None
+    if status_changed:
+        post_review.ensure_can_move(current_user, previous_status, data["status"])
+        if post_review.is_decision(previous_status, data["status"]):
+            review = post_review.record(db, entry, data["status"], review_reason, current_user)
+
     # Etiquetas são do fluxo de produção: editáveis mesmo com o mês finalizado.
     tag_ids = data.pop("tag_ids", None)
     if tag_ids is not None:
@@ -246,10 +266,26 @@ async def update_calendar_entry(
     db.refresh(entry)
     notices = []
     if entry.assignee_id != previous_assignee and demands.in_production(db, entry):
-        notices = demands.notify_assigned(db, entry, current_user.id, reassigned=True)
-        db.commit()
+        notices += demands.notify_assigned(db, entry, current_user.id, reassigned=True)
+    if review is not None:
+        notices += post_review.notify_decision(db, entry, review, current_user.id)
+    if status_changed and entry.status == post_review.REVIEW_STAGE:
+        notices += post_review.notify_pending(db, entry, current_user.id)
+    db.commit()
     await notifications.publish(notices)
     return entry
+
+
+@router.get("/calendar-entries/{entry_id}/reviews", response_model=list[CalendarEntryReviewOut])
+async def list_entry_reviews(
+    entry_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_permission("calendar.view")),
+):
+    """Histórico de revisões do post (mais recente primeiro): quem aprovou ou pediu ajustes, e por quê."""
+    if db.get(CalendarEntry, entry_id) is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Entrada não encontrada")
+    return post_review.list_for_entry(db, entry_id)
 
 
 @router.delete("/calendar-entries/{entry_id}", status_code=204)
@@ -270,5 +306,6 @@ async def delete_calendar_entry(
     # Apagar a postagem cancela o agendamento do Instagram que ainda não saiu.
     instagram_posts.cancel_for_entry(db, entry_id, detach_others=True)
 
+    db.query(CalendarEntryReview).filter(CalendarEntryReview.entry_id == entry_id).delete(synchronize_session=False)
     db.delete(entry)
     db.commit()

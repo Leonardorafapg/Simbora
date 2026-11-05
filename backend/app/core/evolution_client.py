@@ -6,6 +6,7 @@ nome vem de `settings.EVOLUTION_INSTANCE_NAME`. Erros de rede/config viram
 `HTTPException` claras pro router traduzir em respostas amigáveis pro
 frontend, em vez de um 500 cru.
 """
+import asyncio
 import logging
 from typing import Any
 
@@ -15,6 +16,26 @@ from fastapi import HTTPException, status
 from app.core.config import settings
 
 logger = logging.getLogger("evolution_client")
+
+# Um cliente HTTP so (pool de conexoes reaproveitado) em vez de um por chamada. Recriado se o event loop mudar.
+_client: httpx.AsyncClient | None = None
+_client_loop: asyncio.AbstractEventLoop | None = None
+
+
+def _shared_client() -> httpx.AsyncClient:
+    global _client, _client_loop
+    loop = asyncio.get_running_loop()
+    if _client is None or _client.is_closed or _client_loop is not loop:
+        _client = httpx.AsyncClient(limits=httpx.Limits(max_connections=10, max_keepalive_connections=2))
+        _client_loop = loop
+    return _client
+
+
+async def close_client() -> None:
+    global _client
+    if _client is not None and not _client.is_closed:
+        await _client.aclose()
+    _client = None
 
 
 def _base_url() -> str:
@@ -63,19 +84,9 @@ def error_detail(response: httpx.Response) -> str:
 
 async def _request(method: str, path: str, timeout: float = 30.0, **kwargs: Any) -> httpx.Response:
     url = f"{_base_url()}{path}"
-    # Diagnóstico temporário de um bug de integração em produção — nunca loga
-    # a apikey inteira, só instância/URL/status/fingerprint, pra achar a causa
-    # real do 502 sem depender do usuário abrir o DevTools.
-    logger.warning(
-        "Evolution API request: %s %s (instance=%s, apikey=%s)",
-        method,
-        url,
-        settings.EVOLUTION_INSTANCE_NAME,
-        _key_fingerprint(),
-    )
+    logger.debug("Evolution API request: %s %s (instance=%s)", method, url, settings.EVOLUTION_INSTANCE_NAME)
     try:
-        async with httpx.AsyncClient(timeout=timeout) as client:
-            response = await client.request(method, url, headers=_headers(), **kwargs)
+        response = await _shared_client().request(method, url, headers=_headers(), timeout=timeout, **kwargs)
     except httpx.RequestError as exc:
         logger.warning("Evolution API connection failed: %s %s -> %r", method, url, exc)
         raise HTTPException(
@@ -288,6 +299,14 @@ async def find_labels() -> list[dict[str, Any]]:
     response = await _request("GET", f"/label/findLabels/{instance}", timeout=15.0)
     data = response.json()
     return data if isinstance(data, list) else data.get("labels", [])
+
+
+async def fetch_profile_picture(jid: str) -> str | None:
+    """Link da foto de perfil de um contato (None se não tem foto ou é privada)."""
+    instance = _instance_name()
+    response = await _request("POST", f"/chat/fetchProfilePictureUrl/{instance}", timeout=10.0, json={"number": jid})
+    data = response.json()
+    return (data.get("profilePictureUrl") or None) if isinstance(data, dict) else None
 
 
 async def find_contacts() -> list[dict[str, Any]]:

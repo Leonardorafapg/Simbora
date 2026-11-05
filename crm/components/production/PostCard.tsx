@@ -23,9 +23,9 @@ const IG_BADGE: Record<InstagramPost["status"], string> = {
   erro: "IG com erro",
 };
 
-/** Capa do card: a arte final, senão a referência, senão o primeiro material. */
+/** Capa do card: a arte final, senão o story, senão a referência, senão o primeiro material. */
 function coverOf(entry: CalendarEntry): string | null {
-  return [entry.final_image, entry.reference_image, ...entry.material_files].find((url) => isImageUrl(url)) ?? null;
+  return [entry.final_image, entry.final_image_story, entry.reference_image, ...entry.material_files].find((url) => isImageUrl(url)) ?? null;
 }
 
 /** Quantidade de arquivos anexados à postagem (referência + material + arte final). */
@@ -33,6 +33,7 @@ function attachmentCount(entry: CalendarEntry): number {
   return (
     (entry.reference_image ? 1 : 0) +
     (entry.final_image ? 1 : 0) +
+    (entry.final_image_story ? 1 : 0) +
     entry.material_files.length +
     (entry.reference_links?.length ?? 0) +
     (entry.material_links?.length ?? 0) +
@@ -162,9 +163,22 @@ type Props = {
   canEdit: boolean;
   onSelect: (entry: CalendarEntry) => void;
   instagramPost?: InstagramPost;
+  /** Só pra quem revisa: botões de decisão em post que está na "Checagem e aprovação". */
+  onApprove?: (entry: CalendarEntry) => void;
+  onRequestChanges?: (entry: CalendarEntry) => void;
 };
 
-export default function PostCard({ entry, client, requester, assignee, canEdit, onSelect, instagramPost }: Props) {
+export default function PostCard({
+  entry,
+  client,
+  requester,
+  assignee,
+  canEdit,
+  onSelect,
+  instagramPost,
+  onApprove,
+  onRequestChanges,
+}: Props) {
   // O movimento durante o arraste é do DragOverlay (a coluna tem overflow, que
   // cortaria o card): aqui o original só fica esmaecido no lugar.
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
@@ -191,6 +205,24 @@ export default function PostCard({ entry, client, requester, assignee, canEdit, 
           instagramPost={instagramPost}
         />
       </div>
+      {entry.status === "checagem_aprovacao" && onApprove && onRequestChanges && (
+        <div className="flex gap-2 border-t border-border p-2">
+          <button
+            type="button"
+            onClick={() => onApprove(entry)}
+            className="flex-1 rounded-lg bg-emerald-500/15 px-3 py-1.5 text-xs font-semibold text-emerald-500 transition hover:bg-emerald-500/25"
+          >
+            Aprovar
+          </button>
+          <button
+            type="button"
+            onClick={() => onRequestChanges(entry)}
+            className="flex-1 rounded-lg bg-amber-500/15 px-3 py-1.5 text-xs font-semibold text-amber-500 transition hover:bg-amber-500/25"
+          >
+            Pedir ajustes
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -16,15 +16,17 @@ export type NavItem = {
   icon: LucideIcon;
   /** Fora do menu lateral (atalho próprio: engrenagem da topbar, card em Configurações), mas segue na paleta. */
   hideInSidebar?: boolean;
+  /** Chave de lib/permissions.ts exigida para o item aparecer no menu. Sem ela, todos veem. */
+  permission?: string;
 };
 
 export const NAV_ITEMS: NavItem[] = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/clients", label: "Clientes", icon: Briefcase },
-  { href: "/production", label: "Produção", icon: ClipboardList },
-  { href: "/aprovacoes", label: "Aprovações", icon: ClipboardCheck },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, permission: "calendar.view" },
+  { href: "/clients", label: "Clientes", icon: Briefcase, permission: "client.view" },
+  { href: "/production", label: "Produção", icon: ClipboardList, permission: "calendar.view" },
+  { href: "/aprovacoes", label: "Aprovações", icon: ClipboardCheck, permission: "calendar.approve" },
   { href: "/agenda", label: "Agenda", icon: CalendarClock },
-  { href: "/whatsapp", label: "WhatsApp", icon: MessageCircle },
+  { href: "/whatsapp", label: "WhatsApp", icon: MessageCircle, permission: "whatsapp.view" },
   { href: "/team", label: "Equipe", icon: Users, hideInSidebar: true },
   { href: "/settings", label: "Configurações", icon: Settings, hideInSidebar: true },
 ];

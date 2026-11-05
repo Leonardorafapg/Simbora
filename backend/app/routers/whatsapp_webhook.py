@@ -69,6 +69,7 @@ async def _handle_messages_upsert(db: Session, data: dict[str, Any]) -> None:
         media_type=media_type,
         media_mimetype=media_mimetype,
         media_filename=media_filename,
+        sender_jid=whatsapp_aliases.sender_of(key) if remote_jid.endswith("@g.us") else None,
     )
     if message is None:
         return  # já existia (dedup) — nosso próprio envio ecoando de volta
@@ -85,6 +86,7 @@ async def _handle_messages_upsert(db: Session, data: dict[str, Any]) -> None:
             "media_type": message.media_type,
             "media_mimetype": message.media_mimetype,
             "media_filename": message.media_filename,
+            "sender_jid": message.sender_jid,
         },
     })
 

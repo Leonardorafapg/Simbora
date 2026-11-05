@@ -3,10 +3,11 @@ import { getInitials } from "@/lib/format";
 type Props = {
   name: string;
   photoUrl?: string | null;
-  size?: "sm" | "md" | "lg";
+  size?: "xs" | "sm" | "md" | "lg";
 };
 
 const SIZES = {
+  xs: "h-7 w-7 text-[11px]",
   sm: "h-9 w-9 text-sm",
   md: "h-12 w-12 text-lg",
   lg: "h-16 w-16 text-xl",

@@ -1,61 +1,14 @@
-"use client";
+import { getSession } from "@/services/server/auth";
+import { hasPermission } from "@/lib/permissions";
+import NoAccess from "@/components/ui/NoAccess";
+import WhatsAppPageClient from "@/components/whatsapp/WhatsAppPageClient";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { getStatus } from "@/services/client/whatsappApi";
-import WhatsAppConnectScreen from "@/components/whatsapp/WhatsAppConnectScreen";
-import WhatsAppChatLayout from "@/components/whatsapp/WhatsAppChatLayout";
+export default async function WhatsAppPage() {
+  const session = await getSession();
 
-const POLL_INTERVAL_MS = 4000;
-
-export default function WhatsAppPage() {
-  const [connected, setConnected] = useState<boolean | null>(null);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  const checkStatus = useCallback(async () => {
-    try {
-      const status = await getStatus();
-      setConnected(status.connected);
-    } catch {
-      setConnected(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    checkStatus();
-  }, [checkStatus]);
-
-  useEffect(() => {
-    if (connected) {
-      if (pollRef.current) {
-        clearInterval(pollRef.current);
-        pollRef.current = null;
-      }
-      return;
-    }
-
-    pollRef.current = setInterval(checkStatus, POLL_INTERVAL_MS);
-    return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
-    };
-  }, [connected, checkStatus]);
-
-  if (connected === null) {
-    return (
-      <div className="flex flex-1 items-center justify-center">
-        <div className="h-8 w-8 rounded-full border-2 border-cyan/30 border-t-cyan animate-spin" />
-      </div>
-    );
+  if (!hasPermission(session, "whatsapp.view")) {
+    return <NoAccess message="Você não tem permissão para ver o WhatsApp." />;
   }
 
-  return (
-    // overflow-hidden: o <main> do AppShell rola a página inteira; aqui quem
-    // rola é a lista e as mensagens, nunca a tela do WhatsApp toda.
-    <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
-      {connected ? (
-        <WhatsAppChatLayout onDisconnected={() => setConnected(false)} />
-      ) : (
-        <WhatsAppConnectScreen onConnected={() => setConnected(true)} />
-      )}
-    </div>
-  );
+  return <WhatsAppPageClient />;
 }

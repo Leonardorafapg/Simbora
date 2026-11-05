@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from app.core import evolution_client
 from app.core.config import settings
 from app.core.database import run_light_migrations
 from app.routers import leads, auth, users, team, clients, calendar, calendar_periods, whatsapp, whatsapp_webhook, search, uploads, tags, instagram, oauth, agenda, notifications, push

@@ -20,7 +20,12 @@ import { useClients } from "@/hooks/useClients";
 import { useTeamDirectory } from "@/hooks/useTeamDirectory";
 import { useTags } from "@/hooks/useTags";
 import { useInstagramByEntries } from "@/hooks/useInstagram";
-import type { CalendarEntry, CalendarEntryCreateInput, CalendarEntryStatus } from "@/types/calendar";
+import type {
+  CalendarEntry,
+  CalendarEntryCreateInput,
+  CalendarEntryStatus,
+  CalendarEntryUpdateInput,
+} from "@/types/calendar";
 import { CALENDAR_ENTRY_STATUSES } from "@/types/calendar";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import PageHeader from "@/components/ui/PageHeader";
@@ -29,12 +34,16 @@ import { TopProgress } from "@/components/ui/Skeleton";
 import MultiSelect from "@/components/ui/MultiSelect";
 import CalendarEntryDialog from "@/components/calendar/CalendarEntryDialog";
 import KanbanColumn from "./KanbanColumn";
+import RejectReasonDialog from "./RejectReasonDialog";
+import { REVIEWER_ONLY_MESSAGE, isReviewDecision, needsReviewer } from "@/lib/postReview";
 import { PostCardOverlay } from "./PostCard";
 
 type Props = {
   canEdit: boolean;
   canCreate: boolean;
   canDelete: boolean;
+  /** Redatora (`post.review`): decide a coluna "Checagem e aprovação". */
+  canReview: boolean;
   canViewInstagram: boolean;
   canManageInstagram: boolean;
 };
@@ -48,7 +57,14 @@ function currentMonth() {
  * Quadro de produção: cada postagem do calendário é um card, arrastado entre os quadros.
  * Só entram postagens de cronogramas finalizados (aprovados) — o resto ainda está em planejamento.
  */
-export default function ProductionBoard({ canEdit, canCreate, canDelete, canViewInstagram, canManageInstagram }: Props) {
+export default function ProductionBoard({
+  canEdit,
+  canCreate,
+  canDelete,
+  canReview,
+  canViewInstagram,
+  canManageInstagram,
+}: Props) {
   const [clientIds, setClientIds] = useState<number[]>([]);
   const [assigneeIds, setAssigneeIds] = useState<number[]>([]);
   const [requesterIds, setRequesterIds] = useState<number[]>([]);
@@ -70,6 +86,8 @@ export default function ProductionBoard({ canEdit, canCreate, canDelete, canView
   const [pendingDelete, setPendingDelete] = useState<CalendarEntry | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [rejecting, setRejecting] = useState<CalendarEntry | null>(null);
+  const [rejectingBusy, setRejectingBusy] = useState(false);
 
   const { entries, loading, error, create, update, remove } = useCalendarEntries(undefined, month, "finalizado");
   const { clients } = useClients();
@@ -173,11 +191,34 @@ export default function ProductionBoard({ canEdit, canCreate, canDelete, canView
     if (!entry || entry.status === target) return;
 
     setActionError(null);
+    // Aprovar ou pedir ajustes é só da redatora; o backend também barra, aqui só evita a ida e volta.
+    if (needsReviewer(entry.status, target) && !canReview) {
+      setActionError(REVIEWER_ONLY_MESSAGE);
+      return;
+    }
+    // Sair da checagem pra Modificações exige o motivo.
+    if (isReviewDecision(entry.status, target) && target === "modificacoes") {
+      setRejecting(entry);
+      return;
+    }
+    await moveEntry(entry, { status: target });
+  }
+
+  async function moveEntry(entry: CalendarEntry, input: CalendarEntryUpdateInput) {
+    setActionError(null);
     try {
-      await update(entry.id, { status: target });
+      await update(entry.id, input);
     } catch (err) {
       setActionError(err instanceof Error ? err.message : "Erro ao mover a postagem.");
     }
+  }
+
+  async function handleConfirmReject(reason: string) {
+    if (!rejecting) return;
+    setRejectingBusy(true);
+    await moveEntry(rejecting, { status: "modificacoes", review_reason: reason });
+    setRejectingBusy(false);
+    setRejecting(null);
   }
 
   // Demanda nova nasce no quadro mesmo com o cronograma do mês já finalizado.
@@ -407,6 +448,8 @@ export default function ProductionBoard({ canEdit, canCreate, canDelete, canView
                 canEdit={canEdit}
                 onSelect={setSelected}
                 instagramByEntry={instagramByEntry}
+                onApprove={canReview ? (entry) => moveEntry(entry, { status: "finalizados" }) : undefined}
+                onRequestChanges={canReview ? setRejecting : undefined}
               />
             </div>
           ))}
@@ -447,6 +490,15 @@ export default function ProductionBoard({ canEdit, canCreate, canDelete, canView
             setSelected(null);
             setPendingDelete(entry);
           }}
+        />
+      )}
+
+      {rejecting && (
+        <RejectReasonDialog
+          title={rejecting.title || rejecting.theme}
+          loading={rejectingBusy}
+          onConfirm={handleConfirmReject}
+          onCancel={() => setRejecting(null)}
         />
       )}
 

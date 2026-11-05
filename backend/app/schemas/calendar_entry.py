@@ -107,6 +107,8 @@ class CalendarEntryUpdate(BaseModel):
     caption: str | None = None
     material_notes: str | None = None
     status: str | None = None
+    # Motivo do pedido de ajustes: obrigatório quando quem revisa tira o post da "Checagem e aprovação" pra "Modificações".
+    review_reason: str | None = Field(default=None, max_length=2000)
     requester_id: int | None = None
     assignee_id: int | None = None
     tag_ids: list[int] | None = None
@@ -159,6 +161,16 @@ class CalendarEntryOut(BaseModel):
     tags: list[TagOut] = []
     delivered_at: datetime | None = None
     created_by: int
+
+    model_config = {"from_attributes": True}
+
+
+class CalendarEntryReviewOut(BaseModel):
+    id: int
+    decision: str
+    reason: str | None
+    decided_by_user_id: int | None
+    decided_at: datetime
 
     model_config = {"from_attributes": True}
 

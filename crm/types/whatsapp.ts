@@ -50,4 +50,6 @@ export type WhatsAppMessage = {
   media_mimetype: string | null;
   /** Nome original do arquivo (documentos). */
   media_filename?: string | null;
+  /** Em grupo: quem mandou (pra mostrar a foto ao lado do balão). */
+  sender_jid?: string | null;
 };

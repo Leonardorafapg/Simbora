@@ -14,9 +14,21 @@ type Props = {
   onSelect: (entry: CalendarEntry) => void;
   /** Agendamento do Instagram por id de postagem. */
   instagramByEntry?: Record<string, InstagramPost>;
+  onApprove?: (entry: CalendarEntry) => void;
+  onRequestChanges?: (entry: CalendarEntry) => void;
 };
 
-export default function KanbanColumn({ status, entries, clients, members, canEdit, onSelect, instagramByEntry }: Props) {
+export default function KanbanColumn({
+  status,
+  entries,
+  clients,
+  members,
+  canEdit,
+  onSelect,
+  instagramByEntry,
+  onApprove,
+  onRequestChanges,
+}: Props) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
 
   return (
@@ -45,6 +57,8 @@ export default function KanbanColumn({ status, entries, clients, members, canEdi
             canEdit={canEdit}
             onSelect={onSelect}
             instagramPost={instagramByEntry?.[entry.id]}
+            onApprove={onApprove}
+            onRequestChanges={onRequestChanges}
           />
           </div>
         ))}

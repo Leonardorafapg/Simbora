@@ -1,4 +1,9 @@
-import type { CalendarEntry, CalendarEntryCreateInput, CalendarEntryUpdateInput } from "@/types/calendar";
+import type {
+  CalendarEntry,
+  CalendarEntryCreateInput,
+  CalendarEntryReview,
+  CalendarEntryUpdateInput,
+} from "@/types/calendar";
 
 async function parseErrorMessage(res: Response, fallback: string) {
   const data = await res.json().catch(() => ({}));
@@ -37,6 +42,12 @@ export async function updateCalendarEntry(id: number, input: CalendarEntryUpdate
     body: JSON.stringify(input),
   });
   if (!res.ok) throw new Error(await parseErrorMessage(res, "Não foi possível salvar as alterações."));
+  return res.json();
+}
+
+export async function fetchEntryReviews(id: number): Promise<CalendarEntryReview[]> {
+  const res = await fetch(`/api/calendar/${id}/reviews`);
+  if (!res.ok) throw new Error(await parseErrorMessage(res, "Não foi possível carregar o histórico de revisões."));
   return res.json();
 }
 

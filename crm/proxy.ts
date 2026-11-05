@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { AUTH_COOKIE, verifySessionToken } from "@/services/server/session";
-import { canManageTeam } from "@/lib/permissions";
 
 export const config = {
   matcher: [
@@ -24,10 +23,6 @@ export async function proxy(request: NextRequest) {
   }
 
   if (pathname === "/login" || pathname === "/") {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
-  }
-
-  if (pathname.startsWith("/team") && !canManageTeam(session.is_admin)) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 

@@ -69,3 +69,14 @@ export async function sendMedia(remoteJid: string, file: File, caption = ""): Pr
   if (!res.ok) throw new Error(await parseErrorMessage(res, "Não foi possível enviar o arquivo."));
   return res.json();
 }
+
+/** Fotos de perfil de quem manda mensagem nos grupos: {jid: link ou null}. */
+export async function fetchAvatars(jids: string[]): Promise<Record<string, string | null>> {
+  const res = await fetch("/api/whatsapp/avatars", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ jids }),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res, "Não foi possível buscar as fotos."));
+  return res.json();
+}

@@ -18,6 +18,9 @@ from PIL import Image, ImageOps, UnidentifiedImageError
 
 from app.core import r2_client
 
+# Teto de pixels que o Pillow decodifica (~50 MP ≈ 150 MB em RGB): foto maior que isso vira erro, não pico de RAM.
+Image.MAX_IMAGE_PIXELS = 50_000_000
+
 MEDIA_TYPES = ("IMAGE", "CAROUSEL", "REELS", "STORIES")
 VIDEO_EXTS = (".mp4", ".mov")
 IMAGE_EXTS = (".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif")
@@ -27,7 +30,7 @@ FEED_MAX_RATIO = 1.91
 RATIO_TOLERANCE = 0.01
 MAX_WIDTH = 1440
 MAX_JPEG_BYTES = 8 * 1024 * 1024
-MAX_DOWNLOAD_BYTES = 60 * 1024 * 1024
+MAX_DOWNLOAD_BYTES = 40 * 1024 * 1024
 PREPARED_FOLDER = "instagram"
 
 
@@ -71,7 +74,7 @@ def validate_media(media_type: str, urls: list[str]) -> None:
             raise MediaError("Carrossel precisa de 2 a 10 imagens/vídeos.")
 
 
-def _download(url: str) -> bytes:
+def _download(url: str) -> bytes | bytearray:
     try:
         with httpx.Client(timeout=httpx.Timeout(30.0, connect=10.0), follow_redirects=False) as client:
             with client.stream("GET", url) as resp:
@@ -81,7 +84,7 @@ def _download(url: str) -> bytes:
                     body.extend(chunk)
                     if len(body) > MAX_DOWNLOAD_BYTES:
                         raise MediaError("Imagem grande demais.")
-                return bytes(body)
+                return body  # bytearray serve direto para o Pillow (evita uma cópia de até 60 MB)
     except httpx.HTTPError:
         raise MediaError("Não foi possível baixar a imagem enviada. Envie de novo.") from None
 
@@ -92,7 +95,7 @@ def _to_jpeg(data: bytes, *, check_feed_ratio: bool, position: int | None) -> by
         img = Image.open(io.BytesIO(data))
         img.seek(0)  # GIF animado: usa o primeiro quadro
         img = ImageOps.exif_transpose(img)
-    except (UnidentifiedImageError, OSError):
+    except (UnidentifiedImageError, OSError, Image.DecompressionBombError):
         raise MediaError(f"{label} está corrompida ou num formato não suportado.") from None
 
     width, height = img.size

@@ -14,7 +14,9 @@ if DATABASE_URL.startswith("postgres://"):
 IS_SQLITE = DATABASE_URL.startswith("sqlite")
 
 connect_args = {"check_same_thread": False} if IS_SQLITE else {}
-engine = create_engine(DATABASE_URL, connect_args=connect_args)
+# Servico pequeno no Railway: pool enxuto (cada conexao Postgres guarda buffers). O padrao era 5 + 10.
+pool_args = {} if IS_SQLITE else {"pool_size": 3, "max_overflow": 3, "pool_pre_ping": True, "pool_recycle": 1800}
+engine = create_engine(DATABASE_URL, connect_args=connect_args, **pool_args)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
@@ -115,6 +117,7 @@ def run_light_migrations():
         add_column_if_missing(conn, "whatsapp_messages", "media_type", "media_type VARCHAR(20)")
         add_column_if_missing(conn, "whatsapp_messages", "media_mimetype", "media_mimetype VARCHAR(100)")
         add_column_if_missing(conn, "whatsapp_messages", "media_filename", "media_filename VARCHAR(255)")
+        add_column_if_missing(conn, "whatsapp_messages", "sender_jid", "sender_jid VARCHAR(100)")
         add_column_if_missing(conn, "clients", "photo_url", "photo_url VARCHAR(500)")
         add_column_if_missing(conn, "calendar_periods", "pdf_url", "pdf_url VARCHAR(500)")
         if inspector.has_table("calendar_periods") and not IS_SQLITE:

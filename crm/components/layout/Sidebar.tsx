@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ChevronsUpDown, LogOut, PanelLeftClose, PanelLeftOpen, X } from "lucide-react";
 import { NAV_ITEMS } from "@/lib/nav";
+import { hasPermission } from "@/lib/permissions";
 import { logout } from "@/services/client/authApi";
 import Avatar from "@/components/ui/Avatar";
 import { NEXT_THEME_LABEL, ThemeIcon, useThemeToggle } from "@/components/layout/ThemeToggle";
@@ -146,7 +147,9 @@ export default function Sidebar({ user, mobileOpen, onClose, collapsed, onToggle
             c ? "lg:gap-1.5 lg:px-0.5 lg:py-2.5" : ""
           }`}
         >
-          {NAV_ITEMS.filter((item) => !item.hideInSidebar).map((item) => renderItem(item.href))}
+          {NAV_ITEMS.filter(
+            (item) => !item.hideInSidebar && (!item.permission || hasPermission(user, item.permission)),
+          ).map((item) => renderItem(item.href))}
         </nav>
 
         {/* Conta */}

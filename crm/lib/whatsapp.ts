@@ -123,3 +123,22 @@ export function senderColor(name: string): string {
   for (const ch of name) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
   return SENDER_COLORS[hash % SENDER_COLORS.length];
 }
+
+export type AvatarCache = Map<string, { url: string | null; at: number }>;
+
+// Sem foto ainda (ou o servidor deixou pra depois): pergunta de novo só depois disso.
+export const AVATAR_RETRY_MS = 5 * 60_000;
+const MAX_AVATARS_PER_REQUEST = 60;
+
+/** Quem mandou mensagem no grupo e ainda não tem foto conhecida (pra pedir ao servidor). */
+export function avatarJidsToFetch(messages: WhatsAppMessage[], cache: AvatarCache, now: number = Date.now()): string[] {
+  const wanted: string[] = [];
+  for (const m of messages) {
+    const jid = m.sender_jid;
+    if (!jid || m.from_me || wanted.includes(jid)) continue;
+    const hit = cache.get(jid);
+    if (hit && (hit.url || now - hit.at < AVATAR_RETRY_MS)) continue;
+    wanted.push(jid);
+  }
+  return wanted.slice(0, MAX_AVATARS_PER_REQUEST);
+}

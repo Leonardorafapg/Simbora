@@ -28,7 +28,8 @@ def test_send_text(api, evolution):
     res = api.post(f"/api/v1/whatsapp/chats/{JID}/messages", json={"text": "Olá"})
     assert res.status_code == 200
     assert res.json()["text"] == "Olá" and res.json()["from_me"] is True
-    assert evolution["text"] == [(JID, "Olá")]
+    # O cliente recebe com o nome de quem da equipe mandou; o CRM guarda só o texto original.
+    assert evolution["text"] == [(JID, "*Admin:*\nOlá")]
 
 
 def test_send_blank_text_is_rejected(api, evolution):
@@ -48,6 +49,19 @@ def test_send_pdf_keeps_filename_and_kind(api, evolution):
     assert body["text"] == "Segue o contrato"
     _, kwargs = evolution["media"][0]
     assert kwargs["media_kind"] == "document" and kwargs["file_name"] == "Contrato.pdf"
+    assert kwargs["caption"] == "*Admin:*\nSegue o contrato"
+
+
+def test_send_media_without_caption_has_no_prefix(api, evolution):
+    api.post(f"/api/v1/whatsapp/chats/{JID}/media", files={"file": ("foto.png", b"\x89PNG fake", "image/png")})
+    assert evolution["media"][0][1]["caption"] == ""
+
+
+def test_sender_prefix_uses_first_name_only():
+    from app.services.whatsapp_format import with_sender_prefix
+
+    assert with_sender_prefix("Brian Silva", "Oi") == "*Brian:*\nOi"
+    assert with_sender_prefix("  ", "Oi") == "Oi"
 
 
 def test_send_image_uses_image_kind(api, evolution):

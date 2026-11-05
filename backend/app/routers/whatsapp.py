@@ -19,6 +19,7 @@ from fastapi import (
     WebSocketDisconnect,
     status,
 )
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.core import evolution_client
@@ -38,7 +39,7 @@ from app.schemas.whatsapp import (
     WhatsAppMessage,
     WhatsAppStatus,
 )
-from app.services import whatsapp_aliases, whatsapp_groups, whatsapp_store
+from app.services import whatsapp_aliases, whatsapp_avatars, whatsapp_groups, whatsapp_store
 from app.services.whatsapp_format import (
     display_name,
     extract_media,
@@ -46,6 +47,7 @@ from app.services.whatsapp_format import (
     message_preview,
     phone_from_jid,
     pick_group_name,
+    with_sender_prefix,
 )
 
 logger = logging.getLogger("whatsapp_router")
@@ -257,6 +259,7 @@ def _message_out(message) -> WhatsAppMessage:
         text=message.text,
         timestamp=message.timestamp,
         sender_name=message.sender_name,
+        sender_jid=message.sender_jid,
         media_type=message.media_type,
         media_mimetype=message.media_mimetype,
         media_filename=message.media_filename,
@@ -601,6 +604,7 @@ async def get_messages(
                 from_me=bool(key.get("fromMe")),
                 text=mapped.text,
                 sender_name=raw.get("pushName"),
+                sender_jid=whatsapp_aliases.sender_of(key) if is_group else None,
                 is_group=is_group,
                 status="recebida" if not key.get("fromMe") else "enviada",
                 timestamp=raw.get("messageTimestamp") or 0,
@@ -647,6 +651,8 @@ async def get_message_media(
     if result is None:
         raise last_error or HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Mídia indisponível.")
     raw_base64 = result.get("base64") or ""
+    mimetype_hint = result.get("mimetype")
+    del result  # o base64 pode ter dezenas de MB: não segura o dict inteiro junto com os bytes decodificados
     # Evolution às vezes manda como data URI (`data:<mime>;base64,xxx`), às
     # vezes só o base64 cru — cobre os dois pra não quebrar o decode abaixo.
     if "," in raw_base64 and raw_base64.strip().startswith("data:"):
@@ -654,12 +660,13 @@ async def get_message_media(
 
     try:
         content = base64.b64decode(raw_base64)
+        del raw_base64
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY, detail="Não foi possível decodificar a mídia."
         ) from exc
 
-    mimetype = result.get("mimetype") or message.media_mimetype or "application/octet-stream"
+    mimetype = mimetype_hint or message.media_mimetype or "application/octet-stream"
     headers = {}
     if download:
         ext = mimetype.split("/")[-1].split(";")[0]
@@ -674,10 +681,10 @@ async def send_message(
     remote_jid: str,
     payload: SendMessageInput,
     db: Session = Depends(get_db),
-    _: User = Depends(require_permission("whatsapp.send")),
+    current_user: User = Depends(require_permission("whatsapp.send")),
 ):
     remote_jid = whatsapp_aliases.resolve(db, remote_jid)
-    result = await evolution_client.send_text_message(remote_jid, payload.text)
+    result = await evolution_client.send_text_message(remote_jid, with_sender_prefix(current_user.full_name, payload.text))
     key = result.get("key") or {}
 
     message = whatsapp_store.save_message(
@@ -715,7 +722,7 @@ async def send_media(
     file: UploadFile = File(...),
     caption: str = Form(default=""),
     db: Session = Depends(get_db),
-    _: User = Depends(require_permission("whatsapp.send")),
+    current_user: User = Depends(require_permission("whatsapp.send")),
 ):
     """Envia imagem, vídeo ou documento (qualquer outro tipo) com legenda opcional."""
     content = await file.read(MAX_UPLOAD_BYTES + 1)
@@ -732,13 +739,15 @@ async def send_media(
     media_kind = media_kind_for_upload(mimetype)
     caption = caption.strip()
 
+    encoded = base64.b64encode(content).decode()
+    del content  # só o base64 segue para a Evolution; não mantém as duas cópias
     result = await evolution_client.send_media_base64(
         remote_jid,
         media_kind=media_kind,
-        base64_data=base64.b64encode(content).decode(),
+        base64_data=encoded,
         mimetype=mimetype,
         file_name=file_name,
-        caption=caption,
+        caption=with_sender_prefix(current_user.full_name, caption) if caption else caption,
     )
     key = result.get("key") or {}
 
@@ -775,6 +784,20 @@ async def send_typing(
     _: User = Depends(require_permission("whatsapp.send")),
 ):
     await evolution_client.send_presence(whatsapp_aliases.resolve(db, remote_jid), payload.presence)
+
+
+class AvatarsInput(BaseModel):
+    jids: list[str] = Field(default_factory=list, max_length=whatsapp_avatars.MAX_JIDS_PER_CALL)
+
+
+@router.post("/whatsapp/avatars")
+async def sender_avatars(
+    payload: AvatarsInput,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_permission("whatsapp.view")),
+) -> dict[str, str | None]:
+    """Fotos de perfil de quem manda mensagem nos grupos: {jid: link ou null}."""
+    return await whatsapp_avatars.pictures(payload.jids, whatsapp_aliases.alias_map(db))
 
 
 @router.post("/whatsapp/maintenance/merge-contacts")

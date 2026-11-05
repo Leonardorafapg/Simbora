@@ -15,6 +15,7 @@ import { extractLinks, linkLabel } from "@/lib/links";
 import { isImageUrl } from "@/lib/artwork";
 import { switchPostType, withSlides } from "@/lib/postMedia";
 import EntryInstagramSection from "@/components/instagram/EntryInstagramSection";
+import EntryReviewHistory from "@/components/production/EntryReviewHistory";
 
 type Props = {
   open: boolean;
@@ -461,6 +462,9 @@ export default function CalendarEntryDialog({
                 <DetectedLinks text={form.caption} />
               </div>
             </section>
+
+            {/* `instagram` só vem do quadro de Produção, onde existe a revisão da redatora. */}
+            {entry && instagram && <EntryReviewHistory entryId={entry.id} status={entry.status} members={members} />}
 
             {entry && instagram?.canView && (
               <EntryInstagramSection

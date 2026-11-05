@@ -1,6 +1,7 @@
 "use client";
 
 import { Download, FileText } from "lucide-react";
+import Avatar from "@/components/ui/Avatar";
 import { formatClock, senderColor } from "@/lib/whatsapp";
 import { mediaUrl } from "@/services/client/whatsappApi";
 import type { WhatsAppChat, WhatsAppMessage } from "@/types/whatsapp";
@@ -74,17 +75,26 @@ type Props = {
   first: boolean;
   /** Última do grupo (mostra a "ponta" do balão). */
   last: boolean;
+  /** Foto de quem mandou (só em grupo); sem foto, mostra as iniciais. */
+  avatarUrl?: string | null;
 };
 
-export default function WhatsAppMessageBubble({ chat, message, first, last }: Props) {
+export default function WhatsAppMessageBubble({ chat, message, first, last, avatarUrl }: Props) {
   const mine = message.from_me;
   const isSticker = message.media_type === "sticker";
   // Legenda: texto da mensagem, exceto em documento (o texto já é o nome do arquivo quando não há filename).
   const caption = message.media_type === "document" && !message.media_filename ? null : message.text;
   const showName = chat.is_group && !mine && first && !!message.sender_name;
+  // Em grupo, a foto de quem mandou fica ao lado do primeiro balão da sequência (como no WhatsApp).
+  const withAvatar = chat.is_group && !mine;
 
   return (
-    <div className={`flex ${mine ? "justify-end" : "justify-start"} ${first ? "mt-2" : "mt-0.5"}`}>
+    <div className={`flex items-start gap-2 ${mine ? "justify-end" : "justify-start"} ${first ? "mt-2" : "mt-0.5"}`}>
+      {withAvatar && (
+        <div className="w-7 shrink-0" aria-hidden={!first}>
+          {first && <Avatar name={message.sender_name || "?"} photoUrl={avatarUrl} size="xs" />}
+        </div>
+      )}
       <div
         className={`relative max-w-[78%] text-sm sm:max-w-[68%] ${
           isSticker
