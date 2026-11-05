@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AlignLeft, CalendarDays, Clock, ExternalLink, ImagePlus, MessageSquareWarning, Paperclip, UserRound, Users, X } from "lucide-react";
 import type { CalendarEntry, CalendarEntryCreateInput, CalendarEntryUpdateInput } from "@/types/calendar";
-import type { Client } from "@/types/client";
+import type { ClientRef } from "@/types/client";
 import { useClientDirectory } from "@/hooks/useClientDirectory";
 import { useTeamDirectory } from "@/hooks/useTeamDirectory";
 import UserSelect from "@/components/ui/UserSelect";
@@ -24,7 +24,7 @@ type Props = {
   clientId: number;
   defaultDate: string;
   /** Quando informado, uma nova postagem mostra um seletor de cliente (em vez de cliente fixo). */
-  clients?: Client[];
+  clients?: ClientRef[];
   entry?: CalendarEntry | null;
   canDelete?: boolean;
   onCreate: (input: CalendarEntryCreateInput) => Promise<CalendarEntry>;
@@ -38,7 +38,7 @@ function buildForm(
   entry: CalendarEntry | null | undefined,
   clientId: number,
   defaultDate: string,
-  client?: Client,
+  client?: ClientRef,
 ) {
   return {
     client_id: entry?.client_id ?? clientId,

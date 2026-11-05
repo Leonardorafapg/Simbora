@@ -1,4 +1,5 @@
 import type { WhatsAppMessage } from "@/types/whatsapp";
+import type { ReplyTarget } from "@/lib/whatsappReply";
 
 const MEDIA_PREVIEW: Record<string, string> = {
   image: "📷 Foto",
@@ -16,6 +17,16 @@ export function previewOf(message: Pick<WhatsAppMessage, "text" | "media_type">)
       : message.text;
   }
   return message.media_type ? (MEDIA_PREVIEW[message.media_type] ?? null) : null;
+}
+
+/** Mensagem escolhida pra responder, no formato da barra "Respondendo a…". Sem id a Evolution não tem como citar. */
+export function replyTargetOf(message: WhatsAppMessage, fallbackAuthor: string): ReplyTarget | null {
+  if (!message.id) return null;
+  return {
+    id: message.id,
+    author: message.from_me ? "Você" : message.sender_name?.trim() || fallbackAuthor,
+    text: previewOf(message) ?? "Mensagem",
+  };
 }
 
 /** Nome a mostrar: nunca o JID cru (120363…@g.us, 4574…@lid). */

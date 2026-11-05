@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { upsertMessage } from "../lib/whatsapp.ts";
-import { insertAtCursor, quoteAuthor, replyTargetOf } from "../lib/whatsappReply.ts";
+import { replyTargetOf, upsertMessage } from "../lib/whatsapp.ts";
+import { insertAtCursor, quoteAuthor } from "../lib/whatsappReply.ts";
 import type { WhatsAppMessage } from "../types/whatsapp.ts";
 
 const base: WhatsAppMessage = {

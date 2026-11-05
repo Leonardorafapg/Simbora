@@ -6,8 +6,8 @@ import Avatar from "@/components/ui/Avatar";
 import WhatsAppLabelChip from "@/components/whatsapp/WhatsAppLabelChip";
 import WhatsAppMessageBubble from "@/components/whatsapp/WhatsAppMessageBubble";
 import WhatsAppComposer from "@/components/whatsapp/WhatsAppComposer";
-import { buildRows, chatTitle } from "@/lib/whatsapp";
-import { replyTargetOf, type ReplyTarget } from "@/lib/whatsappReply";
+import { buildRows, chatTitle, replyTargetOf } from "@/lib/whatsapp";
+import type { ReplyTarget } from "@/lib/whatsappReply";
 import { useSenderAvatars } from "@/hooks/useSenderAvatars";
 import type { WhatsAppChat, WhatsAppMessage } from "@/types/whatsapp";
 
