@@ -119,6 +119,10 @@ def run_light_migrations():
         add_column_if_missing(conn, "whatsapp_messages", "media_mimetype", "media_mimetype VARCHAR(100)")
         add_column_if_missing(conn, "whatsapp_messages", "media_filename", "media_filename VARCHAR(255)")
         add_column_if_missing(conn, "whatsapp_messages", "sender_jid", "sender_jid VARCHAR(100)")
+        add_column_if_missing(conn, "whatsapp_messages", "reply_to_id", "reply_to_id VARCHAR(100)")
+        add_column_if_missing(conn, "whatsapp_messages", "reply_text", "reply_text TEXT")
+        add_column_if_missing(conn, "whatsapp_messages", "reply_from_me", "reply_from_me BOOLEAN")
+        add_column_if_missing(conn, "whatsapp_messages", "reply_author", "reply_author VARCHAR(150)")
         add_column_if_missing(conn, "clients", "photo_url", "photo_url VARCHAR(500)")
         add_column_if_missing(conn, "calendar_periods", "pdf_url", "pdf_url VARCHAR(500)")
         if inspector.has_table("calendar_periods") and not IS_SQLITE:

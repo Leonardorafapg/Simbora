@@ -34,6 +34,13 @@ class WhatsAppMessage(Base):
     # Quem mandou, em grupo (número; ou @lid se o WhatsApp não informou o número) — pra mostrar a foto.
     sender_jid: Mapped[str | None] = mapped_column(String(100), nullable=True)
     sender_name: Mapped[str | None] = mapped_column(String(150), nullable=True)
+    # Resposta a outra mensagem ("citação" do WhatsApp): id da citada e o trecho dela, guardado aqui
+    # pra mostrar no balão sem depender de a original ainda estar na lista carregada.
+    reply_to_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    reply_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Nulo = não sabemos (a citada não está no nosso histórico).
+    reply_from_me: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    reply_author: Mapped[str | None] = mapped_column(String(150), nullable=True)
     is_group: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     # enviada / entregue / lida / erro — ver _STATUS_MAP no webhook.
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="enviada")

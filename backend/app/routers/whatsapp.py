@@ -45,8 +45,10 @@ from app.services.whatsapp_format import (
     extract_media,
     media_kind_for_upload,
     message_preview,
+    extract_quote,
     phone_from_jid,
     pick_group_name,
+    quote_snippet,
     with_sender_prefix,
 )
 
@@ -263,7 +265,33 @@ def _message_out(message) -> WhatsAppMessage:
         media_type=message.media_type,
         media_mimetype=message.media_mimetype,
         media_filename=message.media_filename,
+        reply_to_id=message.reply_to_id,
+        reply_text=message.reply_text,
+        reply_from_me=message.reply_from_me,
+        reply_author=message.reply_author,
     )
+
+
+def _load_quoted(db: Session, remote_jid: str, reply_to_id: str | None):
+    """Mensagem que está sendo respondida (precisa ser da mesma conversa), ou None se não é resposta."""
+    if not reply_to_id:
+        return None
+    quoted = whatsapp_store.get_message(db, reply_to_id)
+    if quoted is None or quoted.remote_jid != remote_jid:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="A mensagem que você quer responder não foi encontrada.")
+    return quoted
+
+
+def _quoted_payload(quoted) -> dict:
+    """Citação no formato do `sendText`/`sendMedia` da Evolution."""
+    key: dict = {"id": quoted.message_id, "remoteJid": quoted.remote_jid, "fromMe": quoted.from_me}
+    if quoted.is_group and not quoted.from_me and quoted.sender_jid:
+        key["participant"] = quoted.sender_jid if "@" in quoted.sender_jid else f"{quoted.sender_jid}@s.whatsapp.net"
+    return {"key": key, "message": {"conversation": quoted.text or quote_snippet(None, quoted.media_type)}}
+
+
+def _reply_kwargs(db: Session, quoted) -> dict:
+    return whatsapp_store.reply_fields(db, quoted.message_id) if quoted is not None else {}
 
 
 def _resolve_chat_name(raw: dict, is_group: bool, remote_jid: str) -> str:
@@ -313,6 +341,7 @@ def _map_message_from_evolution(raw: dict) -> WhatsAppMessage:
         or (message.get("documentMessage") or {}).get("caption")
     )
     media_type, media_mimetype, media_filename = extract_media(message)
+    quote = extract_quote(message)
     return WhatsAppMessage(
         id=key.get("id"),
         remote_jid=key.get("remoteJid", ""),
@@ -323,6 +352,8 @@ def _map_message_from_evolution(raw: dict) -> WhatsAppMessage:
         media_type=media_type,
         media_mimetype=media_mimetype,
         media_filename=media_filename,
+        reply_to_id=quote[0] if quote else None,
+        reply_text=quote[1] if quote else None,
     )
 
 
@@ -684,7 +715,12 @@ async def send_message(
     current_user: User = Depends(require_permission("whatsapp.send")),
 ):
     remote_jid = whatsapp_aliases.resolve(db, remote_jid)
-    result = await evolution_client.send_text_message(remote_jid, with_sender_prefix(current_user.full_name, payload.text))
+    quoted = _load_quoted(db, remote_jid, payload.reply_to_id)
+    # Só manda `quoted` quando é resposta (o envio comum segue exatamente como era).
+    extra = {"quoted": _quoted_payload(quoted)} if quoted is not None else {}
+    result = await evolution_client.send_text_message(
+        remote_jid, with_sender_prefix(current_user.full_name, payload.text), **extra
+    )
     key = result.get("key") or {}
 
     message = whatsapp_store.save_message(
@@ -697,6 +733,7 @@ async def send_message(
         is_group=remote_jid.endswith("@g.us"),
         status="enviada",
         timestamp=result.get("messageTimestamp") or 0,
+        **_reply_kwargs(db, quoted),
     )
     if message is None:
         # Dedup: já tinha sido salva (não deveria acontecer no envio, mas o
@@ -721,6 +758,7 @@ async def send_media(
     remote_jid: str,
     file: UploadFile = File(...),
     caption: str = Form(default=""),
+    reply_to_id: str | None = Form(default=None),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_permission("whatsapp.send")),
 ):
@@ -734,6 +772,7 @@ async def send_media(
         )
 
     remote_jid = whatsapp_aliases.resolve(db, remote_jid)
+    quoted = _load_quoted(db, remote_jid, reply_to_id)
     mimetype = file.content_type or "application/octet-stream"
     file_name = (file.filename or "arquivo").strip()[:255] or "arquivo"
     media_kind = media_kind_for_upload(mimetype)
@@ -748,6 +787,7 @@ async def send_media(
         mimetype=mimetype,
         file_name=file_name,
         caption=with_sender_prefix(current_user.full_name, caption) if caption else caption,
+        **({"quoted": _quoted_payload(quoted)} if quoted is not None else {}),
     )
     key = result.get("key") or {}
 
@@ -764,6 +804,7 @@ async def send_media(
         media_type=media_kind,
         media_mimetype=mimetype,
         media_filename=file_name,
+        **_reply_kwargs(db, quoted),
     )
     if message is None:
         return WhatsAppMessage(

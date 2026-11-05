@@ -15,7 +15,7 @@ from app.core.config import settings
 from app.core.database import SessionLocal
 from app.core.ws_manager import manager as ws_manager
 from app.services import whatsapp_aliases, whatsapp_groups, whatsapp_store
-from app.services.whatsapp_format import extract_media
+from app.services.whatsapp_format import extract_media, extract_quote
 
 logger = logging.getLogger("whatsapp_webhook")
 
@@ -55,6 +55,7 @@ async def _handle_messages_upsert(db: Session, data: dict[str, Any]) -> None:
         return
 
     media_type, media_mimetype, media_filename = extract_media(data.get("message") or {})
+    quote = extract_quote(data.get("message") or {})
 
     message = whatsapp_store.save_message(
         db,
@@ -70,6 +71,7 @@ async def _handle_messages_upsert(db: Session, data: dict[str, Any]) -> None:
         media_mimetype=media_mimetype,
         media_filename=media_filename,
         sender_jid=whatsapp_aliases.sender_of(key) if remote_jid.endswith("@g.us") else None,
+        **(whatsapp_store.reply_fields(db, quote[0], quote[1]) if quote else {}),
     )
     if message is None:
         return  # já existia (dedup) — nosso próprio envio ecoando de volta
@@ -87,6 +89,10 @@ async def _handle_messages_upsert(db: Session, data: dict[str, Any]) -> None:
             "media_mimetype": message.media_mimetype,
             "media_filename": message.media_filename,
             "sender_jid": message.sender_jid,
+            "reply_to_id": message.reply_to_id,
+            "reply_text": message.reply_text,
+            "reply_from_me": message.reply_from_me,
+            "reply_author": message.reply_author,
         },
     })
 

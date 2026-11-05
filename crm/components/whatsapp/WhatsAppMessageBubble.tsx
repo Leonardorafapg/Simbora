@@ -1,8 +1,9 @@
 "use client";
 
-import { Download, FileText } from "lucide-react";
+import { Download, FileText, Reply } from "lucide-react";
 import Avatar from "@/components/ui/Avatar";
-import { formatClock, senderColor } from "@/lib/whatsapp";
+import { chatTitle, formatClock, senderColor } from "@/lib/whatsapp";
+import { quoteAuthor } from "@/lib/whatsappReply";
 import { mediaUrl } from "@/services/client/whatsappApi";
 import type { WhatsAppChat, WhatsAppMessage } from "@/types/whatsapp";
 
@@ -77,9 +78,13 @@ type Props = {
   last: boolean;
   /** Foto de quem mandou (só em grupo); sem foto, mostra as iniciais. */
   avatarUrl?: string | null;
+  /** Clicou em "Responder" nesta mensagem. */
+  onReply?: (message: WhatsAppMessage) => void;
+  /** Clicou na citação: vai até a mensagem original. */
+  onJumpToMessage?: (messageId: string) => void;
 };
 
-export default function WhatsAppMessageBubble({ chat, message, first, last, avatarUrl }: Props) {
+export default function WhatsAppMessageBubble({ chat, message, first, last, avatarUrl, onReply, onJumpToMessage }: Props) {
   const mine = message.from_me;
   const isSticker = message.media_type === "sticker";
   // Legenda: texto da mensagem, exceto em documento (o texto já é o nome do arquivo quando não há filename).
@@ -89,14 +94,17 @@ export default function WhatsAppMessageBubble({ chat, message, first, last, avat
   const withAvatar = chat.is_group && !mine;
 
   return (
-    <div className={`flex items-start gap-2 ${mine ? "justify-end" : "justify-start"} ${first ? "mt-2" : "mt-0.5"}`}>
+    <div
+      data-msg-id={message.id ?? undefined}
+      className={`flex items-start gap-2 ${mine ? "justify-end" : "justify-start"} ${first ? "mt-2" : "mt-0.5"}`}
+    >
       {withAvatar && (
         <div className="w-7 shrink-0" aria-hidden={!first}>
           {first && <Avatar name={message.sender_name || "?"} photoUrl={avatarUrl} size="xs" />}
         </div>
       )}
       <div
-        className={`relative max-w-[78%] text-sm sm:max-w-[68%] ${
+        className={`group/bubble relative max-w-[78%] text-sm sm:max-w-[68%] ${
           isSticker
             ? ""
             : `px-2.5 py-1.5 shadow-sm ${
@@ -106,10 +114,37 @@ export default function WhatsAppMessageBubble({ chat, message, first, last, avat
               } ${mine ? (last ? "rounded-2xl rounded-br-sm" : "rounded-2xl") : last ? "rounded-2xl rounded-bl-sm" : "rounded-2xl"}`
         }`}
       >
+        {onReply && message.id && (
+          <button
+            type="button"
+            onClick={() => onReply(message)}
+            title="Responder"
+            aria-label="Responder esta mensagem"
+            className={`absolute top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-surface text-text-muted opacity-0 shadow-sm ring-1 ring-border transition-opacity hover:text-accent focus-visible:opacity-100 group-hover/bubble:opacity-100 [@media(hover:none)]:opacity-70 ${
+              mine ? "right-full mr-1.5" : "left-full ml-1.5"
+            }`}
+          >
+            <Reply className="h-3.5 w-3.5" />
+          </button>
+        )}
+
         {showName && (
           <p className="mb-0.5 text-xs font-semibold" style={{ color: senderColor(message.sender_name as string) }}>
             {message.sender_name}
           </p>
+        )}
+
+        {message.reply_to_id && (
+          <button
+            type="button"
+            onClick={() => onJumpToMessage?.(message.reply_to_id as string)}
+            className="mb-1 block w-full rounded-lg border-l-4 border-accent bg-black/10 px-2 py-1 text-left transition-colors hover:bg-black/15"
+          >
+            <span className="block truncate text-xs font-semibold text-accent">
+              {quoteAuthor(message, chatTitle(chat))}
+            </span>
+            <span className="line-clamp-2 break-words text-xs text-text-muted">{message.reply_text || "Mensagem"}</span>
+          </button>
         )}
 
         {message.media_type && (

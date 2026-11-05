@@ -50,21 +50,28 @@ export function mediaUrl(remoteJid: string, messageId: string, download = false)
   return `/api/whatsapp/chats/${encodeURIComponent(remoteJid)}/messages/${encodeURIComponent(messageId)}/media${query}`;
 }
 
-export async function sendMessage(remoteJid: string, text: string): Promise<WhatsAppMessage> {
+/** `replyToId`: id da mensagem (da mesma conversa) que esta responde. */
+export async function sendMessage(remoteJid: string, text: string, replyToId?: string | null): Promise<WhatsAppMessage> {
   const res = await fetch(`/api/whatsapp/chats/${encodeURIComponent(remoteJid)}/messages`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text }),
+    body: JSON.stringify({ text, ...(replyToId ? { reply_to_id: replyToId } : {}) }),
   });
   if (!res.ok) throw new Error(await parseErrorMessage(res, "Não foi possível enviar a mensagem."));
   return res.json();
 }
 
 /** Envia imagem, vídeo ou documento (qualquer arquivo) com legenda opcional. */
-export async function sendMedia(remoteJid: string, file: File, caption = ""): Promise<WhatsAppMessage> {
+export async function sendMedia(
+  remoteJid: string,
+  file: File,
+  caption = "",
+  replyToId?: string | null,
+): Promise<WhatsAppMessage> {
   const form = new FormData();
   form.append("file", file);
   if (caption.trim()) form.append("caption", caption.trim());
+  if (replyToId) form.append("reply_to_id", replyToId);
   const res = await fetch(`/api/whatsapp/chats/${encodeURIComponent(remoteJid)}/media`, { method: "POST", body: form });
   if (!res.ok) throw new Error(await parseErrorMessage(res, "Não foi possível enviar o arquivo."));
   return res.json();

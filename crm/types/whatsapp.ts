@@ -52,4 +52,10 @@ export type WhatsAppMessage = {
   media_filename?: string | null;
   /** Em grupo: quem mandou (pra mostrar a foto ao lado do balão). */
   sender_jid?: string | null;
+  /** Quando é resposta a outra mensagem: id e trecho da citada. */
+  reply_to_id?: string | null;
+  reply_text?: string | null;
+  /** true = a citada é nossa; null = a citada não está no nosso histórico. */
+  reply_from_me?: boolean | null;
+  reply_author?: string | null;
 };

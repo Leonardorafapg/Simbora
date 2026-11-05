@@ -76,6 +76,36 @@ def extract_media(message: dict) -> tuple[str | None, str | None, str | None]:
     return None, None, None
 
 
+def extract_text(message: dict) -> str | None:
+    """Texto (ou legenda) de uma mensagem do Baileys."""
+    return (
+        message.get("conversation")
+        or (message.get("extendedTextMessage") or {}).get("text")
+        or (message.get("imageMessage") or {}).get("caption")
+        or (message.get("videoMessage") or {}).get("caption")
+        or (message.get("documentMessage") or {}).get("caption")
+    )
+
+
+QUOTE_SNIPPET_CHARS = 200
+
+
+def quote_snippet(text: str | None, media_type: str | None) -> str:
+    """Trecho da mensagem citada, curto, pra mostrar no balão e mandar como citação."""
+    return (message_preview(text, media_type) or "Mensagem")[:QUOTE_SNIPPET_CHARS]
+
+
+def extract_quote(message: dict) -> tuple[str, str] | None:
+    """(id, trecho) da mensagem que esta responde, ou None. A citação vem no `contextInfo`
+    do conteúdo (texto, imagem, vídeo, documento...), com o id em `stanzaId`."""
+    for payload in message.values():
+        context = payload.get("contextInfo") if isinstance(payload, dict) else None
+        if isinstance(context, dict) and context.get("stanzaId"):
+            quoted = context.get("quotedMessage") or {}
+            return str(context["stanzaId"]), quote_snippet(extract_text(quoted), extract_media(quoted)[0])
+    return None
+
+
 def pick_group_name(subject: str | None, contact_name: str | None, sender_names: set[str]) -> str | None:
     """Nome do grupo: o `subject` do WhatsApp manda. O nome vindo da agenda só vale
     se NÃO for o de alguém que fala no grupo — a Evolution às vezes devolve ali o

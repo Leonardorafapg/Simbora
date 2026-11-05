@@ -7,6 +7,7 @@ import WhatsAppLabelChip from "@/components/whatsapp/WhatsAppLabelChip";
 import WhatsAppMessageBubble from "@/components/whatsapp/WhatsAppMessageBubble";
 import WhatsAppComposer from "@/components/whatsapp/WhatsAppComposer";
 import { buildRows, chatTitle } from "@/lib/whatsapp";
+import { replyTargetOf, type ReplyTarget } from "@/lib/whatsappReply";
 import { useSenderAvatars } from "@/hooks/useSenderAvatars";
 import type { WhatsAppChat, WhatsAppMessage } from "@/types/whatsapp";
 
@@ -36,6 +37,9 @@ export default function WhatsAppChatWindow({ chat, messages, loading, typingPres
   const [showJump, setShowJump] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [droppedFile, setDroppedFile] = useState<File | null>(null);
+  // A resposta pertence à conversa onde foi escolhida: ao trocar de conversa ela some sozinha.
+  const [reply, setReply] = useState<{ jid: string; target: ReplyTarget } | null>(null);
+  const replyTo = reply && reply.jid === chat.remote_jid ? reply.target : null;
 
   const rows = useMemo(() => buildRows(messages), [messages]);
   const avatars = useSenderAvatars(messages, chat.is_group);
@@ -59,6 +63,19 @@ export default function WhatsAppChatWindow({ chat, messages, loading, typingPres
     const distance = el.scrollHeight - el.scrollTop - el.clientHeight;
     stickToBottom.current = distance < STICK_TO_BOTTOM_PX;
     setShowJump(distance > 400);
+  }
+
+  function handleReply(message: WhatsAppMessage) {
+    const target = replyTargetOf(message, chatTitle(chat));
+    if (target) setReply({ jid: chat.remote_jid, target });
+  }
+
+  // Vai até a mensagem citada (se ela estiver entre as carregadas) e a faz piscar.
+  function jumpToMessage(messageId: string) {
+    const el = scrollRef.current?.querySelector<HTMLElement>(`[data-msg-id="${CSS.escape(messageId)}"]`);
+    if (!el) return;
+    el.scrollIntoView({ block: "center", behavior: "smooth" });
+    el.animate([{ opacity: 0.3 }, { opacity: 1 }, { opacity: 0.3 }, { opacity: 1 }], { duration: 1200 });
   }
 
   const subtitle = [
@@ -165,6 +182,8 @@ export default function WhatsAppChatWindow({ chat, messages, loading, typingPres
                   first={row.first}
                   last={row.last}
                   avatarUrl={row.message.sender_jid ? avatars[row.message.sender_jid] : null}
+                  onReply={handleReply}
+                  onJumpToMessage={jumpToMessage}
                 />
               ),
             )}
@@ -187,6 +206,8 @@ export default function WhatsAppChatWindow({ chat, messages, loading, typingPres
         onSent={onMessageSent}
         droppedFile={droppedFile}
         onDroppedFileHandled={() => setDroppedFile(null)}
+        replyTo={replyTo}
+        onCancelReply={() => setReply(null)}
       />
 
       {dragging && (

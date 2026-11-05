@@ -363,13 +363,14 @@ async def get_media_base64(remote_jid: str, message_id: str, from_me: bool) -> d
     return response.json()
 
 
-async def send_text_message(remote_jid: str, text: str) -> dict[str, Any]:
+async def send_text_message(remote_jid: str, text: str, quoted: dict[str, Any] | None = None) -> dict[str, Any]:
+    """`quoted` = {"key": {id, remoteJid, fromMe, participant?}, "message": {"conversation": trecho}}:
+    manda como resposta (citação) àquela mensagem."""
     instance = _instance_name()
-    response = await _request(
-        "POST",
-        f"/message/sendText/{instance}",
-        json={"number": remote_jid, "text": text},
-    )
+    body: dict[str, Any] = {"number": remote_jid, "text": text}
+    if quoted:
+        body["quoted"] = quoted
+    response = await _request("POST", f"/message/sendText/{instance}", json=body)
     return response.json()
 
 
@@ -392,21 +393,26 @@ async def send_document_url(remote_jid: str, media_url: str, file_name: str, cap
 
 
 async def send_media_base64(
-    remote_jid: str, *, media_kind: str, base64_data: str, mimetype: str, file_name: str, caption: str = ""
+    remote_jid: str,
+    *,
+    media_kind: str,
+    base64_data: str,
+    mimetype: str,
+    file_name: str,
+    caption: str = "",
+    quoted: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Manda imagem/vídeo/documento a partir do arquivo em base64 (upload feito pelo CRM)."""
     instance = _instance_name()
-    response = await _request(
-        "POST",
-        f"/message/sendMedia/{instance}",
-        timeout=120.0,
-        json={
-            "number": remote_jid,
-            "mediatype": media_kind,
-            "mimetype": mimetype,
-            "media": base64_data,
-            "fileName": file_name,
-            "caption": caption,
-        },
-    )
+    body: dict[str, Any] = {
+        "number": remote_jid,
+        "mediatype": media_kind,
+        "mimetype": mimetype,
+        "media": base64_data,
+        "fileName": file_name,
+        "caption": caption,
+    }
+    if quoted:
+        body["quoted"] = quoted
+    response = await _request("POST", f"/message/sendMedia/{instance}", timeout=120.0, json=body)
     return response.json()

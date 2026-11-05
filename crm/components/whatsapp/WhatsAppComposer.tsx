@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { FileText, Loader2, Paperclip, Send, X } from "lucide-react";
+import { FileText, Loader2, Paperclip, Send, Smile, X } from "lucide-react";
+import EmojiPicker from "@/components/whatsapp/EmojiPicker";
 import { formatFileSize } from "@/lib/whatsapp";
+import { insertAtCursor, type ReplyTarget } from "@/lib/whatsappReply";
 import { sendMedia, sendMessage, sendTyping } from "@/services/client/whatsappApi";
 import type { WhatsAppMessage } from "@/types/whatsapp";
 
@@ -18,10 +20,23 @@ type Props = {
   /** Arquivo solto na conversa (drag & drop feito pela janela). */
   droppedFile?: File | null;
   onDroppedFileHandled?: () => void;
+  /** Mensagem que está sendo respondida (mostrada numa barra acima do campo). */
+  replyTo?: ReplyTarget | null;
+  onCancelReply?: () => void;
 };
 
-export default function WhatsAppComposer({ remoteJid, disabled, onSent, droppedFile, onDroppedFileHandled }: Props) {
+export default function WhatsAppComposer({
+  remoteJid,
+  disabled,
+  onSent,
+  droppedFile,
+  onDroppedFileHandled,
+  replyTo,
+  onCancelReply,
+}: Props) {
   const [text, setText] = useState("");
+  const [emojiOpen, setEmojiOpen] = useState(false);
+  const emojiRef = useRef<HTMLDivElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
@@ -36,9 +51,32 @@ export default function WhatsAppComposer({ remoteJid, disabled, onSent, droppedF
       setText("");
       setFile(null);
       setError(null);
+      setEmojiOpen(false);
     }, 0);
     return () => window.clearTimeout(timer);
   }, [remoteJid]);
+
+  // Escolheu uma mensagem pra responder: o cursor volta pro campo.
+  useEffect(() => {
+    if (replyTo) areaRef.current?.focus();
+  }, [replyTo]);
+
+  // Seletor de emojis: fecha ao clicar fora ou com Esc.
+  useEffect(() => {
+    if (!emojiOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (emojiRef.current && !emojiRef.current.contains(e.target as Node)) setEmojiOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setEmojiOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [emojiOpen]);
 
   useEffect(() => {
     if (!droppedFile) return;
@@ -93,15 +131,30 @@ export default function WhatsAppComposer({ remoteJid, disabled, onSent, droppedF
 
   const canSend = !sending && !disabled && (file !== null || text.trim().length > 0);
 
+  // Emoji entra no cursor (ou no lugar do texto selecionado), como no WhatsApp Web.
+  function insertEmoji(emoji: string) {
+    const el = areaRef.current;
+    const result = insertAtCursor(text, el?.selectionStart ?? text.length, el?.selectionEnd ?? text.length, emoji);
+    setText(result.text);
+    requestAnimationFrame(() => {
+      el?.focus();
+      el?.setSelectionRange(result.cursor, result.cursor);
+    });
+  }
+
   async function handleSend() {
     if (!canSend) return;
     setSending(true);
     setError(null);
     try {
-      const message = file ? await sendMedia(remoteJid, file, text) : await sendMessage(remoteJid, text.trim());
+      const message = file
+        ? await sendMedia(remoteJid, file, text, replyTo?.id)
+        : await sendMessage(remoteJid, text.trim(), replyTo?.id);
       onSent(message);
+      onCancelReply?.();
       setText("");
       setFile(null);
+      setEmojiOpen(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Não foi possível enviar.");
     } finally {
@@ -139,9 +192,43 @@ export default function WhatsAppComposer({ remoteJid, disabled, onSent, droppedF
         </div>
       )}
 
+      {replyTo && (
+        <div className="mb-2 flex items-center gap-3 rounded-xl border border-border bg-surface-2 p-2 pl-3">
+          <div className="min-w-0 flex-1 border-l-4 border-accent pl-2.5">
+            <p className="truncate text-xs font-semibold text-accent">Respondendo a {replyTo.author === "Você" ? "você" : replyTo.author}</p>
+            <p className="line-clamp-2 break-words text-xs text-text-muted">{replyTo.text}</p>
+          </div>
+          <button
+            type="button"
+            onClick={onCancelReply}
+            aria-label="Cancelar resposta"
+            title="Cancelar resposta"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-text-muted transition-colors hover:bg-surface hover:text-danger"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
       {error && <p className="mb-2 px-1 text-xs text-danger">{error}</p>}
 
       <div className="flex items-end gap-2">
+        <div ref={emojiRef} className="relative shrink-0">
+          {emojiOpen && <EmojiPicker onPick={insertEmoji} />}
+          <button
+            type="button"
+            onClick={() => setEmojiOpen((open) => !open)}
+            disabled={sending || disabled}
+            title="Emojis"
+            aria-label="Emojis"
+            aria-expanded={emojiOpen}
+            className={`flex h-10 w-10 items-center justify-center rounded-full transition-colors hover:bg-surface-2 hover:text-text disabled:opacity-50 ${
+              emojiOpen ? "bg-surface-2 text-accent" : "text-text-muted"
+            }`}
+          >
+            <Smile className="h-5 w-5" />
+          </button>
+        </div>
         <input
           ref={fileInputRef}
           type="file"
@@ -174,6 +261,8 @@ export default function WhatsAppComposer({ remoteJid, disabled, onSent, droppedF
               e.preventDefault();
               handleSend();
             }
+            // Esc cancela a resposta (o seletor de emojis fecha pelo próprio Esc, em outro ouvinte).
+            if (e.key === "Escape" && replyTo && !emojiOpen) onCancelReply?.();
           }}
           onPaste={(e) => {
             const pasted = Array.from(e.clipboardData.files)[0];

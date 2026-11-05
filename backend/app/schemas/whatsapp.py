@@ -54,10 +54,18 @@ class WhatsAppMessage(BaseModel):
     media_filename: str | None = None
     # Em grupo: quem mandou (pra mostrar a foto ao lado do balão).
     sender_jid: str | None = None
+    # Quando é resposta a outra mensagem: id e trecho da citada, e de quem era
+    # (reply_from_me=None = a citada não está no nosso histórico).
+    reply_to_id: str | None = None
+    reply_text: str | None = None
+    reply_from_me: bool | None = None
+    reply_author: str | None = None
 
 
 class SendMessageInput(BaseModel):
     text: str
+    # Id da mensagem (da mesma conversa) que esta responde.
+    reply_to_id: str | None = None
 
     @field_validator("text")
     @classmethod

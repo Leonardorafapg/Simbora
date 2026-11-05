@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 
 from app.models.whatsapp_chat_label import WhatsAppChatLabel
 from app.models.whatsapp_message import WhatsAppMessage
-from app.services.whatsapp_format import message_preview
+from app.services.whatsapp_format import message_preview, quote_snippet
 
 
 def save_message(
@@ -31,6 +31,10 @@ def save_message(
     media_mimetype: str | None = None,
     media_filename: str | None = None,
     sender_jid: str | None = None,
+    reply_to_id: str | None = None,
+    reply_text: str | None = None,
+    reply_from_me: bool | None = None,
+    reply_author: str | None = None,
 ) -> WhatsAppMessage | None:
     """
     None se a mensagem já existia (dedup por message_id) — acontece quando o
@@ -55,6 +59,10 @@ def save_message(
         media_mimetype=media_mimetype,
         media_filename=media_filename,
         sender_jid=sender_jid,
+        reply_to_id=reply_to_id,
+        reply_text=reply_text,
+        reply_from_me=reply_from_me,
+        reply_author=reply_author,
     )
     db.add(message)
     try:
@@ -69,6 +77,20 @@ def save_message(
 
 def get_message(db: Session, message_id: str) -> WhatsAppMessage | None:
     return db.query(WhatsAppMessage).filter(WhatsAppMessage.message_id == message_id).first()
+
+
+def reply_fields(db: Session, quoted_id: str, snippet: str | None = None) -> dict[str, Any]:
+    """Campos de "resposta" pra gravar numa mensagem que cita `quoted_id`. Se a citada está no
+    nosso histórico, de lá vêm o trecho e de quem ela era; senão fica só o que a Evolution mandou."""
+    quoted = get_message(db, quoted_id)
+    if quoted is None:
+        return {"reply_to_id": quoted_id, "reply_text": snippet, "reply_from_me": None, "reply_author": None}
+    return {
+        "reply_to_id": quoted_id,
+        "reply_text": snippet or quote_snippet(quoted.text, quoted.media_type),
+        "reply_from_me": quoted.from_me,
+        "reply_author": None if quoted.from_me else quoted.sender_name,
+    }
 
 
 def update_message_status(db: Session, message_id: str, status: str) -> None:
