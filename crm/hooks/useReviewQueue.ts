@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { fetchCalendarEntries, fetchReviewsBatch, updateCalendarEntry } from "@/services/client/calendarApi";
 import { REVIEW_STAGE } from "@/lib/postReview";
-import type { CalendarEntry, CalendarEntryReview } from "@/types/calendar";
+import type { CalendarEntry, CalendarEntryReview, CalendarEntryUpdateInput } from "@/types/calendar";
 
 // Outra pessoa pode mexer nos posts (designer puxa de volta, outra revisora decide): a fila se corrige sozinha.
 const POLL_MS = 30_000;
@@ -59,9 +59,19 @@ export function useReviewQueue() {
     setEntries((prev) => prev.filter((e) => e.id !== entry.id));
   }
 
+  // Edição pelo diálogo completo do post (a mesma tela dos designers): atualiza o card na fila,
+  // e se o post saiu da checagem por outro caminho ele deixa a fila.
+  async function update(id: number, input: CalendarEntryUpdateInput): Promise<CalendarEntry> {
+    const saved = await updateCalendarEntry(id, input);
+    setEntries((prev) =>
+      saved.status === REVIEW_STAGE ? prev.map((e) => (e.id === id ? saved : e)) : prev.filter((e) => e.id !== id),
+    );
+    return saved;
+  }
+
   const approve = (entry: CalendarEntry) => decide(entry, { status: "finalizados" });
   const requestChanges = (entry: CalendarEntry, reason: string) =>
     decide(entry, { status: "modificacoes", review_reason: reason });
 
-  return { entries, reviews, loading, error, refresh, approve, requestChanges };
+  return { entries, reviews, loading, error, refresh, approve, requestChanges, update };
 }
